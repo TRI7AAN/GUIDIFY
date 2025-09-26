@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./guidify-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./guidify-backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    volumes:
+      - ./guidify-backend:/app
+
+  frontend:
+    build: ./guidify-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+  # worker: # For background jobs if we use celery/rq
+  #   build: ./guidify-backend
+  #   command: celery -A app.worker worker --loglevel=info
+  #   env_file:
+  #     - ./guidify-backend/.env
+  #   depends_on:
+  #     - redis

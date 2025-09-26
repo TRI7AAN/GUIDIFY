@@ -1,0 +1,10 @@
+{
+    "welcome": "Welcome to Guidify",
+    "dashboard": "Dashboard",
+    "courses": "Courses",
+    "jobs": "Jobs",
+    "profile": "Profile",
+    "recommendations": "Recommendations",
+    "loading": "Loading...",
+    "error": "Something went wrong"
+}

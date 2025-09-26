@@ -1,0 +1,107 @@
+[
+    {
+        "course_name": "Junior Software Developer",
+        "nsqf_level": 4,
+        "sector": "IT-ITeS",
+        "duration_hours": 400,
+        "certification_body": "NASSCOM"
+    },
+    {
+        "course_name": "Web Developer",
+        "nsqf_level": 5,
+        "sector": "IT-ITeS",
+        "duration_hours": 500,
+        "certification_body": "NIELIT"
+    },
+    {
+        "course_name": "AI - Data Quality Analyst",
+        "nsqf_level": 5,
+        "sector": "IT-ITeS",
+        "duration_hours": 450,
+        "certification_body": "NASSCOM"
+    },
+    {
+        "course_name": "IoT Technician",
+        "nsqf_level": 4,
+        "sector": "Electronics",
+        "duration_hours": 350,
+        "certification_body": "ESSCI"
+    },
+    {
+        "course_name": "Embedded Software Engineer",
+        "nsqf_level": 6,
+        "sector": "Electronics",
+        "duration_hours": 600,
+        "certification_body": "ESSCI"
+    },
+    {
+        "course_name": "Cloud Computing Professional",
+        "nsqf_level": 6,
+        "sector": "IT-ITeS",
+        "duration_hours": 550,
+        "certification_body": "NIELIT"
+    },
+    {
+        "course_name": "Cyber Security Analyst",
+        "nsqf_level": 6,
+        "sector": "IT-ITeS",
+        "duration_hours": 600,
+        "certification_body": "DSCI"
+    },
+    {
+        "course_name": "Data Scientist",
+        "nsqf_level": 7,
+        "sector": "IT-ITeS",
+        "duration_hours": 800,
+        "certification_body": "NASSCOM"
+    },
+    {
+        "course_name": "Machine Learning Engineer",
+        "nsqf_level": 7,
+        "sector": "IT-ITeS",
+        "duration_hours": 750,
+        "certification_body": "NASSCOM"
+    },
+    {
+        "course_name": "Blockchain Architect",
+        "nsqf_level": 7,
+        "sector": "IT-ITeS",
+        "duration_hours": 700,
+        "certification_body": "NASSCOM"
+    },
+    {
+        "course_name": "Solar Panel Installation Technician",
+        "nsqf_level": 4,
+        "sector": "Green Jobs",
+        "duration_hours": 300,
+        "certification_body": "SCGJ"
+    },
+    {
+        "course_name": "Drone Service Technician",
+        "nsqf_level": 4,
+        "sector": "Electronics",
+        "duration_hours": 350,
+        "certification_body": "ESSCI"
+    },
+    {
+        "course_name": "Robotics Automation Technician",
+        "nsqf_level": 5,
+        "sector": "Electronics",
+        "duration_hours": 500,
+        "certification_body": "ESSCI"
+    },
+    {
+        "course_name": "Full Stack Developer",
+        "nsqf_level": 6,
+        "sector": "IT-ITeS",
+        "duration_hours": 600,
+        "certification_body": "NASSCOM"
+    },
+    {
+        "course_name": "UI/UX Designer",
+        "nsqf_level": 5,
+        "sector": "IT-ITeS",
+        "duration_hours": 450,
+        "certification_body": "MESC"
+    }
+]
