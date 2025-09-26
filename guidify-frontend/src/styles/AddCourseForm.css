@@ -1,0 +1,82 @@
+:root {
+  --deep-space-blue: #0D0C1D;
+  --emerald-neon: #39FF14;
+  --lucid-lavender: #D0BFFF;
+  --cyber-white: #F0F8FF;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  background-color: var(--deep-space-blue);
+  font-family: 'Sora', sans-serif;
+  color: var(--cyber-white);
+}
+
+.course-form-container {
+  max-width: 700px;
+  margin: 4rem auto;
+  padding: 2rem;
+}
+
+.form-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+  color: var(--emerald-neon);
+}
+
+.course-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 2rem;
+  border-radius: 1rem;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 15px var(--lucid-lavender);
+}
+
+.course-form label {
+  font-weight: 500;
+  color: var(--lucid-lavender);
+}
+
+.course-form input,
+.course-form select,
+.course-form textarea {
+  padding: 0.8rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--lucid-lavender);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.course-form input:focus,
+.course-form select:focus,
+.course-form textarea:focus {
+  border-color: var(--emerald-neon);
+  box-shadow: 0 0 10px var(--emerald-neon);
+}
+
+.glow-button {
+  background: var(--emerald-neon);
+  color: black;
+  font-weight: bold;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1.1rem;
+  box-shadow: 0 0 15px var(--emerald-neon), 0 0 30px var(--emerald-neon);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.glow-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 25px var(--emerald-neon), 0 0 50px var(--emerald-neon);
+}

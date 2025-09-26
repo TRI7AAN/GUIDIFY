@@ -1,0 +1,40 @@
+:root {
+  --deep-space-blue: #0D0C1D;
+  --emerald-neon: #39FF14;
+  --lucid-lavender: #D0BFFF;
+  --cyber-white: #F0F8FF;
+  --glass-bg: rgba(255,255,255,0.05);
+  --glass-border: rgba(255,255,255,0.1);
+  --font-main: 'Sora', 'Inter', sans-serif;
+}
+
+body, .landing-bg {
+  background: var(--deep-space-blue);
+  font-family: var(--font-main);
+  color: var(--cyber-white);
+  min-height: 100vh;
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  border: 1.5px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: 0 4px 32px 0 rgba(57,255,20,0.08);
+  backdrop-filter: blur(12px);
+}
+
+.cta-btn {
+  background: var(--emerald-neon);
+  color: var(--deep-space-blue);
+  border-radius: 8px;
+  font-weight: 600;
+  padding: 0.75em 2em;
+  box-shadow: 0 0 12px var(--emerald-neon);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.cta-btn:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 24px var(--emerald-neon);
+}
+
+/* ...existing code for hero, features, testimonials, footer, blobs... */
