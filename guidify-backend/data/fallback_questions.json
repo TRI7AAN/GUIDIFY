@@ -1,0 +1,442 @@
+[
+    {
+        "question_text": "When faced with a tight deadline, how do you react?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "I create a strict schedule and stick to it",
+                "trait_impact": "Conscientiousness"
+            },
+            {
+                "text": "I work faster and more intensely",
+                "trait_impact": "Action-Oriented"
+            },
+            {
+                "text": "I ask for help to share the load",
+                "trait_impact": "Collaboration"
+            },
+            {
+                "text": "I look for shortcuts or easier ways",
+                "trait_impact": "Efficiency"
+            }
+        ]
+    },
+    {
+        "question_text": "How do you handle criticism?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "I use it to improve myself",
+                "trait_impact": "Growth Mindset"
+            },
+            {
+                "text": "I defend my position logically",
+                "trait_impact": "Confidence"
+            },
+            {
+                "text": "I feel hurt but try to hide it",
+                "trait_impact": "Sensitivity"
+            },
+            {
+                "text": "I ignore it if I don't agree",
+                "trait_impact": "Independence"
+            }
+        ]
+    },
+    {
+        "question_text": "What kind of books or movies do you prefer?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "Documentaries and non-fiction",
+                "trait_impact": "Curiosity"
+            },
+            {
+                "text": "Fantasy and sci-fi",
+                "trait_impact": "Imagination"
+            },
+            {
+                "text": "Biographies and history",
+                "trait_impact": "Realism"
+            },
+            {
+                "text": "Action and adventure",
+                "trait_impact": "Excitement"
+            }
+        ]
+    },
+    {
+        "question_text": "In a group discussion, you are usually...",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "The one listening and observing",
+                "trait_impact": "Observation"
+            },
+            {
+                "text": "The one leading the conversation",
+                "trait_impact": "Leadership"
+            },
+            {
+                "text": "The one making jokes",
+                "trait_impact": "Humor"
+            },
+            {
+                "text": "The one mediating conflicts",
+                "trait_impact": "Diplomacy"
+            }
+        ]
+    },
+    {
+        "question_text": "What is your ideal vacation?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "Exploring a new city and its culture",
+                "trait_impact": "Openness"
+            },
+            {
+                "text": "Relaxing on a beach doing nothing",
+                "trait_impact": "Relaxation"
+            },
+            {
+                "text": "Hiking and camping in nature",
+                "trait_impact": "Nature"
+            },
+            {
+                "text": "Partying with friends",
+                "trait_impact": "Social"
+            }
+        ]
+    },
+    {
+        "question_text": "How do you make important decisions?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "Based on logic and facts",
+                "trait_impact": "Analytical"
+            },
+            {
+                "text": "Based on my gut feeling",
+                "trait_impact": "Intuition"
+            },
+            {
+                "text": "After consulting with others",
+                "trait_impact": "Consensus"
+            },
+            {
+                "text": "I delay them as long as possible",
+                "trait_impact": "Procrastination"
+            }
+        ]
+    },
+    {
+        "question_text": "What annoys you the most?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "Incompetence and laziness",
+                "trait_impact": "High Standards"
+            },
+            {
+                "text": "Arrogance and rudeness",
+                "trait_impact": "Humility"
+            },
+            {
+                "text": "Chaos and disorder",
+                "trait_impact": "Orderliness"
+            },
+            {
+                "text": "Boredom and routine",
+                "trait_impact": "Novelty"
+            }
+        ]
+    },
+    {
+        "question_text": "If you won the lottery, what would you do first?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "Invest it wisely",
+                "trait_impact": "Prudence"
+            },
+            {
+                "text": "Travel the world",
+                "trait_impact": "Adventure"
+            },
+            {
+                "text": "Donate a large portion to charity",
+                "trait_impact": "Altruism"
+            },
+            {
+                "text": "Buy a big house and car",
+                "trait_impact": "Materialism"
+            }
+        ]
+    },
+    {
+        "question_text": "How do you approach learning a new skill?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "I read the manual or take a course",
+                "trait_impact": "Structured Learning"
+            },
+            {
+                "text": "I just start experimenting",
+                "trait_impact": "Hands-on"
+            },
+            {
+                "text": "I watch someone else do it first",
+                "trait_impact": "Visual Learning"
+            },
+            {
+                "text": "I ask an expert to teach me",
+                "trait_impact": "Mentorship"
+            }
+        ]
+    },
+    {
+        "question_text": "What is your biggest fear?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "Failure",
+                "trait_impact": "Perfectionism"
+            },
+            {
+                "text": "Being alone",
+                "trait_impact": "Social Need"
+            },
+            {
+                "text": "Boredom",
+                "trait_impact": "Stimulation Need"
+            },
+            {
+                "text": "Loss of control",
+                "trait_impact": "Autonomy"
+            }
+        ]
+    },
+    {
+        "question_text": "How organized is your workspace?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "Everything has its place",
+                "trait_impact": "Organization"
+            },
+            {
+                "text": "It's a bit messy but I know where things are",
+                "trait_impact": "Flexibility"
+            },
+            {
+                "text": "It's chaotic",
+                "trait_impact": "Disorder"
+            },
+            {
+                "text": "I don't have a fixed workspace",
+                "trait_impact": "Nomadic"
+            }
+        ]
+    },
+    {
+        "question_text": "Do you prefer detailed planning or spontaneity?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "Detailed planning",
+                "trait_impact": "Planning"
+            },
+            {
+                "text": "Spontaneity",
+                "trait_impact": "Spontaneity"
+            },
+            {
+                "text": "A mix of both",
+                "trait_impact": "Balance"
+            },
+            {
+                "text": "Neither, I just go with the flow",
+                "trait_impact": "Easy-going"
+            }
+        ]
+    },
+    {
+        "question_text": "How do you handle stress?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "I exercise or meditate",
+                "trait_impact": "Healthy Coping"
+            },
+            {
+                "text": "I talk to friends",
+                "trait_impact": "Social Support"
+            },
+            {
+                "text": "I withdraw and spend time alone",
+                "trait_impact": "Withdrawal"
+            },
+            {
+                "text": "I eat or sleep more",
+                "trait_impact": "Comfort Seeking"
+            }
+        ]
+    },
+    {
+        "question_text": "What role does tradition play in your life?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "It's very important to me",
+                "trait_impact": "Traditionalism"
+            },
+            {
+                "text": "I respect it but like new things too",
+                "trait_impact": "Moderate"
+            },
+            {
+                "text": "I prefer innovation over tradition",
+                "trait_impact": "Innovation"
+            },
+            {
+                "text": "I think traditions are outdated",
+                "trait_impact": "Rebellion"
+            }
+        ]
+    },
+    {
+        "question_text": "How trusting are you of new people?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "I trust everyone until given a reason not to",
+                "trait_impact": "Trusting"
+            },
+            {
+                "text": "I am cautious until I know them better",
+                "trait_impact": "Caution"
+            },
+            {
+                "text": "I am generally skeptical",
+                "trait_impact": "Skepticism"
+            },
+            {
+                "text": "I don't trust anyone easily",
+                "trait_impact": "Distrust"
+            }
+        ]
+    },
+    {
+        "question_text": "What is your definition of success?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "Wealth and power",
+                "trait_impact": "Ambition"
+            },
+            {
+                "text": "Happiness and contentment",
+                "trait_impact": "Well-being"
+            },
+            {
+                "text": "Making a difference in the world",
+                "trait_impact": "Impact"
+            },
+            {
+                "text": "Having a loving family",
+                "trait_impact": "Family"
+            }
+        ]
+    },
+    {
+        "question_text": "How do you view rules?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "They are meant to be followed",
+                "trait_impact": "Compliance"
+            },
+            {
+                "text": "They are guidelines, not absolutes",
+                "trait_impact": "Flexibility"
+            },
+            {
+                "text": "They are often unnecessary restrictions",
+                "trait_impact": "Independence"
+            },
+            {
+                "text": "I prefer to make my own rules",
+                "trait_impact": "Autonomy"
+            }
+        ]
+    },
+    {
+        "question_text": "What is your energy level usually like?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "High and constant",
+                "trait_impact": "High Energy"
+            },
+            {
+                "text": "It fluctuates during the day",
+                "trait_impact": "Variable Energy"
+            },
+            {
+                "text": "I am often tired",
+                "trait_impact": "Low Energy"
+            },
+            {
+                "text": "I have bursts of energy followed by rest",
+                "trait_impact": "Burst Energy"
+            }
+        ]
+    },
+    {
+        "question_text": "How important is art and beauty to you?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "Essential, I seek it out daily",
+                "trait_impact": "Aesthetics"
+            },
+            {
+                "text": "Nice to have, but not a priority",
+                "trait_impact": "Utility"
+            },
+            {
+                "text": "I don't pay much attention to it",
+                "trait_impact": "Indifference"
+            },
+            {
+                "text": "I prefer practical functionality",
+                "trait_impact": "Pragmatism"
+            }
+        ]
+    },
+    {
+        "question_text": "How do you handle conflict?",
+        "question_type": "multiple_choice",
+        "options": [
+            {
+                "text": "I address it directly and immediately",
+                "trait_impact": "Directness"
+            },
+            {
+                "text": "I try to find a compromise",
+                "trait_impact": "Compromise"
+            },
+            {
+                "text": "I avoid it if possible",
+                "trait_impact": "Avoidance"
+            },
+            {
+                "text": "I get others to intervene",
+                "trait_impact": "Mediation"
+            }
+        ]
+    }
+]

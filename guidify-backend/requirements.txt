@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-dotenv
+requests
+pydantic>=2.0
+google-genai
+supabase
+PyPDF2
+python-docx
+pdf2image
+pytesseract
+python-multipart
+pillow
