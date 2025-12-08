@@ -188,17 +188,28 @@ def recommend_nsqf_courses(current_tier: str, career_goal: str) -> List[Dict[str
     }
     target_levels = tier_map.get(current_tier, [3, 4]) # Default to Novice
     
-    # 2. Fetch Verified Courses (DB or JSON Fallback)
+    # 2. Fetch Verified Courses (DB first, then JSON Fallback)
     courses = []
-    # Try DB first (optional, can comment out if DB is slow/empty)
-    # try:
-    #     response = supabase.table("verified_courses").select("*").in_("nsqf_level", target_levels).execute()
-    #     courses = response.data
-    # except Exception as e:
-    #     print(f"DB Fetch failed: {e}")
+    try:
+        # Fetch from our new verified_courses table
+        # We need to filter by NSQF level. 
+        # Supabase 'in_' expects a list.
+        response = supabase.table("verified_courses")\
+            .select("*")\
+            .in_("nsqf_level", target_levels)\
+            .execute()
+        
+        # Convert DB response to list of dicts
+        courses = response.data
+        
+        print(f"Fetched {len(courses)} verified courses from DB for levels {target_levels}")
+        
+    except Exception as e:
+        print(f"DB Fetch failed: {e}")
         
     if not courses:
-        # Use pre-loaded JSON data
+        # Use pre-loaded JSON data as fallback
+        print("Using JSON fallback for NCVET courses")
         courses = [c for c in NCVET_COURSES if c.get("nsqf_level") in target_levels]
 
     if not courses:

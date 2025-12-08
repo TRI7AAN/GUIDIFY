@@ -5,6 +5,8 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../styles/theme';
+import LanguageSwitcher from '../common/LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 
 // Styled components
 const NavbarContainer = styled.nav`
@@ -289,6 +291,7 @@ const Navbar = () => {
   const { user, isAuthenticated, logout, onboardingComplete } = useAuth();
   const { isActive, currentPath } = useNavigation();
   const { navigateTo } = useNavigation();
+  const { t } = useTranslation();
 
   // Handle scroll effect
   useEffect(() => {
@@ -334,14 +337,13 @@ const Navbar = () => {
             onboardingComplete ? (
               <>
                 <NavLink to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
-                  Dashboard
+                  {t('dashboard')}
                 </NavLink>
               </>
             ) : null
           ) : (
             // Links for non-authenticated users
             <>
-
               <NavLink to="/#features" onClick={(e) => {
                 e.preventDefault();
                 document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
@@ -359,6 +361,9 @@ const Navbar = () => {
               </NavLink>
             </>
           )}
+
+          <LanguageSwitcher />
+
         </NavLinks>
 
         {isAuthenticated ? (
@@ -381,7 +386,7 @@ const Navbar = () => {
                   transition={{ duration: 0.2 }}
                 >
                   <UserMenuItem as={Link} to="/dashboard">
-                    Dashboard
+                    {t('dashboard')}
                   </UserMenuItem>
                   <UserMenuItem as={Link} to="/stats">
                     Statistics
@@ -390,7 +395,7 @@ const Navbar = () => {
                     Organizations
                   </UserMenuItem>
                   <UserMenuItem onClick={handleLogout}>
-                    Logout
+                    {t('logout')}
                   </UserMenuItem>
                 </UserMenuDropdown>
               )}
@@ -405,13 +410,13 @@ const Navbar = () => {
                 borderRadius: '8px',
                 cursor: 'pointer'
               }}>
-                Logout
+                {t('logout')}
               </button>
             </AuthButtons>
           )
         ) : (
           <AuthButtons>
-            <LoginButton to="/login">Log In</LoginButton>
+            <LoginButton to="/login">{t('login')}</LoginButton>
             <SignupButton to="/register">Sign Up</SignupButton>
           </AuthButtons>
         )}
@@ -432,12 +437,15 @@ const Navbar = () => {
               <CloseIcon />
             </CloseButton>
 
+            <div style={{ paddingBottom: '1rem', borderBottom: '1px solid var(--glass-border)' }}>
+              <LanguageSwitcher />
+            </div>
 
             {isAuthenticated ? (
               // Mobile links for authenticated users
               <>
                 <MobileNavLink to="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
-                  Dashboard
+                  {t('dashboard')}
                 </MobileNavLink>
                 <MobileNavLink to="/stats" className={isActive('/stats') ? 'active' : ''}>
                   Statistics

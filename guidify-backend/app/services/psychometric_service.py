@@ -165,7 +165,7 @@ class PsychometricService:
             response = ask_gemini(prompt, model="gemini-2.5-flash-lite")
         except Exception as e:
             print(f"Model gemini-2.5-flash-lite failed: {e}. Falling back to gemini-1.5-flash")
-            response = ask_gemini(prompt, model="gemini-1.5-flash")
+            response = ask_gemini(prompt, model="gemini-2.5-flash-lite")
             
         analysis_result = extract_json_from_response(response)
         

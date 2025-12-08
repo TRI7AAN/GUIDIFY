@@ -1,0 +1,182 @@
+[
+    {
+        "name": "Indian Institute of Technology (IIT) Bombay",
+        "location": "Mumbai, Maharashtra",
+        "stream": "Engineering",
+        "ranking": 1,
+        "placement_rate": 98,
+        "avg_salary": 2200000,
+        "type": "Public"
+    },
+    {
+        "name": "Delhi University (DU)",
+        "location": "New Delhi, Delhi",
+        "stream": "Arts/Science/Commerce",
+        "ranking": 1,
+        "placement_rate": 85,
+        "avg_salary": 800000,
+        "type": "Public"
+    },
+    {
+        "name": "Indian Institute of Management (IIM) Ahmedabad",
+        "location": "Ahmedabad, Gujarat",
+        "stream": "Management",
+        "ranking": 1,
+        "placement_rate": 100,
+        "avg_salary": 3200000,
+        "type": "Public"
+    },
+    {
+        "name": "All India Institute of Medical Sciences (AIIMS)",
+        "location": "New Delhi, Delhi",
+        "stream": "Medical",
+        "ranking": 1,
+        "placement_rate": 100,
+        "avg_salary": 1800000,
+        "type": "Public"
+    },
+    {
+        "name": "National Institute of Design (NID)",
+        "location": "Ahmedabad, Gujarat",
+        "stream": "Design",
+        "ranking": 1,
+        "placement_rate": 90,
+        "avg_salary": 1200000,
+        "type": "Public"
+    },
+    {
+        "name": "Vellore Institute of Technology (VIT)",
+        "location": "Vellore, Tamil Nadu",
+        "stream": "Engineering",
+        "ranking": 12,
+        "placement_rate": 92,
+        "avg_salary": 900000,
+        "type": "Private"
+    },
+    {
+        "name": "SRM Institute of Science and Technology",
+        "location": "Chennai, Tamil Nadu",
+        "stream": "Engineering",
+        "ranking": 20,
+        "placement_rate": 90,
+        "avg_salary": 750000,
+        "type": "Private"
+    },
+    {
+        "name": "Loyola College",
+        "location": "Chennai, Tamil Nadu",
+        "stream": "Arts/Science",
+        "ranking": 3,
+        "placement_rate": 80,
+        "avg_salary": 600000,
+        "type": "Private"
+    },
+    {
+        "name": "St. Xavier's College",
+        "location": "Mumbai, Maharashtra",
+        "stream": "Arts/Science/Commerce",
+        "ranking": 5,
+        "placement_rate": 75,
+        "avg_salary": 650000,
+        "type": "Private"
+    },
+    {
+        "name": "Christ University",
+        "location": "Bangalore, Karnataka",
+        "stream": "Commerce/Management",
+        "ranking": 8,
+        "placement_rate": 88,
+        "avg_salary": 700000,
+        "type": "Private"
+    },
+    {
+        "name": "Banaras Hindu University (BHU)",
+        "location": "Varanasi, Uttar Pradesh",
+        "stream": "Arts/Science/Engineering",
+        "ranking": 6,
+        "placement_rate": 82,
+        "avg_salary": 850000,
+        "type": "Public"
+    },
+    {
+        "name": "Jadavpur University",
+        "location": "Kolkata, West Bengal",
+        "stream": "Engineering/Arts",
+        "ranking": 4,
+        "placement_rate": 95,
+        "avg_salary": 1100000,
+        "type": "Public"
+    },
+    {
+        "name": "Manipal Academy of Higher Education",
+        "location": "Manipal, Karnataka",
+        "stream": "Engineering/Medical",
+        "ranking": 10,
+        "placement_rate": 91,
+        "avg_salary": 1000000,
+        "type": "Private"
+    },
+    {
+        "name": "Amity University",
+        "location": "Noida, Uttar Pradesh",
+        "stream": "Management/Engineering",
+        "ranking": 25,
+        "placement_rate": 85,
+        "avg_salary": 600000,
+        "type": "Private"
+    },
+    {
+        "name": "Tata Institute of Social Sciences (TISS)",
+        "location": "Mumbai, Maharashtra",
+        "stream": "Social Sciences",
+        "ranking": 2,
+        "placement_rate": 100,
+        "avg_salary": 2000000,
+        "type": "Public"
+    },
+    {
+        "name": "National Institute of Fashion Technology (NIFT)",
+        "location": "New Delhi, Delhi",
+        "stream": "Design",
+        "ranking": 1,
+        "placement_rate": 94,
+        "avg_salary": 800000,
+        "type": "Public"
+    },
+    {
+        "name": "Indian Statistical Institute (ISI)",
+        "location": "Kolkata, West Bengal",
+        "stream": "Science (Statistics)",
+        "ranking": 1,
+        "placement_rate": 100,
+        "avg_salary": 2400000,
+        "type": "Public"
+    },
+    {
+        "name": "BITS Pilani",
+        "location": "Pilani, Rajasthan",
+        "stream": "Engineering",
+        "ranking": 5,
+        "placement_rate": 99,
+        "avg_salary": 1800000,
+        "type": "Private"
+    },
+    {
+        "name": "Symbiosis Institute of Business Management",
+        "location": "Pune, Maharashtra",
+        "stream": "Management",
+        "ranking": 15,
+        "placement_rate": 98,
+        "avg_salary": 2100000,
+        "type": "Private"
+    },
+    {
+        "name": "Institute of Hotel Management (IHM)",
+        "location": "Mumbai, Maharashtra",
+        "stream": "Hospitality",
+        "ranking": 1,
+        "placement_rate": 95,
+        "avg_salary": 500000,
+        "type": "Public"
+    }
+]

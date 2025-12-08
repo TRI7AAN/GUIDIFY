@@ -1,35 +1,27 @@
 -- Create table for NCVET verified courses
-create table if not exists verified_courses (
-  id uuid default gen_random_uuid() primary key,
-  course_name text not null,
-  nsqf_level int not null check (nsqf_level between 1 and 10),
-  sector text not null,
-  duration_hours int not null,
-  certification_body text not null,
-  created_at timestamptz default now()
+CREATE TABLE IF NOT EXISTS public.verified_courses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    course_name TEXT NOT NULL,
+    nsqf_level INTEGER NOT NULL,
+    sector TEXT,
+    certification_body TEXT, -- e.g. NCVET, NSDC
+    duration_hours INTEGER,
+    min_eligibility TEXT,
+    job_roles TEXT[],
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Enable Row Level Security
-alter table verified_courses enable row level security;
+-- Index for fast recommendation lookups
+CREATE INDEX IF NOT EXISTS idx_verified_courses_level ON verified_courses(nsqf_level);
+CREATE INDEX IF NOT EXISTS idx_verified_courses_sector ON verified_courses(sector);
 
--- Drop existing policies to avoid errors on re-run
-drop policy if exists "Allow read access for authenticated users" on verified_courses;
-drop policy if exists "Allow read access for anon users" on verified_courses;
-drop policy if exists "Allow insert for all" on verified_courses;
+-- RLS Policies (Public Read, Admin Write)
+ALTER TABLE public.verified_courses ENABLE ROW LEVEL SECURITY;
 
--- Create policy to allow read access for authenticated users
-create policy "Allow read access for authenticated users"
-  on verified_courses for select
-  to authenticated
-  using (true);
+CREATE POLICY "Public can view verified courses" 
+ON public.verified_courses FOR SELECT 
+TO public 
+USING (true);
 
--- Create policy to allow read access for anon users (if needed for public pages)
-create policy "Allow read access for anon users"
-  on verified_courses for select
-  to anon
-  using (true);
-
--- Create policy to allow insert for all (needed for seeding)
-create policy "Allow insert for all"
-  on verified_courses for insert
-  with check (true);
+-- Assuming only service_role (admin) can insert/update
+-- No policy needed for service_role as it bypasses RLS

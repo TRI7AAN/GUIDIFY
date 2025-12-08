@@ -202,7 +202,7 @@ const AdaptivePersonalityTest = () => {
 
             console.log("Analysis complete:", res);
 
-            // 2. Save to Supabase Profiles Table (Frontend Save)
+            // 2. Save to Supabase Profiles Table
             const { error } = await supabase
                 .from('profiles')
                 .update({
@@ -212,13 +212,20 @@ const AdaptivePersonalityTest = () => {
                 })
                 .eq('user_id', user.id);
 
-            if (error) {
-                console.error("Error saving profile:", error);
-                throw error;
-            }
+            if (error) throw error;
 
-            // 3. HARD Redirect to Dashboard
-            window.location.href = '/dashboard';
+            console.log("Profile updated. Notifying context...");
+
+            // 3. Notify Context - CRITICAL FIX for "Loop/Freeze" logic
+            // We rely on Onboarding.jsx's useEffect to handle the redirect safely
+            // This prevents "Last Question Freeze" where state isn't synced
+
+            // Artificial delay to show the "Analyzing" animation for at least 2 seconds
+            // This is also good UX ("The AI is thinking")
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('onboarding:complete'));
+            }, 2000);
+
         } catch (error) {
             console.error("Analysis/Save failed:", error);
             setAnalyzing(false);

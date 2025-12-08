@@ -1,0 +1,189 @@
+[
+    {
+        "course_name": "Solar PV Installer (Suryamitra)",
+        "nsqf_level": 4,
+        "sector": "Green Jobs",
+        "certification_body": "SCGJ",
+        "duration_hours": 300,
+        "min_eligibility": "10th Pass",
+        "job_roles": [
+            "Solar Installer",
+            "Site Technician"
+        ],
+        "reason": "High demand in renewable energy sector."
+    },
+    {
+        "course_name": "Data Associate",
+        "nsqf_level": 7,
+        "sector": "IT-ITeS",
+        "certification_body": "NASSCOM",
+        "duration_hours": 400,
+        "min_eligibility": "Graduate",
+        "job_roles": [
+            "Data Analyst",
+            "Junior Data Scientist"
+        ],
+        "reason": "Entry level role for Data Science pathway."
+    },
+    {
+        "course_name": "Junior Software Developer",
+        "nsqf_level": 5,
+        "sector": "IT-ITeS",
+        "certification_body": "NASSCOM",
+        "duration_hours": 400,
+        "min_eligibility": "12th Pass / Diploma",
+        "job_roles": [
+            "Developer",
+            "Programmer"
+        ],
+        "reason": "Core foundational role for software careers."
+    },
+    {
+        "course_name": "Automotive Service Technician (Two and Three Wheelers)",
+        "nsqf_level": 4,
+        "sector": "Automotive",
+        "certification_body": "ASDC",
+        "duration_hours": 350,
+        "min_eligibility": "10th Pass",
+        "job_roles": [
+            "Service Technician",
+            "Mechanic"
+        ],
+        "reason": "Steady demand in automotive service centers."
+    },
+    {
+        "course_name": "General Duty Assistant",
+        "nsqf_level": 4,
+        "sector": "Healthcare",
+        "certification_body": "HSSC",
+        "duration_hours": 400,
+        "min_eligibility": "10th Pass",
+        "job_roles": [
+            "Nurse Assistant",
+            "Patient Caret"
+        ],
+        "reason": "Critical role in healthcare infrastructure."
+    },
+    {
+        "course_name": "Field Technician - Computing and Peripherals",
+        "nsqf_level": 4,
+        "sector": "Electronics",
+        "certification_body": "ESSCI",
+        "duration_hours": 300,
+        "min_eligibility": "12th Pass",
+        "job_roles": [
+            "Hardware Technician"
+        ],
+        "reason": "Essential for hardware maintenance and support."
+    },
+    {
+        "course_name": "Retail Sales Associate",
+        "nsqf_level": 4,
+        "sector": "Retail",
+        "certification_body": "RASCI",
+        "duration_hours": 280,
+        "min_eligibility": "10th Pass",
+        "job_roles": [
+            "Sales Associate",
+            "Store Assistant"
+        ],
+        "reason": "Entry point for retail management careers."
+    },
+    {
+        "course_name": "Assistant Electrician",
+        "nsqf_level": 3,
+        "sector": "Construction",
+        "certification_body": "CSDCI",
+        "duration_hours": 350,
+        "min_eligibility": "10th Pass",
+        "job_roles": [
+            "Electrician Assistant"
+        ],
+        "reason": "Fundamental construction skill with high employability."
+    },
+    {
+        "course_name": "Yoga Instructor (Bilingual)",
+        "nsqf_level": 5,
+        "sector": "Beauty & Wellness",
+        "certification_body": "B&WSSC",
+        "duration_hours": 400,
+        "min_eligibility": "12th Pass",
+        "job_roles": [
+            "Yoga Trainer"
+        ],
+        "reason": "Growing wellness industry demand."
+    },
+    {
+        "course_name": "Drone Service Technician",
+        "nsqf_level": 4,
+        "sector": "Electronics",
+        "certification_body": "ESSCI",
+        "duration_hours": 300,
+        "min_eligibility": "12th Pass / ITI",
+        "job_roles": [
+            "Drone Mechanic"
+        ],
+        "reason": "Emerging technology sector role."
+    },
+    {
+        "course_name": "Organic Grower",
+        "nsqf_level": 4,
+        "sector": "Agriculture",
+        "certification_body": "ASCI",
+        "duration_hours": 200,
+        "min_eligibility": "5th Pass",
+        "job_roles": [
+            "Organic Farmer"
+        ],
+        "reason": "Sustainable agriculture practice."
+    },
+    {
+        "course_name": "Cyber Security Analyst",
+        "nsqf_level": 7,
+        "sector": "IT-ITeS",
+        "certification_body": "DSCI",
+        "duration_hours": 500,
+        "min_eligibility": "Graduate",
+        "job_roles": [
+            "Security Analyst"
+        ],
+        "reason": "High demand cybersecurity role."
+    },
+    {
+        "course_name": "AI - Data Quality Analyst",
+        "nsqf_level": 5,
+        "sector": "IT-ITeS",
+        "certification_body": "NASSCOM",
+        "duration_hours": 400,
+        "min_eligibility": "Diploma / Graduate",
+        "job_roles": [
+            "Data Labeler",
+            "QA Analyst"
+        ],
+        "reason": "entry into AI ecosystem."
+    },
+    {
+        "course_name": "Cloud Computing - Junior Architect",
+        "nsqf_level": 6,
+        "sector": "IT-ITeS",
+        "certification_body": "NASSCOM",
+        "duration_hours": 450,
+        "min_eligibility": "Graduate",
+        "job_roles": [
+            "Cloud Support"
+        ],
+        "reason": "Cloud infrastructure basics."
+    },
+    {
+        "course_name": "Handset Repair Engineer (Level II)",
+        "nsqf_level": 4,
+        "sector": "Telecom",
+        "certification_body": "TSSC",
+        "duration_hours": 340,
+        "min_eligibility": "12th / ITI",
+        "job_roles": [
+            "Mobile Repair Tech"
+        ],
+        "reason": "Mass market repair service role."
+    }
+]

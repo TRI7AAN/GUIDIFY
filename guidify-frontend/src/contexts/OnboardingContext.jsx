@@ -8,6 +8,8 @@ export const useOnboarding = () => useContext(OnboardingContext);
 
 export const OnboardingProvider = ({ children }) => {
   const { user, updateOnboardingStatus } = useAuth();
+
+  // Local Form State
   const [profileData, setProfileData] = useState({
     name: '',
     age: '',
@@ -17,210 +19,154 @@ export const OnboardingProvider = ({ children }) => {
   });
 
   const [quizResponses, setQuizResponses] = useState([]);
-  const [quizScores, setQuizScores] = useState({
-    Analytical: 0,
-    Creative: 0,
-    Social: 0,
-    Business: 0,
-    Science: 0,
-  });
-
+  const [quizScores, setQuizScores] = useState(null);
   const [careerSuggestion, setCareerSuggestion] = useState('');
-  const [onboardingComplete, setOnboardingComplete] = useState(false);
+
+  // Flow State
   const [currentStep, setCurrentStep] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start loading until we verify step
   const [error, setError] = useState(null);
-  const lastCheckTimestampRef = React.useRef(0);
 
-  // Helper function to fetch quiz data
-  const fetchQuizData = async (userId) => {
-    try {
-      const { data: quizData, error: quizError } = await supabase
-        .from('quiz_responses')
-        .select('*')
-        .eq('user_id', userId);
+  /**
+   * Initialize Onboarding State
+   * Fetches current step and form data from DB.
+   */
+  useEffect(() => {
+    let mounted = true;
 
-      if (quizError) {
-        console.error('Error fetching quiz responses:', quizError);
-      } else if (quizData && quizData.length > 0) {
-        setQuizResponses(quizData);
-      }
-    } catch (err) {
-      console.error('Error in fetchQuizData:', err);
-    }
-  };
-
-  // Memoized function to check onboarding status
-  const checkOnboardingStatus = useCallback(async (forceRefresh = false) => {
-    // Prevent excessive calls - only check once every 5 seconds unless forced
-    const now = Date.now();
-    if (!forceRefresh && now - lastCheckTimestampRef.current < 5000) {
-      return;
-    }
-
-    if (!user || !user.id) return;
-
-    // Reset error state
-    setError(null);
-    setIsLoading(true);
-    lastCheckTimestampRef.current = now;
-
-    try {
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No profile found, acceptable for new users
-          return;
-        }
-        console.error("Profile fetch failed:", error.message);
+    const initOnboarding = async () => {
+      if (!user) {
+        setIsLoading(false);
         return;
       }
 
-      if (profileData) {
-        setProfileData({
-          name: profileData.name || '',
-          age: profileData.age || '',
-          gender: profileData.gender || '',
-          currentClass: profileData.current_class || '',
-          location: profileData.location || '',
-        });
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
 
-        // Check if onboarding is completed directly from the profile
-        const isComplete = profileData.onboarding_complete || false;
-        setOnboardingComplete(isComplete);
-
-        // Sync with AuthContext ONLY if different
-        // This prevents the infinite loop: AuthContext updates -> OnboardingContext updates -> AuthContext updates
-        // We assume AuthContext is the source of truth for the router, but we can update it if we have fresher data
-        if (isComplete && updateOnboardingStatus) {
-          updateOnboardingStatus(true); // Re-enabled to ensure sync
+        if (error && error.code !== 'PGRST116') {
+          throw error;
         }
 
-        // Restore current step from DB
-        if (!isComplete) {
-          setCurrentStep(profileData.onboarding_step || 0);
-        }
+        if (mounted && data) {
+          setProfileData({
+            name: data.name || '',
+            age: data.age || '',
+            gender: data.gender || '',
+            currentClass: data.current_class || '',
+            location: data.location || '',
+          });
 
-        // Fetch quiz data
-        await fetchQuizData(user.id);
+          // Restore quiz state if exists
+          if (data.category_scores) setQuizScores(data.category_scores);
+          if (data.career_suggestion) setCareerSuggestion(data.career_suggestion);
 
-        // If we have category scores stored
-        if (profileData.category_scores) {
-          setQuizScores(profileData.category_scores);
+          // Determine step:
+          // If DB says completed, but we are in Onboarding flow, maybe redirect?
+          // The Page component handles redirection. We just provide truth.
+          if (data.onboarding_complete) {
+            updateOnboardingStatus(true);
+          } else {
+            setCurrentStep(data.onboarding_step || 0);
+          }
         }
-
-        if (profileData.career_suggestion) {
-          setCareerSuggestion(profileData.career_suggestion);
-        }
+      } catch (err) {
+        console.error("Onboarding init error:", err);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Error checking onboarding status:', error.message);
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id, updateOnboardingStatus]); // Added updateOnboardingStatus back as it's used
+    };
 
-  // Check if user has completed onboarding
-  useEffect(() => {
-    if (user?.id) {
-      checkOnboardingStatus();
-    }
-  }, [user?.id, checkOnboardingStatus]);
+    initOnboarding();
 
+    return () => { mounted = false; };
+  }, [user]);
+
+  /**
+   * Save Step 1: Profile Info
+   */
   const saveProfileData = async () => {
     try {
       setIsLoading(true);
+      const updates = {
+        user_id: user.id,
+        name: profileData.name,
+        age: profileData.age,
+        gender: profileData.gender,
+        current_class: profileData.currentClass,
+        location: profileData.location,
+        role: 'student',
+        onboarding_step: 1, // Advance to next step
+        updated_at: new Date(),
+      };
+
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
-          name: profileData.name,
-          age: profileData.age,
-          gender: profileData.gender,
-          current_class: profileData.currentClass,
-          location: profileData.location,
-          role: 'student',
-          onboarding_step: 1, // Move to next step (Personality Test)
-          updated_at: new Date(),
-        });
-
-      console.log('[OnboardingContext] saveProfileData result:', { error });
+        .upsert(updates);
 
       if (error) throw error;
 
-      // Update local state immediately
       setCurrentStep(1);
       return true;
-    } catch (error) {
-      console.error('Error saving profile data:', error);
+    } catch (err) {
+      console.error("Save profile error:", err);
+      setError(err.message);
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * Save Step 2: Quiz Responses
+   */
   const saveQuizResponses = async () => {
     try {
       setIsLoading(true);
 
-      // Save raw quiz responses
-      const { error } = await supabase
+      // 1. Save responses
+      const { error: quizError } = await supabase
         .from('quiz_responses')
         .upsert(
-          quizResponses.map(response => ({
+          quizResponses.map(r => ({
             user_id: user.id,
-            question_id: response.questionId,
-            answer_id: response.answerId,
-            created_at: new Date(),
+            question_id: r.questionId,
+            answer_id: r.answerId,
+            created_at: new Date()
           }))
         );
 
-      if (error) throw error;
+      if (quizError) throw quizError;
 
-      // Update profile with category scores and move to next step
+      // 2. Update scores & step in profile
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           category_scores: quizScores,
-          onboarding_step: 2, // Move to next step (Radar Chart)
-          updated_at: new Date(),
+          onboarding_step: 2,
+          updated_at: new Date()
         })
         .eq('user_id', user.id);
 
       if (profileError) throw profileError;
 
-      // Also ensure a record exists in personality_assessments for the backend service
-      try {
-        await supabase
-          .from('personality_assessments')
-          .upsert({
-            user_id: user.id,
-            status: 'in_progress',
-            current_question_index: quizResponses.length,
-            updated_at: new Date()
-          }, { onConflict: 'user_id' });
-      } catch (e) {
-        console.warn("Could not sync to personality_assessments (non-critical):", e);
-      }
-
-      if (profileError) throw profileError;
-
       setCurrentStep(2);
       return true;
-    } catch (error) {
-      console.error('Error saving quiz responses:', error);
+    } catch (err) {
+      console.error("Save quiz error:", err);
+      setError(err.message);
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * Save Step 3/4: Completion
+   */
   const saveCareerSuggestion = async (suggestion) => {
     try {
       setIsLoading(true);
@@ -229,18 +175,18 @@ export const OnboardingProvider = ({ children }) => {
         .update({
           career_suggestion: suggestion,
           onboarding_complete: true,
-          onboarding_step: 4, // Completed
-          updated_at: new Date(),
+          onboarding_step: 4,
+          updated_at: new Date()
         })
         .eq('user_id', user.id);
 
       if (error) throw error;
 
       setCareerSuggestion(suggestion);
-      setOnboardingComplete(true);
+      updateOnboardingStatus(true); // Notify AuthContext
       return true;
-    } catch (error) {
-      console.error('Error saving career suggestion:', error);
+    } catch (err) {
+      console.error("Save completion error:", err);
       return false;
     } finally {
       setIsLoading(false);
@@ -248,24 +194,15 @@ export const OnboardingProvider = ({ children }) => {
   };
 
   const calculateCategoryScores = (responses) => {
-    // Count selections per category (case-insensitive)
-    const counts = {
-      Analytical: 0,
-      Creative: 0,
-      Social: 0,
-      Business: 0,
-      Science: 0,
-    };
-
-    responses.forEach(response => {
-      const raw = (response.answerId || '').toString().toLowerCase();
-      const cat = raw === 'tech' ? 'Science' :
-        raw === 'analytical' ? 'Analytical' :
-          raw === 'creative' ? 'Creative' :
-            raw === 'social' ? 'Social' :
-              raw === 'business' ? 'Business' :
-                raw === 'science' ? 'Science' : null;
-      if (cat) counts[cat] += 1;
+    const counts = { Analytical: 0, Creative: 0, Social: 0, Business: 0, Science: 0 };
+    responses.forEach(r => {
+      const raw = (r.answerId || '').toString().toLowerCase();
+      // Simple mapping logic (can be expanded)
+      if (raw.includes('tech') || raw.includes('science')) counts.Science++;
+      else if (raw.includes('analy') || raw.includes('logic')) counts.Analytical++;
+      else if (raw.includes('creat') || raw.includes('art')) counts.Creative++;
+      else if (raw.includes('social') || raw.includes('help')) counts.Social++;
+      else if (raw.includes('busin') || raw.includes('lead')) counts.Business++;
     });
 
     const total = responses.length || 1;
@@ -276,35 +213,29 @@ export const OnboardingProvider = ({ children }) => {
       Business: Math.round((counts.Business / total) * 100),
       Science: Math.round((counts.Science / total) * 100),
     };
-
     setQuizScores(scores);
     return scores;
   };
 
+  /**
+   * Manual Navigation
+   */
   const nextStep = async () => {
-    // If we are just moving between steps that don't require a save (like Radar Chart -> Career)
-    // We should still update the DB to persist the step
-    const nextStepIndex = currentStep + 1;
-
-    // Only update DB if we are not in a step that already handles saving (like 0 and 1)
-    // Step 2 is Radar Chart, clicking next goes to Step 3 (Career)
-    if (currentStep === 2) {
-      try {
-        await supabase
-          .from('profiles')
-          .update({ onboarding_step: nextStepIndex })
-          .eq('user_id', user.id);
-      } catch (e) {
-        console.error("Error updating step", e);
-      }
+    const next = currentStep + 1;
+    // Optimistic update
+    setCurrentStep(next);
+    // Background save of step
+    try {
+      await supabase.from('profiles').update({ onboarding_step: next }).eq('user_id', user.id);
+    } catch (e) {
+      console.warn("Failed to persist step:", e);
     }
-
-    setCurrentStep(nextStepIndex);
   };
 
   const prevStep = () => {
-    setCurrentStep(prev => prev - 1);
+    setCurrentStep(prev => Math.max(0, prev - 1));
   };
+
 
   const value = {
     profileData,
@@ -313,7 +244,6 @@ export const OnboardingProvider = ({ children }) => {
     setQuizResponses,
     quizScores,
     careerSuggestion,
-    onboardingComplete,
     currentStep,
     isLoading,
     saveProfileData,
@@ -322,6 +252,7 @@ export const OnboardingProvider = ({ children }) => {
     calculateCategoryScores,
     nextStep,
     prevStep,
+    error
   };
 
   return (

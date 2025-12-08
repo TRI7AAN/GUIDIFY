@@ -24,3 +24,4 @@ pytest
 httpx
 slowapi
 tenacity
+beautifulsoup4

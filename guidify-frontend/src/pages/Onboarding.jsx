@@ -2,9 +2,9 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../contexts/OnboardingContext';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../utils/supabaseClient';
 import ProfileForm from '../components/onboarding/ProfileForm';
 import AdaptivePersonalityTest from '../components/onboarding/AdaptivePersonalityTest';
+import { useTranslation } from 'react-i18next';
 
 import styled from 'styled-components';
 
@@ -52,59 +52,48 @@ const ProgressFill = styled.div`
 `;
 
 const Onboarding = () => {
-  const {
-    currentStep,
-    onboardingComplete,
-    isLoading,
-    nextStep,
-    prevStep
-  } = useOnboarding();
-
-  const { user, updateOnboardingStatus } = useAuth();
+  const { currentStep, isLoading: contextLoading } = useOnboarding();
+  const { user, onboardingComplete, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  // Redirect to dashboard if onboarding is already complete or if user is not authenticated
+  // Redirect Logic
   useEffect(() => {
-    if (!isLoading && onboardingComplete) {
-      navigate('/dashboard');
-    } else if (!isLoading && !user) {
-      navigate('/login');
-    }
-  }, [onboardingComplete, navigate, user, isLoading]);
+    // Wait for auth to settle
+    if (authLoading) return;
 
-  // Steps for the onboarding process
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (onboardingComplete) {
+      navigate('/dashboard');
+    }
+  }, [user, onboardingComplete, authLoading, navigate]);
+
+  // Steps Definition
   const steps = [
     { title: 'Profile Information', component: <ProfileForm /> },
     { title: 'AI Personality Analysis', component: <AdaptivePersonalityTest /> },
   ];
 
-  // Safety check: If currentStep is out of bounds, redirect to dashboard
-  useEffect(() => {
-    if (user && !isLoading && currentStep >= steps.length) {
-      console.warn("Current step is out of bounds, marking complete and redirecting");
-      // CRITICAL FIX: Ensure AuthContext knows we are done to prevent ProtectedRoute loop
-      if (updateOnboardingStatus) updateOnboardingStatus(true);
-
-      // Add a small delay to allow state to propagate
-      const timer = setTimeout(() => {
-        navigate('/dashboard');
-      }, 500);
-
-      return () => clearTimeout(timer);
-    }
-  }, [currentStep, steps.length, user, isLoading, navigate, updateOnboardingStatus]);
-
-  // Progress percentage calculation
-  const progress = ((currentStep + 1) / steps.length) * 100;
-
-  // If user is not authenticated or loading, show loading state
-  if (!user) {
+  // While loading auth or checking step status
+  if (authLoading || contextLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1a1a2e', color: '#39FF14', fontSize: '2rem' }}>
-        <span>Loading user...</span>
+      <div className="flex h-screen items-center justify-center bg-[#0f172a] text-[#39FF14]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#39FF14] border-t-transparent"></div>
+          <p>Syncing Destiny...</p>
+        </div>
       </div>
-    ); // Will redirect to login via useEffect
+    );
   }
+
+  // Safe Indexing
+  const activeStepIndex = Math.min(Math.max(0, currentStep), steps.length - 1);
+  const activeStep = steps[activeStepIndex];
+  const progress = ((activeStepIndex + 1) / steps.length) * 100;
 
   return (
     <OnboardingContainer>
@@ -122,18 +111,12 @@ const Onboarding = () => {
 
           {/* Step title */}
           <h2 className="text-2xl font-semibold mb-6 text-center text-white">
-            Step {currentStep + 1}: {steps[currentStep]?.title || ''}
+            Step {activeStepIndex + 1}: {activeStep?.title || 'Loading'}
           </h2>
 
           {/* Current step component */}
           <StepContainer>
-            {isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2" style={{ borderColor: 'var(--emerald-neon)' }}></div>
-              </div>
-            ) : (
-              steps[currentStep]?.component
-            )}
+            {activeStep ? activeStep.component : <div>Loading Step...</div>}
           </StepContainer>
         </div>
       </ContentWrapper>

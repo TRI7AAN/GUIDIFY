@@ -6,6 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../utils/supabaseClient";
 import apiClient from "../api/apiClient";
 import SkillsRadar from "../components/dashboard/SkillsRadar";
+import RoadmapTimeline from "../components/dashboard/RoadmapTimeline";
 import {
   FaHome, FaChartPie, FaRoute, FaUser, FaBook, FaBriefcase,
   FaUniversity, FaCog, FaSignOutAlt, FaBell, FaSearch, FaFire, FaLayerGroup,
@@ -463,62 +464,56 @@ export default function Dashboard() {
   const isFetchingRef = React.useRef(false);
   const fetchedTierRef = React.useRef(null); // Track what we already fetched
 
-  useEffect(() => {
+  const fetchNCVET = React.useCallback(async (tier, goal) => {
+    // Avoid re-fetching for the same tier unless forced
+    if (!tier || isFetchingRef.current) return;
+    if (fetchedTierRef.current === tier) return;
+
     const controller = new AbortController();
-    let mounted = true;
+    isFetchingRef.current = true;
 
-    const fetchNCVET = async () => {
-      // Avoid re-fetching for the same tier unless forced
-      if (!currentTier || !profile || isFetchingRef.current) return;
-      if (fetchedTierRef.current === currentTier) return;
+    try {
+      console.log("Fetching NCVET courses (Async) for:", { tier, goal });
 
-      isFetchingRef.current = true;
-      try {
-        const careerGoal = profile.career_roadmap?.title || "Technology";
-        console.log("Fetching NCVET courses (Async) for:", { currentTier, careerGoal });
+      const nsqfRes = await apiClient.post('/api/courses/nsqf', {
+        current_tier: tier,
+        career_goal: goal
+      }, {
+        signal: controller.signal,
+        skipAuth: true // Public endpoint, avoid 401s
+      });
 
-        const nsqfRes = await apiClient.post('/api/courses/nsqf', {
-          current_tier: currentTier,
-          career_goal: careerGoal
-        }, {
-          signal: controller.signal,
-          skipAuth: true // Public endpoint, avoid 401s
-        });
-
-        if (!mounted) return;
-
-        if (nsqfRes && (nsqfRes.courses || nsqfRes.data?.courses)) {
-          const courses = nsqfRes.courses || nsqfRes.data.courses;
-          const mappedCourses = courses.map((c, idx) => ({
-            id: idx,
-            title: c.course_name,
-            level: `NSQF Level ${c.nsqf_level}`,
-            duration: `${c.duration_hours} Hours`,
-            difficulty: c.certification_body,
-            icon: <FaBook size={30} color="#4AD8E6" />,
-            reason: c.reason
-          }));
-          setRecommendedCourses(mappedCourses);
-          fetchedTierRef.current = currentTier; // Mark as fetched
-        }
-      } catch (err) {
-        if (err.name === 'CanceledError' || err.message === 'canceled') return;
-        console.error("Failed to fetch NCVET courses:", err.message);
-        // Do not clear courses on error to avoid flickering
-      } finally {
-        isFetchingRef.current = false;
+      if (nsqfRes && (nsqfRes.courses || nsqfRes.data?.courses)) {
+        const courses = nsqfRes.courses || nsqfRes.data.courses;
+        const mappedCourses = courses.map((c, idx) => ({
+          id: idx,
+          title: c.course_name,
+          level: `NSQF Level ${c.nsqf_level}`,
+          duration: `${c.duration_hours} Hours`,
+          difficulty: c.certification_body,
+          icon: <FaBook size={30} color="#4AD8E6" />,
+          reason: c.reason
+        }));
+        setRecommendedCourses(mappedCourses);
+        fetchedTierRef.current = tier; // Mark as fetched
       }
-    };
-
-    if (!loading && currentTier && profile) {
-      fetchNCVET();
+    } catch (err) {
+      if (err.name === 'CanceledError' || err.message === 'canceled') return;
+      console.error("Failed to fetch NCVET courses:", err.message);
+      // Do not clear courses on error to avoid flickering
+    } finally {
+      isFetchingRef.current = false;
     }
 
-    return () => {
-      mounted = false;
-      controller.abort();
-    };
-  }, [loading, currentTier, profile]); // Keep dependencies simple
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (!loading && currentTier && profile) {
+      const careerGoal = profile.career_roadmap?.title || "Technology";
+      fetchNCVET(currentTier, careerGoal);
+    }
+  }, [loading, currentTier, profile?.career_roadmap?.title, fetchNCVET]); // Stable dependencies
 
 
 
@@ -532,6 +527,16 @@ export default function Dashboard() {
     await signOut();
     navigate('/login');
   };
+
+  if (loading || !profile) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0D0F18', color: '#39FF14' }}>
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#39FF14] mb-4"></div>
+        <h2 className="text-xl font-bold">Loading Dashboard...</h2>
+        <p className="text-gray-400">Syncing with career database</p>
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -695,55 +700,22 @@ export default function Dashboard() {
         </DashboardGrid>
 
         <SectionTitle>Your Learning Path</SectionTitle>
-        <LearningPathScroll>
-          <PathCard whileHover={{ y: -5 }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <Tag>Step 1</Tag>
+        <SectionTitle>Your Learning Path</SectionTitle>
+        <div style={{ marginBottom: '3rem' }}>
+          {profile?.career_roadmap?.steps ? (
+            <RoadmapTimeline steps={profile.career_roadmap.steps} />
+          ) : (
+            <div style={{ padding: '2rem', background: '#151821', borderRadius: '12px', textAlign: 'center', color: '#A4ACBC' }}>
+              <p>No roadmap generated yet.</p>
+              <button
+                onClick={() => navigate('/roadmap')}
+                style={{ marginTop: '1rem', padding: '0.8rem 1.5rem', background: '#39FF14', color: 'black', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                Generate Roadmap
+              </button>
             </div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '0.5rem' }}>Data Fundamentals</h3>
-            <p style={{ color: '#A4ACBC', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              Learn the basics of data structures and algorithms.
-            </p>
-            <button style={{
-              width: '100%', padding: '0.8rem', background: '#39FF14', color: 'black',
-              border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer'
-            }}>
-              Continue
-            </button>
-          </PathCard>
-
-          <PathCard whileHover={{ y: -5 }} style={{ opacity: 0.7 }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <Tag>Step 2</Tag>
-            </div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '0.5rem' }}>Intro to ML</h3>
-            <p style={{ color: '#A4ACBC', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              Explore foundational ML concepts and models.
-            </p>
-            <button disabled style={{
-              width: '100%', padding: '0.8rem', background: '#1F2330', color: '#555',
-              border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'not-allowed'
-            }}>
-              Locked
-            </button>
-          </PathCard>
-
-          <PathCard whileHover={{ y: -5 }} style={{ opacity: 0.7 }}>
-            <div style={{ marginBottom: '1rem' }}>
-              <Tag>Step 3</Tag>
-            </div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: '600', marginBottom: '0.5rem' }}>Neural Networks</h3>
-            <p style={{ color: '#A4ACBC', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              Dive deep into the architecture of neural networks.
-            </p>
-            <button disabled style={{
-              width: '100%', padding: '0.8rem', background: '#1F2330', color: '#555',
-              border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'not-allowed'
-            }}>
-              Locked
-            </button>
-          </PathCard>
-        </LearningPathScroll>
+          )}
+        </div>
 
         <SectionTitle>Recommended Courses</SectionTitle>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>

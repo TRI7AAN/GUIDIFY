@@ -6,5 +6,15 @@
     "profile": "प्रोफ़ाइल",
     "recommendations": "सिफारिशें",
     "loading": "लोड हो रहा है...",
-    "error": "कुछ गलत हो गया"
+    "error": "कुछ गलत हो गया",
+    "hero_title": "अपना भविष्य, अपनी शर्तें",
+    "hero_subtitle": "AI-संचालित करियर मार्गदर्शन के साथ अपनी सही राह खोजें",
+    "get_started": "अभी शुरू करें",
+    "login": "लॉग इन करें",
+    "logout": "लॉग आउट",
+    "learning_path": "आपका सीखने का मार्ग",
+    "start_learning": "सीखना शुरू करें",
+    "completed": "पूर्ण",
+    "locked": "लॉक किया गया",
+    "ncvet_compliant": "NCVET/NSQF प्रमाणित"
 }

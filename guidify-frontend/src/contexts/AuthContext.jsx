@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, useRef, useMemo } from "react";
 import { supabase } from "../utils/supabaseClient";
-import { setAuthToken } from "../api/apiClient"; // Import token setter
+import apiClient, { setAuthToken } from "../api/apiClient";
+import Loading from "../components/common/Loading";
 
 const AuthContext = createContext();
 
@@ -8,181 +9,239 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [onboardingComplete, setOnboardingComplete] = useState(false);
+
+  // Ref to track latest user ID to avoid stale closures in async ops
+  const userIdRef = useRef(null);
   const abortControllerRef = useRef(null);
-  const userIdRef = useRef(null); // Track user ID to avoid stale closures
 
-  // 1. Stable fetchProfile function
-  const fetchProfile = React.useCallback(async (userId) => {
-    if (!userId) return;
+  /**
+   * 1. Create Profile if Not Exists
+   * Ensures a profile row exists immediately after signup/login.
+   */
+  const createProfileIfNotExists = async (userId, email, metadata) => {
+    try {
+      // Check if profile exists
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
 
-    // Cancel previous request if it exists
+      if (error && error.code !== 'PGRST116') {
+        throw error; // Real error
+      }
+
+      if (!data) {
+        console.log("Creating default profile for:", userId);
+        const newProfile = {
+          user_id: userId,
+          email: email,
+          name: metadata?.full_name || email?.split('@')[0] || 'User',
+          onboarding_step: 0,
+          onboarding_complete: false,
+          created_at: new Date().toISOString()
+        };
+
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([newProfile]);
+
+        if (insertError) {
+          console.error("Failed to auto-create profile:", insertError);
+        } else {
+          console.log("Profile auto-created successfully.");
+        }
+      }
+    } catch (err) {
+      console.warn("createProfileIfNotExists error:", err);
+    }
+  };
+
+  /**
+   * 2. Fetch Profile With Retry
+   * Retries fetching the profile up to maxRetries times.
+   */
+  const fetchProfileWithRetry = async (userId, retries = 5, delayMs = 500) => {
+    if (!userId) return null;
+
+    // Cancel previous request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    try {
-      // Create a timeout promise (15 seconds)
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Profile fetch timeout")), 15000)
-      );
+    for (let i = 0; i < retries; i++) {
+      try {
+        if (controller.signal.aborted) return null;
 
-      const fetchPromise = supabase
-        .from('profiles')
-        .select('onboarding_complete')
-        .eq('user_id', userId)
-        .single()
-        .abortSignal(controller.signal);
+        // Timeout wrapper (8 seconds)
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Profile fetch timeout")), 8000)
+        );
 
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+        const fetchPromise = supabase
+          .from('profiles')
+          .select('onboarding_complete, onboarding_step')
+          .eq('user_id', userId)
+          .single()
+          .abortSignal(controller.signal);
 
-      if (controller.signal.aborted) return;
+        const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
-      if (error) {
-        // Ignore PGRST116 (no rows) as it just means profile doesn't exist yet
-        if (error.code === 'PGRST116') {
-          console.log('Profile not found (new user)');
-          setOnboardingComplete(false);
-          return;
+        if (error) {
+          if (error.code === 'PGRST116') {
+            // Profile not found - might be race condition during creation.
+            // Retry allows time for the createProfileIfNotExists to finish.
+            console.warn(`Profile missing (attempt ${i + 1}/${retries}). Retrying...`);
+            // If last retry and still missing, return falsy
+            if (i === retries - 1) return null;
+          } else {
+            throw error;
+          }
+        } else if (data) {
+          return data;
         }
-        throw error;
-      }
 
-      if (data) {
-        setOnboardingComplete(data.onboarding_complete);
-      } else {
-        setOnboardingComplete(false);
-      }
-    } catch (error) {
-      if (controller.signal.aborted) return;
-      if (error.name === 'AbortError') return;
+        // Wait before retry
+        await new Promise(r => setTimeout(r, delayMs * Math.pow(1.5, i))); // Exponential backoff
 
-      console.error("Real profile fetch error:", error.message);
-      // Do NOT set error state here to avoid UI flicker, just default to false
-      setOnboardingComplete(false);
-    } finally {
-      if (abortControllerRef.current === controller) {
-        abortControllerRef.current = null;
+      } catch (err) {
+        if (controller.signal.aborted || err.name === 'AbortError') return null;
+        console.error(`Fetch profile error (attempt ${i + 1}):`, err);
+
+        if (i === retries - 1) return null; // Give up
+        await new Promise(r => setTimeout(r, delayMs));
       }
     }
-  }, []);
+    return null;
+  };
 
-  // 2. Initialize Auth
+  /**
+   * 3. Orchestrator: Fetch and Sync State
+   */
+  const syncAuthState = async (currentUser, session) => {
+    if (!currentUser) {
+      setUser(null);
+      userIdRef.current = null;
+      setAuthToken(null);
+      setOnboardingComplete(false);
+      setLoading(false);
+      return;
+    }
+
+    // Set basics immediately
+    setUser(currentUser);
+    userIdRef.current = currentUser.id;
+    setAuthToken(session?.access_token);
+
+    try {
+      // Auto-hydrate profile if needed (idempotent)
+      await createProfileIfNotExists(currentUser.id, currentUser.email, currentUser.user_metadata);
+
+      // Fetch valid profile data
+      const profile = await fetchProfileWithRetry(currentUser.id);
+
+      if (profile) {
+        setOnboardingComplete(profile.onboarding_complete);
+
+        // Fire-and-forget logic for streak (non-blocking)
+        apiClient.post('/api/gamification/daily-login', { user_id: currentUser.id })
+          .catch(err => console.warn("Streak update failed:", err));
+      } else {
+        // Profile fetch failed after retries
+        console.warn("Profile fetch failed after retries. Defaulting to onboarding incomplete.");
+        setOnboardingComplete(false);
+      }
+    } catch (err) {
+      console.error("Sync auth state error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
+    // Safety Valve: Force stop loading after 5 seconds max
+    const safetyTimer = setTimeout(() => {
+      if (mounted) {
+        console.warn("⚠️ Initialization timed out. Forcing app entry.");
+        setLoading(false);
+      }
+    }, 5000);
+
+    const initAuth = async () => {
       try {
-        // Get initial session
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
 
         if (mounted) {
-          if (session?.user) {
-            setUser(session.user);
-            userIdRef.current = session.user.id;
-            setAuthToken(session.access_token);
-            // Fetch profile only once on mount
-            await fetchProfile(session.user.id);
-          } else {
-            setUser(null);
-            userIdRef.current = null;
-            setAuthToken(null);
-          }
+          await syncAuthState(session?.user, session);
         }
       } catch (err) {
-        console.error("Auth initialization error:", err);
-      } finally {
+        console.error("Auth Init Failed:", err);
+        // If anything fails early, ensure we stop loading
         if (mounted) setLoading(false);
+      } finally {
+        if (mounted) {
+          // If execution finished naturally before timeout, clear the safety timer
+          // Note: syncAuthState sets loading(false) internally, but we ensure it here too just in case
+          clearTimeout(safetyTimer);
+        }
       }
     };
 
-    initializeAuth();
+    initAuth();
 
-    // Listen for auth changes
+    // Auth Change Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      const previousUserId = userIdRef.current;
       const currentUserId = session?.user?.id;
+      const prevUserId = userIdRef.current;
 
-      if (session?.user) {
-        setUser(session.user);
-        userIdRef.current = currentUserId;
-        setAuthToken(session.access_token);
-
-        // Only fetch profile if user CHANGED or it's a fresh sign-in
-        // Avoid fetching on TOKEN_REFRESH if user is same
-        if (event === 'SIGNED_IN' || (currentUserId && currentUserId !== previousUserId)) {
-          await fetchProfile(currentUserId);
+      // Only sync if user changed or specific events occurred
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || currentUserId !== prevUserId) {
+        if (event === 'TOKEN_REFRESHED' && currentUserId === prevUserId) {
+          setAuthToken(session?.access_token);
+          return;
         }
+        await syncAuthState(session?.user, session);
       } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        userIdRef.current = null;
-        setAuthToken(null);
-        setOnboardingComplete(false);
-        setLoading(false);
+        syncAuthState(null, null);
       }
     });
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-  }, [fetchProfile]);
-
-  // Listen for unauthorized events
-  useEffect(() => {
-    const handleUnauthorized = () => {
-      if (userIdRef.current) {
-        console.warn("Unauthorized access detected, logging out...");
-        supabase.auth.signOut().then(() => {
-          setUser(null);
-          userIdRef.current = null;
-          setAuthToken(null);
-          setOnboardingComplete(false);
-        });
-      }
-    };
-
-    window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
   const value = useMemo(() => ({
     signUp: (data) => supabase.auth.signUp(data),
     signIn: (data) => supabase.auth.signInWithPassword(data),
-    login: (data) => supabase.auth.signInWithPassword(data), // Alias for LoginPage
-    signOut: () => {
+    login: (data) => supabase.auth.signInWithPassword(data),
+    signOut: async () => {
       try {
-        localStorage.removeItem('guidify_token');
+        await supabase.auth.signOut();
+        localStorage.clear(); // Clear all app state
       } catch (e) {
-        console.warn("LocalStorage access blocked:", e);
+        console.error("Logout error", e);
       }
-      return supabase.auth.signOut();
     },
-    updateOnboardingStatus: (status) => setOnboardingComplete(status), // Allow external updates
+    updateOnboardingStatus: (status) => setOnboardingComplete(status),
     user,
     onboardingComplete,
     loading
   }), [user, onboardingComplete, loading]);
 
   if (loading) {
-    return (
-      <div style={{
-        height: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: '#0f172a',
-        color: '#39FF14'
-      }}>
-        Loading...
-      </div>
-    );
+    return <Loading message="Initializing Secure Pipeline..." />;
   }
 
   return (
@@ -192,8 +251,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
-
+export const useAuth = () => useContext(AuthContext);
 export default AuthContext;

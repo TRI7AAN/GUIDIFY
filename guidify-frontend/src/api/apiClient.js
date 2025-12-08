@@ -25,8 +25,8 @@ const apiClient = axios.create({
 // Circuit Breaker State
 let failureCount = 0;
 let circuitOpenUntil = 0;
-const MAX_FAILURES = 5;
-const CIRCUIT_OPEN_MS = 30000; // 30 seconds
+const MAX_FAILURES = 20; // Increased for debugging
+const CIRCUIT_OPEN_MS = 5000; // Reduced to 5 seconds
 
 // In-memory token store
 let memoryToken = null;
@@ -91,18 +91,17 @@ apiClient.interceptors.response.use(
 
     // Retry Logic
     if (
-      !originalRequest._retry &&
-      (error.code === 'ERR_NETWORK' || (error.response && error.response.status >= 500))
+      error.config && // Ensure config exists
+      (error.code === 'ERR_NETWORK' || (error.response && error.response.status >= 500)) &&
+      (originalRequest._retryCount || 0) < 3
     ) {
       originalRequest._retry = true;
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
 
-      if (originalRequest._retryCount <= 3) {
-        const backoffDelay = 500 * Math.pow(2, originalRequest._retryCount); // 1s, 2s, 4s
-        console.log(`Retrying request to ${originalRequest.url} (Attempt ${originalRequest._retryCount})...`);
-        await delay(backoffDelay);
-        return apiClient(originalRequest);
-      }
+      const backoffDelay = 500 * Math.pow(2, originalRequest._retryCount); // 1s, 2s, 4s
+      console.log(`Retrying request to ${originalRequest.url} (Attempt ${originalRequest._retryCount})...`);
+      await delay(backoffDelay);
+      return apiClient(originalRequest);
     }
 
     return Promise.reject(error);

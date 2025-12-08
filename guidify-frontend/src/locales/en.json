@@ -6,5 +6,15 @@
     "profile": "Profile",
     "recommendations": "Recommendations",
     "loading": "Loading...",
-    "error": "Something went wrong"
+    "error": "Something went wrong",
+    "hero_title": "Your Future, Your Terms",
+    "hero_subtitle": "Discover your perfect career path with AI-driven guidance",
+    "get_started": "Get Started",
+    "login": "Log In",
+    "logout": "Log Out",
+    "learning_path": "Your Learning Path",
+    "start_learning": "Start Learning",
+    "completed": "Completed",
+    "locked": "Locked",
+    "ncvet_compliant": "NCVET/NSQF Compliant"
 }
