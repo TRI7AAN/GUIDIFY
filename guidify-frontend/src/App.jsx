@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { OnboardingProvider } from "./contexts/OnboardingContext";
 import PublicLayout from "./components/layout/PublicLayout";
 import PrivateLayout from "./components/layout/PrivateLayout";
+import ProtectedRoute from "./components/layout/ProtectedRoute";
 import { publicRoutes, protectedRoutes, errorRoutes } from "./routes";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import Loading from "./components/common/Loading";
@@ -19,35 +20,6 @@ const LandingPage = lazy(() => import("./pages/LandingPage"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const CareerRoadmap = lazy(() => import("./pages/CareerRoadmap"));
 
-// Protected route component
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <Loading message="Verifying Identity..." />;
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-};
-
-// Onboarding check component
-const OnboardingCheck = () => {
-  const { loading, onboardingComplete } = useAuth();
-
-  if (loading) {
-    return <Loading message="Checking Profile..." />;
-  }
-
-  if (!onboardingComplete) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
-  return <Outlet />;
-};
 
 // Component map for route configuration
 const componentMap = {
@@ -69,11 +41,6 @@ const componentMap = {
 
 
 function App() {
-  React.useEffect(() => {
-    // circuit breaker cleanup
-    localStorage.removeItem('api-circuit-breaker');
-  }, []);
-
   return (
     <HelmetProvider>
       <ErrorBoundary>
@@ -119,31 +86,29 @@ function App() {
                     />
 
                     {/* Dashboard & others - PrivateLayout (No Navbar) */}
-                    <Route element={<OnboardingCheck><Outlet /></OnboardingCheck>}>
+                    <Route
+                      path="/dashboard"
+                      element={
+                        <PrivateLayout>
+                          <Dashboard />
+                        </PrivateLayout>
+                      }
+                    />
+
+                    {protectedRoutes.filter(route =>
+                      route.path !== "/dashboard" &&
+                      route.path !== "/onboarding"
+                    ).map(route => (
                       <Route
-                        path="/dashboard"
+                        key={route.path}
+                        path={route.path}
                         element={
                           <PrivateLayout>
-                            <Dashboard />
+                            {React.createElement(componentMap[route.path])}
                           </PrivateLayout>
                         }
                       />
-
-                      {protectedRoutes.filter(route =>
-                        route.path !== "/dashboard" &&
-                        route.path !== "/onboarding"
-                      ).map(route => (
-                        <Route
-                          key={route.path}
-                          path={route.path}
-                          element={
-                            <PrivateLayout>
-                              {React.createElement(componentMap[route.path])}
-                            </PrivateLayout>
-                          }
-                        />
-                      ))}
-                    </Route>
+                    ))}
                   </Route>
 
                   {/* Error routes - Public Layout */}

@@ -85,7 +85,7 @@ apiClient.interceptors.response.use(
       failureCount++;
       if (failureCount >= MAX_FAILURES) {
         circuitOpenUntil = Date.now() + CIRCUIT_OPEN_MS;
-        console.error(`Circuit Breaker OPEN until ${new Date(circuitOpenUntil).toISOString()}`);
+        // Circuit breaker activated - requests will be blocked temporarily
       }
     }
 
@@ -99,7 +99,7 @@ apiClient.interceptors.response.use(
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
 
       const backoffDelay = 500 * Math.pow(2, originalRequest._retryCount); // 1s, 2s, 4s
-      console.log(`Retrying request to ${originalRequest.url} (Attempt ${originalRequest._retryCount})...`);
+      // Retrying request with exponential backoff
       await delay(backoffDelay);
       return apiClient(originalRequest);
     }
