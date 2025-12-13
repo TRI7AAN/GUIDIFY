@@ -3,6 +3,7 @@ uvicorn
 python-dotenv
 requests
 pydantic>=2.0
+pydantic-settings
 google-genai
 supabase
 PyPDF2
@@ -25,3 +26,4 @@ httpx
 slowapi
 tenacity
 beautifulsoup4
+python-json-logger

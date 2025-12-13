@@ -1,11 +1,28 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 import os
-from dotenv import load_dotenv
+import sys
+import time
 
-# Load environment variables
-load_dotenv()
+# Force UTF-8 encoding for stdout/stderr (Windows compatibility)
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
+# Import core modules
+from app.core.config import settings
+from app.core.exceptions import GuidifyException
+from app.core.logger import logger, log_request
+from app.middleware.error_handler import (
+    guidify_exception_handler,
+    validation_exception_handler,
+    http_exception_handler,
+    global_exception_handler
+)
 
 # Import routers
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -16,26 +33,29 @@ from app.routes import (
     college_routes, aptitude_routes, employee_routes,
     fresher_routes, career_routes, scholarship_routes, 
     psychometric_routes, ml_routes, dashboard_routes, 
-    lmi_routes, privacy_routes, gamification_routes, courses
+    lmi_routes, privacy_routes, gamification_routes, courses,
+    interview_routes, roadmap_routes, exam_routes
 )
 
 from prometheus_fastapi_instrumentator import Instrumentator
 
-# Environment Configuration
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(",")
-SECRET_KEY = os.getenv("SUPABASE_KEY")
-
-if not SECRET_KEY:
-    print("WARNING: SUPABASE_KEY not found in environment variables.")
-
 # Create FastAPI app
 app = FastAPI(
-    title="GUIDIFY API",
+    title=settings.APP_NAME,
     description="Career guidance and educational recommendation API (Production Grade)",
-    version="2.0.0",
+    version=settings.APP_VERSION,
     docs_url="/api/docs",
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json"
+)
+
+# Log startup
+logger.info(
+    "Starting GUIDIFY API",
+    extra={
+        "version": settings.APP_VERSION,
+        "environment": settings.ENVIRONMENT
+    }
 )
 
 # Rate Limiting
@@ -43,23 +63,42 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Global Exception Handler
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    print(f"Global Exception: {exc}") # Replace with proper logging in production
-    return JSONResponse(
-        status_code=500,
-        content={"message": "Internal Server Error", "detail": str(exc)},
-    )
+# Exception Handlers
+app.add_exception_handler(GuidifyException, guidify_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(Exception, global_exception_handler)
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Request Logging Middleware
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log all HTTP requests with timing"""
+    start_time = time.time()
+    
+    # Process request
+    response = await call_next(request)
+    
+    # Calculate duration
+    duration_ms = (time.time() - start_time) * 1000
+    
+    # Log request
+    log_request(
+        method=request.method,
+        path=request.url.path,
+        status_code=response.status_code,
+        duration_ms=duration_ms
+    )
+    
+    return response
 
 # Security Headers Middleware
 @app.middleware("http")
