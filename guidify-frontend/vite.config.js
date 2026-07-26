@@ -1,10 +1,13 @@
 import { defineConfig } from 'vite'
-// Force restart timestamp: 2025-11-25
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    tailwindcss(),
+  ],
   server: {
     proxy: {
       '/api': {

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+﻿import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import useNavigation from '../../routes/useNavigation';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
@@ -292,6 +292,23 @@ const Navbar = () => {
   const { isActive, currentPath } = useNavigation();
   const { navigateTo } = useNavigation();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Scroll to a section by ID, navigating home first if needed
+  const scrollToSection = (sectionId, closeMobile = false) => (e) => {
+    e.preventDefault();
+    if (closeMobile) setMobileMenuOpen(false);
+    if (location.pathname !== '/') {
+      navigate('/');
+      // Wait for the home page to mount before scrolling
+      setTimeout(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    } else {
+      document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   // Handle scroll effect
   useEffect(() => {
@@ -344,19 +361,13 @@ const Navbar = () => {
           ) : (
             // Links for non-authenticated users
             <>
-              <NavLink to="/#features" onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-              }} className={isActive('/#features') ? 'active' : ''}>
+              <NavLink to="/#features" onClick={scrollToSection('features')} className={isActive('/#features') ? 'active' : ''}>
                 Features
               </NavLink>
-              <NavLink to="/#testimonials" onClick={(e) => {
-                e.preventDefault();
-                document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' });
-              }} className={isActive('/#testimonials') ? 'active' : ''}>
+              <NavLink to="/#testimonials" onClick={scrollToSection('testimonials')} className={isActive('/#testimonials') ? 'active' : ''}>
                 Testimonials
               </NavLink>
-              <NavLink to="/#footer" className={isActive('/#footer') ? 'active' : ''}>
+              <NavLink to="/#footer" onClick={scrollToSection('footer')} className={isActive('/#footer') ? 'active' : ''}>
                 Contact
               </NavLink>
             </>
@@ -460,18 +471,10 @@ const Navbar = () => {
             ) : (
               // Mobile links for non-authenticated users
               <>
-                <MobileNavLink to="/#features" onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-                  setMobileMenuOpen(false); // Close mobile menu after clicking
-                }} className={isActive('/#features') ? 'active' : ''}>
+                <MobileNavLink to="/#features" onClick={scrollToSection('features', true)} className={isActive('/#features') ? 'active' : ''}>
                   Features
                 </MobileNavLink>
-                <MobileNavLink to="/#testimonials" onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('testimonials')?.scrollIntoView({ behavior: 'smooth' });
-                  setMobileMenuOpen(false); // Close mobile menu after clicking
-                }} className={isActive('/#testimonials') ? 'active' : ''}>
+                <MobileNavLink to="/#testimonials" onClick={scrollToSection('testimonials', true)} className={isActive('/#testimonials') ? 'active' : ''}>
                   Testimonials
                 </MobileNavLink>
                 {/* <MobileNavLink to="/#contact" onClick={(e) => {

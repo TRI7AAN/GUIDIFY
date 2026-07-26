@@ -1,15 +1,15 @@
-"""
+﻿"""
 Custom Exception Classes
 
 Centralized exception definitions for the application.
-All custom exceptions inherit from base GuidifyException.
+All custom exceptions inherit from base GUIDIFYException.
 """
 
 from typing import Any, Dict, Optional
 
 
-class GuidifyException(Exception):
-    """Base exception class for all Guidify exceptions"""
+class GUIDIFYException(Exception):
+    """Base exception class for all GUIDIFY exceptions"""
     
     def __init__(
         self,
@@ -26,39 +26,39 @@ class GuidifyException(Exception):
 
 
 # Authentication & Authorization Exceptions
-class AuthenticationError(GuidifyException):
+class AuthenticationError(GUIDIFYException):
     """Raised when authentication fails"""
     def __init__(self, message: str = "Authentication failed", details: Optional[Dict[str, Any]] = None):
         super().__init__(message, status_code=401, error_code="AUTH_FAILED", details=details)
 
 
-class AuthorizationError(GuidifyException):
+class AuthorizationError(GUIDIFYException):
     """Raised when user lacks permission"""
     def __init__(self, message: str = "Insufficient permissions", details: Optional[Dict[str, Any]] = None):
         super().__init__(message, status_code=403, error_code="FORBIDDEN", details=details)
 
 
-class InvalidTokenError(GuidifyException):
+class InvalidTokenError(GUIDIFYException):
     """Raised when token is invalid or expired"""
     def __init__(self, message: str = "Invalid or expired token", details: Optional[Dict[str, Any]] = None):
         super().__init__(message, status_code=401, error_code="INVALID_TOKEN", details=details)
 
 
 # Data Validation Exceptions
-class ValidationError(GuidifyException):
+class ValidationError(GUIDIFYException):
     """Raised when input validation fails"""
     def __init__(self, message: str = "Validation failed", details: Optional[Dict[str, Any]] = None):
         super().__init__(message, status_code=422, error_code="VALIDATION_ERROR", details=details)
 
 
-class ResourceNotFoundError(GuidifyException):
+class ResourceNotFoundError(GUIDIFYException):
     """Raised when requested resource doesn't exist"""
     def __init__(self, resource: str = "Resource", details: Optional[Dict[str, Any]] = None):
         message = f"{resource} not found"
         super().__init__(message, status_code=404, error_code="NOT_FOUND", details=details)
 
 
-class DuplicateResourceError(GuidifyException):
+class DuplicateResourceError(GUIDIFYException):
     """Raised when attempting to create duplicate resource"""
     def __init__(self, resource: str = "Resource", details: Optional[Dict[str, Any]] = None):
         message = f"{resource} already exists"
@@ -66,7 +66,7 @@ class DuplicateResourceError(GuidifyException):
 
 
 # External Service Exceptions
-class ExternalServiceError(GuidifyException):
+class ExternalServiceError(GUIDIFYException):
     """Raised when external service call fails"""
     def __init__(self, service: str, message: str = "Service unavailable", details: Optional[Dict[str, Any]] = None):
         full_message = f"{service}: {message}"
@@ -86,20 +86,20 @@ class DatabaseError(ExternalServiceError):
 
 
 # Rate Limiting
-class RateLimitExceededError(GuidifyException):
+class RateLimitExceededError(GUIDIFYException):
     """Raised when rate limit is exceeded"""
     def __init__(self, message: str = "Rate limit exceeded", details: Optional[Dict[str, Any]] = None):
         super().__init__(message, status_code=429, error_code="RATE_LIMIT_EXCEEDED", details=details)
 
 
 # Business Logic Exceptions
-class OnboardingIncompleteError(GuidifyException):
+class OnboardingIncompleteError(GUIDIFYException):
     """Raised when user hasn't completed onboarding"""
     def __init__(self, message: str = "Please complete onboarding first", details: Optional[Dict[str, Any]] = None):
         super().__init__(message, status_code=403, error_code="ONBOARDING_REQUIRED", details=details)
 
 
-class FileProcessingError(GuidifyException):
+class FileProcessingError(GUIDIFYException):
     """Raised when file upload/processing fails"""
     def __init__(self, message: str = "File processing failed", details: Optional[Dict[str, Any]] = None):
         super().__init__(message, status_code=400, error_code="FILE_PROCESSING_ERROR", details=details)

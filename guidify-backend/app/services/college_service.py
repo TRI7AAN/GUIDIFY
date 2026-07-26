@@ -1,7 +1,6 @@
 from typing import List, Dict, Any, Optional
 from app.utils.file_parser import extract_text_from_file, extract_marks
 from app.utils.groq_client import GroqClient
-from app.utils.helpers import generate_random_college_data
 
 class CollegeService:
     """Service for college and course recommendations"""
@@ -39,12 +38,9 @@ class CollegeService:
             # Get college recommendations from LLM
             colleges = self.groq_client.get_college_recommendations(final_marks, board, stream)
             
-            # Generate metadata for each college
-            results = [generate_random_college_data(c, stream) for c in colleges]
-            
             return {
                 "success": True,
-                "data": results,
+                "data": colleges,
                 "detected_marks": final_marks,
                 "error": None
             }

@@ -1,153 +1,91 @@
-from typing import List, Optional, Dict, Any
+"""
+Pydantic Schemas — Learner & Profile
+
+Data models matching schema.md §1-2. Used for API request/response validation
+and AI Gateway output validation.
+"""
+
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+from enum import Enum
+
 from pydantic import BaseModel, Field
 
-# College and Course Recommendation Schemas
-class CollegeRecommendationRequest(BaseModel):
-    board: str
-    stream: str
-    entrance_marks: Optional[int] = None
-    preference: Optional[str] = "General"
 
-class CollegeData(BaseModel):
-    college: str
-    course: str
-    rating: float
-    placement_rate: str
-    management_rating: float
+# --- Enums per schema.md ---
 
-class CollegeRecommendationResponse(BaseModel):
-    success: bool = True
-    data: List[CollegeData] = []
-    error: Optional[str] = None
-    detected_marks: Optional[int] = None
+class LearnerSegment(str, Enum):
+    school = "school"
+    college = "college"
+    graduate = "graduate"
+    professional = "professional"
 
-# Fresher Job Recommendation Schemas
-class FresherJobRequest(BaseModel):
-    stream: str
-    institute: str
-    location: str
 
-class ProfileData(BaseModel):
-    skills: List[str] = []
-    cgpa: Optional[float] = None
-    education: Optional[str] = None
-    projects: List[str] = []
+# --- Request Models ---
 
-class CompanyData(BaseModel):
-    name: str
-    role: str
-    salary_range: str
-    tech_stack: List[str] = []
-    interview_process: str
-    culture_fit: Optional[float] = None
+class OnboardingRequest(BaseModel):
+    """POST /auth/onboarding request body — api.md §1"""
+    segment: LearnerSegment
+    questionnaire_data: Dict[str, Any]
 
-class FresherJobResponse(BaseModel):
-    success: bool = True
-    profile: ProfileData
-    companies: List[CompanyData] = []
-    error: Optional[str] = None
 
-# Experienced Employee Schemas
-class ExperiencedEmployeeRequest(BaseModel):
-    current_role: str
-    desired_path: str
+class TargetRoleUpdate(BaseModel):
+    """PATCH /profile/target-role request body — api.md §1"""
+    target_role: str = Field(..., min_length=1, max_length=200)
 
-class RoleRecommendation(BaseModel):
-    title: str
-    company_type: str
-    skills_needed: List[str]
-    salary_range: str
-    growth_potential: str
 
-class ExperiencedEmployeeResponse(BaseModel):
-    success: bool = True
-    current_skills: List[str] = []
-    missing_skills: List[str] = []
-    recommended_roles: List[RoleRecommendation] = []
-    error: Optional[str] = None
+# --- Response Models ---
 
-# Roadmap Schemas
-class RoadmapRequest(BaseModel):
-    subjects: str
-    career: str
-
-class RoadmapResponse(BaseModel):
-    success: bool = True
-    description: str
-    error: Optional[str] = None
-
-# Scholarship Schemas
-class ScholarshipRequest(BaseModel):
-    country: str
-    field: str
-
-class ScholarshipData(BaseModel):
-    name: str
-    provider: str
-    amount: str
-    eligibility: str
-    deadline: Optional[str] = None
-    application_link: str
-
-class ScholarshipResponse(BaseModel):
-    success: bool = True
-    scholarships: List[ScholarshipData] = []
-    error: Optional[str] = None
-
-# Aptitude Quiz Schemas
-class QuizQuestion(BaseModel):
-    question: str
-    options: List[str]
-    correct_answer: int
-
-class GenerateQuizResponse(BaseModel):
-    success: bool = True
-    questions: List[QuizQuestion] = []
-    error: Optional[str] = None
-
-class GradeQuizRequest(BaseModel):
-    user_answers: List[int]
-    questions: List[Dict[str, Any]]
-
-class GradeQuizResponse(BaseModel):
-    success: bool = True
-    score: int
-    total: int
-    feedback: str
-    error: Optional[str] = None
-
-# Generic Response Schema
-    data: Optional[Any] = None
-    error: Optional[str] = None
-
-# ML Profiling Schemas
-class LearnerProfile(BaseModel):
-    user_id: Optional[str] = None
-    demographics: Dict[str, Any] = {}
-    skills: List[str] = []
-    assessments: Dict[str, float] = {} # e.g. {"aptitude": 0.8, "personality": 0.5}
-    learning_styles: Dict[str, float] = {} # e.g. {"visual": 0.8}
-    engagement_signals: Dict[str, float] = {} # e.g. {"avg_session_time": 30.0}
-    career_goal: Optional[str] = None
-    current_tier: Optional[str] = "Novice"
-    nsqf_levels: List[int] = []
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-
-class MLProfileRequest(BaseModel):
-    user_id: str
-    update_data: Optional[Dict[str, Any]] = None
-
-class RecommendationItem(BaseModel):
+class LearnerResponse(BaseModel):
+    """Learner data for API responses"""
     id: str
-    title: str
-    type: str # course, job, micro-credential
-    score: float
-    reasons: List[str] = []
-    metadata: Dict[str, Any] = {}
+    email: str
+    full_name: str
+    segment: Optional[LearnerSegment] = None
+    target_role: Optional[str] = None
+    onboarding_completed: bool = False
+    created_at: Optional[datetime] = None
 
-class RecommendationResponse(BaseModel):
-    success: bool = True
-    recommendations: List[RecommendationItem] = []
-    model_version: str = "v1.0"
-    error: Optional[str] = None
+
+class ProfileResponse(BaseModel):
+    """Learner profile data for API responses"""
+    skills: List[str] = []
+    interests: List[str] = []
+    strengths: List[str] = []
+    weaknesses: List[str] = []
+
+
+class ProfileMeResponse(BaseModel):
+    """GET /profile/me response — api.md §1"""
+    learner: LearnerResponse
+    profile: ProfileResponse
+
+
+class OnboardingResponse(BaseModel):
+    """POST /auth/onboarding response — api.md §1"""
+    profile_id: str
+    onboarding_completed: bool = True
+
+
+class TargetRoleResponse(BaseModel):
+    """PATCH /profile/target-role response — api.md §1"""
+    roadmap_regeneration_queued: bool = True
+
+
+# --- Dashboard Models ---
+
+class SkillGraphEntry(BaseModel):
+    """Individual skill entry for the dashboard skill graph"""
+    skill: str
+    level: int = Field(..., ge=0, le=4)
+    target_level: int = Field(..., ge=0, le=4)
+
+
+class DashboardResponse(BaseModel):
+    """GET /dashboard response — api.md §6"""
+    streak_days: int = 0
+    current_phase: Optional[str] = None
+    roadmap_progress_pct: int = 0
+    interview_readiness: int = 0
+    placement_readiness: int = 0
+    skill_graph: List[SkillGraphEntry] = []

@@ -1,4 +1,4 @@
-
+﻿
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -473,7 +473,7 @@ export default function Dashboard() {
     isFetchingRef.current = true;
 
     try {
-      console.log("Fetching NCVET courses (Async) for:", { tier, goal });
+
 
       const nsqfRes = await apiClient.post('/api/courses/nsqf', {
         current_tier: tier,

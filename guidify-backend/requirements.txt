@@ -1,29 +1,88 @@
-fastapi
-uvicorn
-python-dotenv
-requests
-pydantic>=2.0
-pydantic-settings
-google-genai
-supabase
-PyPDF2
-python-docx
-pdf2image
-pytesseract
-python-multipart
-pillow
-redis
-celery
-prometheus-fastapi-instrumentator
-sentry-sdk
-sentence-transformers
-scikit-learn
-lightgbm
-pandas
-numpy
-pytest
-httpx
-slowapi
-tenacity
-beautifulsoup4
-python-json-logger
+﻿# GUIDIFY Backend Dependencies — Pinned for Production Stability
+# Generated: 2026-03-02
+# Run `pip install -r requirements.txt` to install
+# To update: change versions here, test, then commit
+
+# ----------------------------
+# Core Web Framework
+# ----------------------------
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+
+# ----------------------------
+# Data Validation & Settings
+# ----------------------------
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# ----------------------------
+# Database — Supabase
+# ----------------------------
+supabase==2.9.1
+
+# ----------------------------
+# AI / ML
+# ----------------------------
+google-genai==0.8.0
+sentence-transformers==3.2.1
+scikit-learn==1.5.2
+lightgbm==4.5.0
+pandas==2.2.3
+numpy==1.26.4
+
+# ----------------------------
+# Document Parsing (OCR / File)
+# ----------------------------
+PyPDF2==3.0.1
+python-docx==1.1.2
+pdf2image==1.17.0
+pytesseract==0.3.13
+pillow==10.4.0
+beautifulsoup4==4.12.3
+
+# ----------------------------
+# HTTP Client (for resume/external calls)
+# ----------------------------
+requests==2.32.3
+httpx==0.27.2
+
+# ----------------------------
+# Caching / Task Queue
+# ----------------------------
+redis==5.1.1
+celery==5.4.0
+
+# ----------------------------
+# Observability
+# ----------------------------
+prometheus-fastapi-instrumentator==7.0.0
+sentry-sdk[fastapi]==2.17.0
+python-json-logger==2.0.7
+
+# ----------------------------
+# Rate Limiting
+# ----------------------------
+slowapi==0.1.9
+
+# ----------------------------
+# Resilience / Retry
+# ----------------------------
+tenacity==9.0.0
+
+# ----------------------------
+# Environment & Config
+# ----------------------------
+python-dotenv==1.0.1
+
+# ----------------------------
+# Groq AI
+# ----------------------------
+groq==0.9.0
+
+# ----------------------------
+# Testing
+# ----------------------------
+pytest==8.3.3
+pytest-asyncio==0.24.0
+# Note: httpx is already listed above (line 48) — no duplicate needed here

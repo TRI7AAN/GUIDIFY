@@ -1,4 +1,4 @@
-# GUIDIFY - AI-Driven Career Guidance Platform
+﻿# GUIDIFY - AI-Driven Career Guidance Platform
 
 GUIDIFY is a comprehensive, AI-powered career guidance platform designed to bridge the gap between learners, training providers, and the labour market. It leverages Machine Learning for personalized profiling, integrates with NCVET for verified qualifications, and provides real-time Labour Market Intelligence (LMI).
 

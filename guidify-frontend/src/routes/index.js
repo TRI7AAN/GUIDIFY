@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GUIDIFY Routing Configuration
  * 
  * This file centralizes all route definitions for the application.

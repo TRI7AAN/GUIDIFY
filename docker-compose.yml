@@ -1,4 +1,4 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
   backend:
@@ -10,41 +10,66 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - redis
-    volumes:
-      - ./guidify-backend:/app
+      redis:
+        condition: service_healthy
+    # DEV-02 FIX: Removed source volume mount (./guidify-backend:/app)
+    # which caused hot-reload dev behaviour in production.
+    # Source code is now baked into the image at build time.
+    # DEV-03 FIX: Added healthcheck so dependent services wait for backend to be ready
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   frontend:
     build: ./guidify-frontend
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
   prometheus:
     image: prom/prometheus
     ports:
-      - "9090:9090"
+      # SEC-05 FIX: Prometheus NOT exposed publicly on host — only accessible internally
+      # Remove the host binding (127.0.0.1 ensures local-only access)
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - backend
 
   grafana:
     image: grafana/grafana
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      # SEC-06 FIX: Use a strong admin password from environment, NEVER hardcode "admin"
+      # Set GRAFANA_ADMIN_PASSWORD in your .env file
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme_required}
+      - GF_SECURITY_DISABLE_INITIAL_ORG_CREATION=false
     depends_on:
       - prometheus
-  # worker: # For background jobs if we use celery/rq
+
+  # Celery worker (uncomment when background tasks are implemented)
+  # worker:
   #   build: ./guidify-backend
   #   command: celery -A app.worker worker --loglevel=info
   #   env_file:
   #     - ./guidify-backend/.env
   #   depends_on:
-  #     - redis
+  #     redis:
+  #       condition: service_healthy

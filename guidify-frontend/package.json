@@ -13,6 +13,7 @@
     "@supabase/auth-ui-react": "^0.4.7",
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/supabase-js": "^2.57.4",
+    "@tailwindcss/vite": "^4.3.3",
     "axios": "^1.11.0",
     "canvas-confetti": "^1.9.4",
     "chart.js": "^4.5.0",
@@ -29,7 +30,8 @@
     "react-router-dom": "^7.8.0",
     "recharts": "^3.2.1",
     "styled-components": "^6.1.19",
-    "swr": "^2.3.6"
+    "swr": "^2.3.6",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",

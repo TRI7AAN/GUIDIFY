@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Authentication Service
  * 
  * Provides methods for user authentication, registration, and profile management.

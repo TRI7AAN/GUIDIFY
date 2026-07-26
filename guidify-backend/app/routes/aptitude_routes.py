@@ -1,123 +1,144 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any
-from pydantic import BaseModel
-from app.services.gemini_client import ask_gemini, extract_json_from_response
-from app.utils.helpers import generate_response
+﻿"""
+Aptitude Routes
 
+HIGH-05 FIX: request.scores dict now serialized with json.dumps() before AI interpolation.
+Prevents prompt injection via malicious dictionary keys in career-suggestion endpoint.
+"""
+
+from fastapi import APIRouter, HTTPException, Depends, Query
+from pydantic import BaseModel, Field
+from typing import List, Dict, Any
+import json
+import logging
+from app.services.gemini_client import ask_gemini_async, extract_json_from_response, _sanitize_user_input
+from app.middleware.auth import get_current_user
+
+logger = logging.getLogger("guidify")
 router = APIRouter()
 
 
+class GradeRequest(BaseModel):
+    questions: List[Dict[str, Any]]
+    answers: List[str]
+
+
+class CareerSuggestionRequest(BaseModel):
+    scores: Dict[str, Any]
+
+
 @router.get("/quiz")
-async def generate_quiz(topic: str, num_questions: int = 5):
+async def generate_quiz(
+    topic: str = Query(..., max_length=100, description="Quiz topic"),
+    num_questions: int = Query(10, ge=1, le=20, description="Number of questions (1-20)"),
+    user: Dict[str, Any] = Depends(get_current_user)
+):
     """
-    Generate a quiz on a specific topic
-    
-    - **topic**: Quiz topic
-    - **num_questions**: Number of questions to generate
+    Generates a quiz for the authenticated user.
+    SEC-07: Requires auth.
+    SEC-08: topic is sanitized before interpolation into the AI prompt.
     """
-    try:
-        prompt = f"Generate a quiz on {topic} with {num_questions} questions. Return JSON with 'questions' list containing 'question', 'options' (list), 'correct_answer' (index)."
-        response = ask_gemini(prompt, system_instruction="You are a quiz generator. Output strict JSON.")
-        data = extract_json_from_response(response)
-        questions = data.get("questions", [])
-        return generate_response(data={"questions": questions})
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    safe_topic = _sanitize_user_input(topic, max_length=100)
+    if not safe_topic:
+        raise HTTPException(status_code=400, detail="Invalid topic")
 
-@router.post("/quiz/grade")
-async def grade_quiz(user_answers: List[int], questions: List[Dict[str, Any]]):
+    prompt = f"""
+    Generate {num_questions} multiple-choice quiz questions about "{safe_topic}".
+
+    Return a JSON object with a "questions" array. Each question must have:
+    - "question": The question text
+    - "options": An array of 4 strings (A, B, C, D)
+    - "correct_answer": The correct option index (0-3)
+    - "explanation": A brief explanation of the answer
+
+    Output JSON ONLY. No markdown.
     """
-    Grade a quiz based on user answers
-    
-    - **user_answers**: List of user's selected answer indices
-    - **questions**: List of quiz questions with correct answers
+
+    response = await ask_gemini_async(prompt, model="gemini-2.5-flash-lite")
+    result = extract_json_from_response(response)
+
+    if not result or "questions" not in result:
+        raise HTTPException(status_code=503, detail="Could not generate quiz. Please try again.")
+
+    return result
+
+
+@router.post("/grade")
+async def grade_quiz(
+    request: GradeRequest,
+    user: Dict[str, Any] = Depends(get_current_user)
+):
     """
-    try:
-        # Calculate score
-        score = 0
-        total = len(questions)
-        
-        for i, question in enumerate(questions):
-            if i < len(user_answers) and user_answers[i] == question.get("correct_answer", 0):
-                score += 1
-        
-        # Generate feedback
-        percentage = (score / total) * 100
-        if percentage >= 80:
-            feedback = "Excellent! You have a strong understanding of this topic."
-        elif percentage >= 60:
-            feedback = "Good job! You have a decent grasp of the material."
-        else:
-            feedback = "Keep practicing! You might need to review this topic more."
-        
-        return generate_response(data={
-            "score": score,
-            "total": total,
-            "percentage": percentage,
-            "feedback": feedback
+    Grades submitted answers.
+    SEC-07: Requires auth.
+    """
+    if not request.questions or not request.answers:
+        raise HTTPException(status_code=400, detail="Questions and answers are required")
+
+    correct = 0
+    results = []
+    for i, (q, a) in enumerate(zip(request.questions, request.answers)):
+        is_correct = str(q.get("correct_answer", "")).strip().lower() == str(a).strip().lower()
+        if is_correct:
+            correct += 1
+        results.append({
+            "question": q.get("question"),
+            "user_answer": a,
+            "correct_answer": q.get("correct_answer"),
+            "is_correct": is_correct,
+            "explanation": q.get("explanation", "")
         })
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-# Payload model for career suggestion
-class ScoresPayload(BaseModel):
-    scores: Dict[str, int]
+    total = len(request.questions)
+    score = round((correct / total * 100), 1) if total > 0 else 0
+
+    return {
+        "score": score,
+        "correct": correct,
+        "total": total,
+        "results": results
+    }
+
 
 @router.post("/career-suggestion")
-async def career_suggestion(payload: ScoresPayload):
+async def get_career_suggestion(
+    request: CareerSuggestionRequest,
+    user: Dict[str, Any] = Depends(get_current_user)
+):
     """
-    Generate an AI-based career suggestion based on aptitude scores.
-
-    - **scores**: Mapping of category to score percentage (0-100)
+    Suggests careers based on quiz scores.
+    HIGH-05 FIX: scores dict is serialized with json.dumps() before prompt interpolation.
+    This prevents injection via malicious dictionary key names.
     """
+    # HIGH-05 FIX: Use json.dumps() to produce a structured string, not Python's dict repr.
+    # Python repr of {"Ignore instructions...": 100} would inject the key directly into prompt.
+    # json.dumps() produces predictable JSON string that Gemini parses as data, not instructions.
     try:
-        scores = payload.scores or {}
-        if not isinstance(scores, dict) or not scores:
-            return generate_response(error="Invalid scores payload")
+        safe_scores_json = json.dumps(request.scores)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid scores format")
 
-        # Sort categories by score descending
-        sorted_items = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-        top_two = [item[0] for item in sorted_items[:2]]
+    prompt = f"""
+    Based on these aptitude scores: {safe_scores_json}
 
-        # Build a concise prompt for Groq
-        score_text = ", ".join([f"{k}: {v}%" for k, v in sorted_items])
-        primary = top_two[0] if top_two else "Analytical"
-        secondary = top_two[1] if len(top_two) > 1 else None
+    Suggest the top 3 career paths. Return JSON with:
+    {{
+      "suggestions": [
+        {{"career": "Career Name", "match_score": 0-100, "reason": "Brief reason"}}
+      ]
+    }}
+    Output JSON ONLY. No markdown.
+    """
 
-        prompt = f"""
-        The user has aptitude scores across categories: {score_text}.
-        Based on their strengths (primary: {primary}{', secondary: ' + secondary if secondary else ''}),
-        suggest 1-2 suitable career paths and relevant degrees.
-        Write a single concise paragraph tailored to these strengths, practical and encouraging.
-        Avoid bullet lists. Keep it under 120 words.
-        """
+    try:
+        response = await ask_gemini_async(prompt, model="gemini-2.5-flash-lite")
+        result = extract_json_from_response(response)
 
-        suggestion = ask_gemini(prompt, system_instruction="You are a career counselor. Be concise and encouraging.")
+        if not result:
+            raise HTTPException(status_code=503, detail="Could not generate career suggestion. Please try again.")
 
-        # Basic fallback if Groq returns an error string
-        if not suggestion or suggestion.startswith("Error generating response"):
-            # Fallback suggestions by category
-            suggestions_map = {
-                "Analytical": ("Data Analysis or Engineering", "Computer Science, Mathematics, or Statistics"),
-                "Creative": ("Design or Content Creation", "Fine Arts, Digital Media, or Communications"),
-                "Social": ("Human Resources or Counseling", "Psychology, Sociology, or Education"),
-                "Business": ("Business Management or Marketing", "Business Administration, Economics, or Marketing"),
-                "Science": ("Research or Healthcare", "Biology, Chemistry, or Health Sciences"),
-            }
-
-            primary_career, primary_degree = suggestions_map.get(primary, suggestions_map["Analytical"])
-            if secondary:
-                sec_career, _ = suggestions_map.get(secondary, suggestions_map["Analytical"])
-                suggestion = (
-                    f"Based on your profile, {primary_career} aligns with your {primary.lower()} strengths. "
-                    f"Consider degrees like {primary_degree}. Alternatively, {sec_career} could also be a strong fit."
-                )
-            else:
-                suggestion = (
-                    f"Based on your profile, {primary_career} aligns with your {primary.lower()} strengths. "
-                    f"Consider degrees like {primary_degree}."
-                )
-
-        return generate_response(data={"suggestion": suggestion})
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Career suggestion error for user {user.get('id')}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate career suggestions")

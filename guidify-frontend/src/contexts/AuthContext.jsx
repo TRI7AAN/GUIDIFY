@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useRef, useMemo } from "react";
+﻿import React, { createContext, useState, useContext, useEffect, useRef, useMemo } from "react";
 import { supabase } from "../utils/supabaseClient";
 import apiClient, { setAuthToken } from "../api/apiClient";
 import Loading from "../components/common/Loading";
@@ -13,49 +13,6 @@ export const AuthProvider = ({ children }) => {
   // Ref to track latest user ID to avoid stale closures in async ops
   const userIdRef = useRef(null);
   const abortControllerRef = useRef(null);
-
-  /**
-   * 1. Create Profile if Not Exists
-   * Ensures a profile row exists immediately after signup/login.
-   */
-  const createProfileIfNotExists = async (userId, email, metadata) => {
-    try {
-      // Check if profile exists
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        throw error; // Real error
-      }
-
-      if (!data) {
-        console.log("Creating default profile for:", userId);
-        const newProfile = {
-          user_id: userId,
-          email: email,
-          name: metadata?.full_name || email?.split('@')[0] || 'User',
-          onboarding_step: 0,
-          onboarding_complete: false,
-          created_at: new Date().toISOString()
-        };
-
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([newProfile]);
-
-        if (insertError) {
-          console.error("Failed to auto-create profile:", insertError);
-        } else {
-          console.log("Profile auto-created successfully.");
-        }
-      }
-    } catch (err) {
-      console.warn("createProfileIfNotExists error:", err);
-    }
-  };
 
   /**
    * 2. Fetch Profile With Retry
@@ -136,21 +93,18 @@ export const AuthProvider = ({ children }) => {
     setAuthToken(session?.access_token);
 
     try {
-      // Auto-hydrate profile if needed (idempotent)
-      await createProfileIfNotExists(currentUser.id, currentUser.email, currentUser.user_metadata);
-
-      // Fetch valid profile data
+      // BUG-07: Profile is created by the DB trigger `on_auth_user_created` on signup.
+      // We only need to fetch it — no manual insert needed from the frontend.
       const profile = await fetchProfileWithRetry(currentUser.id);
 
       if (profile) {
         setOnboardingComplete(profile.onboarding_complete);
 
-        // Fire-and-forget logic for streak (non-blocking)
-        apiClient.post('/api/gamification/daily-login', { user_id: currentUser.id })
+        // Fire-and-forget: update login streak (no user_id in body — extracted from JWT server-side)
+        apiClient.post('/api/gamification/daily-login')
           .catch(err => console.warn("Streak update failed:", err));
       } else {
-        // Profile fetch failed after retries
-        console.warn("Profile fetch failed after retries. Defaulting to onboarding incomplete.");
+        console.warn("Profile not found after retries. User may need to complete signup.");
         setOnboardingComplete(false);
       }
     } catch (err) {
@@ -164,13 +118,19 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
-    // Safety Valve: Force stop loading after 5 seconds max
+    // MED-07 FIX: Safety valve — if auth takes >7 seconds, explicitly sign out to ensure
+    // the app doesn't reach a partially-initialized state where user=null but isLoading=false
+    // without protected routes knowing to redirect to login.
     const safetyTimer = setTimeout(() => {
       if (mounted) {
-        console.warn("⚠️ Initialization timed out. Forcing app entry.");
+        console.warn("⚠️ Auth initialization timed out (7s). Clearing session state and redirecting.");
+        setUser(null);
+        setOnboardingComplete(false);
+        setAuthToken(null);
         setLoading(false);
+        // Protected routes check `user === null` + `loading === false` → redirect to /login automatically
       }
-    }, 5000);
+    }, 7000);
 
     const initAuth = async () => {
       try {
@@ -224,12 +184,16 @@ export const AuthProvider = ({ children }) => {
 
   const value = useMemo(() => ({
     signUp: (data) => supabase.auth.signUp(data),
+    // CQ-07: Removed duplicate `login` method — `signIn` is canonical
     signIn: (data) => supabase.auth.signInWithPassword(data),
-    login: (data) => supabase.auth.signInWithPassword(data),
     signOut: async () => {
       try {
         await supabase.auth.signOut();
-        localStorage.clear(); // Clear all app state
+        // CQ-05 FIX: Only clear GUIDIFY-specific keys, not ALL localStorage
+        // (clearing all would wipe third-party SDK state and user preferences)
+        localStorage.removeItem('guidify_token');
+        localStorage.removeItem('guidify_user');
+        localStorage.removeItem('guidify_session');
       } catch (e) {
         console.error("Logout error", e);
       }

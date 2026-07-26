@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../contexts/AuthContext';
 import apiClient from '../../api/apiClient';
@@ -100,7 +100,7 @@ const AdaptivePersonalityTest = () => {
     const [aiQuestionsQueue, setAiQuestionsQueue] = useState([]);
     const [hasFetchedAI, setHasFetchedAI] = useState(false);
 
-    console.log("Supabase client status:", supabase ? "Defined" : "Undefined");
+
 
     // Initialize test with static questions
     useEffect(() => {
@@ -200,7 +200,7 @@ const AdaptivePersonalityTest = () => {
                 all_responses: finalResponses
             });
 
-            console.log("Analysis complete:", res);
+
 
             // 2. Save to Supabase Profiles Table
             const { error } = await supabase
@@ -214,7 +214,7 @@ const AdaptivePersonalityTest = () => {
 
             if (error) throw error;
 
-            console.log("Profile updated. Notifying context...");
+
 
             // 3. Notify Context - CRITICAL FIX for "Loop/Freeze" logic
             // We rely on Onboarding.jsx's useEffect to handle the redirect safely

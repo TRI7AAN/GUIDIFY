@@ -1,4 +1,4 @@
-"""
+﻿"""
 Global Error Handler Middleware
 
 Catches all exceptions and returns consistent error responses.
@@ -12,17 +12,17 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from typing import Union
 import traceback
 
-from app.core.exceptions import GuidifyException
+from app.core.exceptions import GUIDIFYException
 from app.core.logger import logger, log_error
 
 
-async def guidify_exception_handler(request: Request, exc: GuidifyException) -> JSONResponse:
+async def guidify_exception_handler(request: Request, exc: GUIDIFYException) -> JSONResponse:
     """
-    Handle custom Guidify exceptions
+    Handle custom GUIDIFY exceptions
     
     Args:
         request: FastAPI request object
-        exc: GuidifyException instance
+        exc: GUIDIFYException instance
         
     Returns:
         JSON response with error details

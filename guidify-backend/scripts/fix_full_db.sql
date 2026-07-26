@@ -1,4 +1,4 @@
--- Full Database Stabilization Script for GUIDIFY
+﻿-- Full Database Stabilization Script for GUIDIFY
 -- Run this in the Supabase SQL Editor to fix missing tables and RLS issues.
 
 -- 1. Create verified_courses Table (NCVET Compliance)

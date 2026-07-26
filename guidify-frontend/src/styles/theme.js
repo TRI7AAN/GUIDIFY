@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GUIDIFY Theme Configuration
  * 
  * This file centralizes all theme variables for the application.

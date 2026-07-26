@@ -1,4 +1,4 @@
-"""
+﻿"""
 Structured Logging Configuration
 
 Provides structured JSON logging for production and readable text logging for development.

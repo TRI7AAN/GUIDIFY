@@ -1,4 +1,4 @@
-/**
+﻿/**
  * API Client for GUIDIFY
  * 
  * Features:
@@ -25,8 +25,9 @@ const apiClient = axios.create({
 // Circuit Breaker State
 let failureCount = 0;
 let circuitOpenUntil = 0;
-const MAX_FAILURES = 20; // Increased for debugging
-const CIRCUIT_OPEN_MS = 5000; // Reduced to 5 seconds
+// Circuit Breaker Configuration (Production-grade settings)
+const MAX_FAILURES = 5;          // Open circuit after 5 consecutive failures
+const CIRCUIT_OPEN_MS = 30000;   // Keep circuit open for 30 seconds before retrying
 
 // In-memory token store
 let memoryToken = null;

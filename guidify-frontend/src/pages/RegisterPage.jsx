@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import SEO from "../components/ui/SEO";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -132,14 +132,14 @@ function RegisterPage() {
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
-            { 
+            {
               user_id: data.user.id,
               name: name,
               email: email,
               onboarding_complete: false
             }
           ]);
-          
+
         if (profileError) {
           console.error('Error creating profile:', profileError);
           throw profileError;
@@ -176,7 +176,7 @@ function RegisterPage() {
   const handleContextRegister = () => {
     setError("");
     setIsLoading(true);
-    
+
     register({
       username: name, // Using name as username for simplicity
       name: name,
@@ -184,40 +184,40 @@ function RegisterPage() {
       password: password,
       user_type: "B2C" // Default to B2C user type for open registration
     })
-    .then(() => {
-      // Redirect to onboarding after successful registration
-      navigate("/onboarding");
-    })
-    .catch((err) => {
-      console.error('Registration error:', err);
+      .then(() => {
+        // Redirect to onboarding after successful registration
+        navigate("/onboarding");
+      })
+      .catch((err) => {
+        console.error('Registration error:', err);
 
-      // Check for different error types
-      if (err.response?.data?.message) {
-        // Use the backend's specific error message
-        setError(err.response.data.message);
-      } else if (err.response?.data?.detail) {
-        // Use the backend's detail message
-        setError(err.response.data.detail);
-      } else if (err.response?.data?.error) {
-        // Use the backend's error message
-        setError(err.response.data.error);
-      } else if (err.message && err.message.includes('already exists')) {
-        // Check for "already exists" in the error message
-        setError("Account already exists. Please use a different email or login instead.");
-      } else if (err.response?.status === 409) {
-        // HTTP 409 Conflict typically means resource already exists
-        setError("Account already exists. Please use a different email or login instead.");
-      } else if (err.response?.status === 400) {
-        // Bad request - likely validation error
-        setError("Invalid registration information. Please check your details.");
-      } else {
-        // Fallback error message
-        setError("Registration failed. Please try again later.");
-      }
-    })
-    .finally(() => {
-      setIsLoading(false);
-    });
+        // Check for different error types
+        if (err.response?.data?.message) {
+          // Use the backend's specific error message
+          setError(err.response.data.message);
+        } else if (err.response?.data?.detail) {
+          // Use the backend's detail message
+          setError(err.response.data.detail);
+        } else if (err.response?.data?.error) {
+          // Use the backend's error message
+          setError(err.response.data.error);
+        } else if (err.message && err.message.includes('already exists')) {
+          // Check for "already exists" in the error message
+          setError("Account already exists. Please use a different email or login instead.");
+        } else if (err.response?.status === 409) {
+          // HTTP 409 Conflict typically means resource already exists
+          setError("Account already exists. Please use a different email or login instead.");
+        } else if (err.response?.status === 400) {
+          // Bad request - likely validation error
+          setError("Invalid registration information. Please check your details.");
+        } else {
+          // Fallback error message
+          setError("Registration failed. Please try again later.");
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   };
 
   const handleGoogleSignup = async () => {
@@ -248,6 +248,7 @@ function RegisterPage() {
           placeholder="Full Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          autoComplete="name"
           required
         />
         <FormInput
@@ -255,6 +256,7 @@ function RegisterPage() {
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
           required
         />
         <FormInput
@@ -262,6 +264,7 @@ function RegisterPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
           required
         />
         <SubmitButton type="submit" disabled={isLoading}>
