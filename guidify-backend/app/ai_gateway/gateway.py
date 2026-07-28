@@ -187,8 +187,8 @@ class AIGateway:
         """
         Build the prompt string from task type and context.
 
-        Phase 0: Simple JSON serialization of context.
-        Phase 1+: Will use versioned prompt templates from prompts/ directory.
+        Uses versioned prompt templates from prompts/ directory where available.
+        Falls back to generic JSON serialization for tasks without templates.
         """
         # Phase 0 test task
         if task_type == "test.hello":
@@ -198,7 +198,89 @@ class AIGateway:
                 "No other text."
             )
 
-        # Generic prompt construction (will be replaced by prompt templates in later phases)
+        # Roadmap generation — uses versioned prompt template
+        if task_type == "roadmap.generate":
+            from app.ai_gateway.prompts.roadmap_generate import ROADMAP_GENERATE_V1
+            prompt = ROADMAP_GENERATE_V1.format(
+                target_role=context.get("target_role", "Software Developer"),
+                segment=context.get("segment", "college"),
+                skills=", ".join(context.get("skills", [])) or "None listed",
+                interests=", ".join(context.get("interests", [])) or "None listed",
+                strengths=", ".join(context.get("strengths", [])) or "None listed",
+                weaknesses=", ".join(context.get("weaknesses", [])) or "None listed",
+                learning_hours=context.get("learning_hours", "5"),
+            )
+            if schema_hint:
+                prompt += (
+                    "\n\nIMPORTANT: Your previous response did not match the required JSON schema. "
+                    "Please return ONLY valid JSON with no extra text."
+                )
+            return prompt
+
+        # Mission generation — uses versioned prompt template
+        if task_type == "mission.generate":
+            from app.ai_gateway.prompts.mission_generate import MISSION_GENERATE_V1
+
+            # Format mission history for context
+            history_items = context.get("mission_history", [])
+            if history_items:
+                history_str = "\n".join(
+                    f"- [{h.get('assigned_date', '?')}] {h.get('title', 'Unknown')} "
+                    f"(skill: {h.get('target_skill', '?')}, status: {h.get('status', '?')})"
+                    for h in history_items
+                )
+            else:
+                history_str = "No previous missions — this is the learner's first mission."
+
+            prompt = MISSION_GENERATE_V1.format(
+                target_role=context.get("target_role", "Software Developer"),
+                segment=context.get("segment", "college"),
+                current_phase_title=context.get("current_phase_title", "Foundations"),
+                current_phase_number=context.get("current_phase_number", 1),
+                total_phases=context.get("total_phases", 4),
+                phase_skills=", ".join(context.get("phase_skills", [])) or "General skills",
+                target_skill=context.get("target_skill", "Problem Solving"),
+                difficulty=context.get("difficulty", "beginner"),
+                estimated_minutes=context.get("estimated_minutes", 35),
+                mission_history=history_str,
+            )
+            if schema_hint:
+                prompt += (
+                    "\n\nIMPORTANT: Your previous response did not match the required JSON schema. "
+                    "Please return ONLY valid JSON with no extra text."
+                )
+            return prompt
+
+        # Resume parsing — uses versioned prompt template
+        if task_type == "resume.parse":
+            from app.ai_gateway.prompts.resume_parse import RESUME_PARSE_V1
+            prompt = RESUME_PARSE_V1.format(
+                resume_text=context.get("resume_text", ""),
+            )
+            if schema_hint:
+                prompt += (
+                    "\n\nIMPORTANT: Your previous response did not match the required JSON schema. "
+                    "Please return ONLY valid JSON with no extra text."
+                )
+            return prompt
+
+        # Resume scoring — uses versioned prompt template
+        if task_type == "resume.score":
+            from app.ai_gateway.prompts.resume_score import RESUME_SCORE_V1
+            prompt = RESUME_SCORE_V1.format(
+                target_role=context.get("target_role", "Software Developer"),
+                segment=context.get("segment", "college"),
+                current_skills=", ".join(context.get("current_skills", [])) or "None listed",
+                parsed_resume_json=json.dumps(context.get("parsed_resume", {}), default=str),
+            )
+            if schema_hint:
+                prompt += (
+                    "\n\nIMPORTANT: Your previous response did not match the required JSON schema. "
+                    "Please return ONLY valid JSON with no extra text."
+                )
+            return prompt
+
+        # Generic prompt construction for other task types
         prompt_parts = [
             f"Task: {task_type}",
             f"Context: {json.dumps(context, default=str)}",

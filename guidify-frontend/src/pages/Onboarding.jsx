@@ -1,126 +1,105 @@
-﻿import React, { useEffect } from 'react';
+/**
+ * Onboarding Page — Multi-step flow
+ * 
+ * Steps:
+ *   1. ProfileForm — name, age, gender, status, location
+ *   2. CareerGoalsForm — target role, skills, interests, learning hours (NEW)
+ *   3. AdaptivePersonalityTest — AI personality quiz
+ * 
+ * Per design.md §2.1: Onboarding ≤ 5 steps. Converts to TailwindCSS.
+ */
+
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../contexts/OnboardingContext';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileForm from '../components/onboarding/ProfileForm';
+import CareerGoalsForm from '../components/onboarding/CareerGoalsForm';
 import AdaptivePersonalityTest from '../components/onboarding/AdaptivePersonalityTest';
-import { useTranslation } from 'react-i18next';
-
-import styled from 'styled-components';
-
-// Styled components to match LandingPage theme
-const OnboardingContainer = styled.div`
-  min-height: 100vh;
-  background: var(--deep-space-gradient);
-  color: var(--text-light);
-`;
-
-const ContentWrapper = styled.div`
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-`;
-
-const StepContainer = styled.div`
-  background: var(--glass-bg);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  border-radius: 16px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
-`;
-
-const ProgressBar = styled.div`
-  width: 100%;
-  background: rgba(30, 30, 60, 0.5);
-  border-radius: 999px;
-  height: 8px;
-  margin-bottom: 2rem;
-  overflow: hidden;
-`;
-
-const ProgressFill = styled.div`
-  background: var(--emerald-neon);
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.5s ease-in-out;
-  box-shadow: 0 0 10px var(--emerald-neon);
-`;
 
 const Onboarding = () => {
   const { currentStep, isLoading: contextLoading } = useOnboarding();
   const { user, onboardingComplete, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   // Redirect Logic
   useEffect(() => {
-    // Wait for auth to settle
     if (authLoading) return;
-
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    if (onboardingComplete) {
-      navigate('/dashboard');
-    }
+    if (!user) { navigate('/login'); return; }
+    if (onboardingComplete) { navigate('/dashboard'); }
   }, [user, onboardingComplete, authLoading, navigate]);
 
-  // Steps Definition
+  // Steps Definition — added CareerGoalsForm as step 2
   const steps = [
     { title: 'Profile Information', component: <ProfileForm /> },
+    { title: 'Career Goals', component: <CareerGoalsForm /> },
     { title: 'AI Personality Analysis', component: <AdaptivePersonalityTest /> },
   ];
 
-  // While loading auth or checking step status
   if (authLoading || contextLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#0f172a] text-[#39FF14]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#39FF14] border-t-transparent"></div>
-          <p>Syncing Destiny...</p>
+      <div className="min-h-screen bg-surface-50 flex items-center justify-center">
+        <div className="text-center animate-fade-in-up">
+          <div className="w-12 h-12 rounded-full border-2 border-primary-500 border-t-transparent animate-spin mx-auto mb-4" />
+          <p className="text-surface-800 font-medium font-display">Setting up your journey...</p>
         </div>
       </div>
     );
   }
 
-  // Safe Indexing
   const activeStepIndex = Math.min(Math.max(0, currentStep), steps.length - 1);
   const activeStep = steps[activeStepIndex];
   const progress = ((activeStepIndex + 1) / steps.length) * 100;
 
   return (
-    <OnboardingContainer>
-      <ContentWrapper>
-        <div>
-          <header className="mb-8 text-center">
-            <h1 className="text-4xl font-bold mb-2 text-white">Welcome to GUIDIFY</h1>
-            <p className="text-lg" style={{ color: 'var(--emerald-neon)' }}>Let's set up your profile and discover your career path</p>
-          </header>
+    <div className="min-h-screen bg-surface-50">
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        {/* Header */}
+        <header className="text-center mb-8 animate-fade-in-up">
+          <h1 className="text-3xl font-display font-bold text-surface-900 mb-2">
+            Welcome to GUIDIFY
+          </h1>
+          <p className="text-primary-600 font-medium">
+            Let's build your personalized career roadmap
+          </p>
+        </header>
 
-          {/* Progress bar */}
-          <ProgressBar>
-            <ProgressFill style={{ width: `${progress}%` }} />
-          </ProgressBar>
-
-          {/* Step title */}
-          <h2 className="text-2xl font-semibold mb-6 text-center text-white">
-            Step {activeStepIndex + 1}: {activeStep?.title || 'Loading'}
-          </h2>
-
-          {/* Current step component */}
-          <StepContainer>
-            {activeStep ? activeStep.component : <div>Loading Step...</div>}
-          </StepContainer>
+        {/* Progress bar */}
+        <div className="max-w-lg mx-auto mb-6 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
+          <div className="flex items-center justify-between mb-2">
+            {steps.map((step, idx) => (
+              <div key={idx} className="flex items-center gap-1.5">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                  idx <= activeStepIndex
+                    ? 'bg-primary-500 text-white'
+                    : 'bg-surface-200 text-surface-800/50'
+                }`}>
+                  {idx + 1}
+                </div>
+                <span className={`text-xs font-medium hidden sm:inline ${
+                  idx <= activeStepIndex ? 'text-primary-600' : 'text-surface-800/40'
+                }`}>
+                  {step.title}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="w-full h-1.5 bg-surface-200 rounded-full overflow-hidden">
+            <div
+              className="h-full gradient-primary rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
-      </ContentWrapper>
-    </OnboardingContainer>
+
+        {/* Step content */}
+        <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <div className="glass-card p-8 max-w-2xl mx-auto">
+            {activeStep ? activeStep.component : <div>Loading Step...</div>}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

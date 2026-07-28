@@ -1,464 +1,368 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
-import apiClient from '../api/apiClient';
-import { supabase } from '../utils/supabaseClient';
-import {
-  BookOpen, Briefcase, Award, Map,
-  CheckCircle, Circle, ArrowRight, Loader
-} from 'lucide-react';
+/**
+ * Roadmap View — design.md §2.3
+ * 
+ * Full-screen interactive roadmap visualization showing:
+ *   - All phases with skills, difficulty, estimated weeks
+ *   - Current active phase highlighting
+ *   - Phase expansion with milestones
+ *   - Regenerate roadmap action
+ * 
+ * Uses /api/v1/roadmap/current per api.md §3.
+ * TailwindCSS styling per design system.
+ */
+
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { roadmapAPI } from '../lib/api';
+import {
+  Map, ChevronDown, ChevronRight, ChevronLeft, Clock,
+  Target, Sparkles, CheckCircle2, Circle, Lock,
+  BookOpen, Zap, Trophy, ArrowRight, RefreshCw
+} from 'lucide-react';
 
-const PageContainer = styled.div`
-  display: flex;
-  min-height: 100vh;
-  background-color: #0D0F18;
-  color: white;
-  font-family: 'Inter', sans-serif;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-const LeftPanel = styled.div`
-  flex: 1;
-  padding: 3rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  border-right: 1px solid #1F2330;
-  background: radial-gradient(circle at top left, rgba(57, 255, 20, 0.05), transparent 40%);
-
-  h1 {
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin-bottom: 1rem;
-    background: linear-gradient(90deg, #fff, #A4ACBC);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  p {
-    color: #A4ACBC;
-    margin-bottom: 2rem;
-    font-size: 1.1rem;
-  }
-`;
-
-const InputGroup = styled.div`
-  margin-bottom: 1.5rem;
-
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #39FF14;
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-
-  input, select {
-    width: 100%;
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid #1F2330;
-    border-radius: 12px;
-    color: white;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-
-    &:focus {
-      outline: none;
-      border-color: #39FF14;
-      box-shadow: 0 0 15px rgba(57, 255, 20, 0.1);
-    }
-  }
-`;
-
-const GenerateButton = styled(motion.button)`
-  width: 100%;
-  padding: 1rem;
-  background: #39FF14;
-  color: black;
-  border: none;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 1.1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 1rem;
-
-  &:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-  }
-`;
-
-const RightPanel = styled.div`
-  flex: 1.5;
-  padding: 3rem;
-  overflow-y: auto;
-  background-color: #0D0F18;
-  position: relative;
-
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: #1F2330;
-    border-radius: 4px;
-  }
-`;
-
-const TimelineContainer = styled.div`
-  position: relative;
-  max-width: 600px;
-  margin: 0 auto;
-  padding-left: 2rem;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: linear-gradient(180deg, #39FF14, #4AD8E6, transparent);
-  }
-`;
-
-const StepCard = styled(motion.div)`
-  background: rgba(21, 24, 33, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid #1F2330;
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  position: relative;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    left: -2.4rem;
-    top: 1.5rem;
-    width: 12px;
-    height: 12px;
-    background: #0D0F18;
-    border: 2px solid #39FF14;
-    border-radius: 50%;
-    z-index: 10;
-  }
-
-  &:hover {
-    border-color: #4AD8E6;
-    transform: translateX(5px);
-    transition: all 0.3s ease;
-  }
-`;
-
-const StepHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.5rem;
-`;
-
-const StepTitle = styled.h3`
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: white;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-`;
-
-const StepDuration = styled.span`
-  font-size: 0.8rem;
-  color: #39FF14;
-  background: rgba(57, 255, 20, 0.1);
-  padding: 0.2rem 0.6rem;
-  border-radius: 20px;
-`;
-
-const StepTypeIcon = ({ type }) => {
-  switch (type) {
-    case 'course': return <BookOpen size={18} color="#4AD8E6" />;
-    case 'project': return <Briefcase size={18} color="#FF5722" />;
-    case 'certification': return <Award size={18} color="#FFC107" />;
-    default: return <Map size={18} color="#A4ACBC" />;
-  }
-};
-
-const CareerRoadmap = () => {
+export default function RoadmapView() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [subjects, setSubjects] = useState('');
-  const [career, setCareer] = useState('');
-  const [currentLevel, setCurrentLevel] = useState('Beginner');
-  const [availability, setAvailability] = useState('10');
   const [roadmap, setRoadmap] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [expandedPhase, setExpandedPhase] = useState(null);
+  const [regenerating, setRegenerating] = useState(false);
 
-  const [isCreating, setIsCreating] = useState(true);
-
-  // Load existing roadmap on mount
   useEffect(() => {
-    const loadRoadmap = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('career_roadmap')
-        .eq('user_id', user.id)
-        .single();
-
-      if (data?.career_roadmap) {
-        setRoadmap(data.career_roadmap);
-        setIsCreating(false); // Switch to view mode if roadmap exists
+    const fetchRoadmap = async () => {
+      try {
+        setLoading(true);
+        const data = await roadmapAPI.getCurrent();
+        if (data && data.status !== 'no_roadmap') {
+          setRoadmap(data);
+          // Auto-expand current phase
+          setExpandedPhase(data.current_phase_number || 1);
+        }
+      } catch (e) {
+        console.error('Roadmap fetch error:', e);
+      } finally {
+        setLoading(false);
       }
     };
-    loadRoadmap();
+    if (user) fetchRoadmap();
   }, [user]);
 
-  const handleGenerate = async () => {
-    if (!subjects || !career) return alert("Please fill in all fields");
-
-    setLoading(true);
+  const handleRegenerate = async () => {
+    setRegenerating(true);
     try {
-      const res = await apiClient.post('/api/roadmap/generate', {
-        current_subjects: subjects,
-        target_career: career,
-        current_level: currentLevel,
-        availability_hours: availability,
-        user_id: user.id
-      });
-      setRoadmap(res);
-      setIsCreating(false); // Switch to view mode after generation
-    } catch (error) {
-      console.error("Generation failed:", error);
-      // Check for specific error types
-      if (error.code === 'ERR_NETWORK') {
-        alert("Network error: Could not connect to the server. Please check if the backend is running.");
-      } else if (error.response?.status === 500) {
-        alert("Server error: The AI service might be overloaded. Please try again in a moment.");
-      } else {
-        alert(`Failed to generate roadmap: ${error.message || "Unknown error"}`);
+      const res = await roadmapAPI.regenerate();
+      if (res?.status === 'ok') {
+        // Refetch the full roadmap
+        const data = await roadmapAPI.getCurrent();
+        if (data && data.status !== 'no_roadmap') {
+          setRoadmap(data);
+          setExpandedPhase(data.current_phase_number || 1);
+        }
       }
+    } catch (e) {
+      console.error('Regenerate failed:', e);
     } finally {
-      setLoading(false);
+      setRegenerating(false);
     }
   };
 
-  const handleCompleteStep = async (index) => {
-    if (!roadmap) return;
-
-    // Optimistic Update
-    const newSteps = [...roadmap.steps];
-    newSteps[index].completed = true;
-    setRoadmap({ ...roadmap, steps: newSteps });
-
-    try {
-      await apiClient.post('/api/roadmap/complete-step', {
-        user_id: user.id,
-        step_index: index
-      });
-    } catch (error) {
-      console.error("Failed to complete step:", error);
-      // Revert on error
-      newSteps[index].completed = false;
-      setRoadmap({ ...roadmap, steps: newSteps });
-      alert("Failed to update progress. Please check your connection.");
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty) {
+      case 'beginner': return { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' };
+      case 'intermediate': return { bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500' };
+      case 'advanced': return { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500' };
+      default: return { bg: 'bg-surface-200', text: 'text-surface-800', dot: 'bg-surface-300' };
     }
   };
+
+  const getPhaseStatus = (phaseNumber) => {
+    const current = roadmap?.current_phase_number || 1;
+    if (phaseNumber < current) return 'completed';
+    if (phaseNumber === current) return 'active';
+    return 'locked';
+  };
+
+  const getPhaseIcon = (status) => {
+    switch (status) {
+      case 'completed': return <CheckCircle2 className="w-5 h-5 text-accent-500" />;
+      case 'active': return <Zap className="w-5 h-5 text-primary-500" />;
+      case 'locked': return <Lock className="w-5 h-5 text-surface-300" />;
+      default: return <Circle className="w-5 h-5 text-surface-300" />;
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface-50 flex items-center justify-center">
+        <div className="text-center animate-fade-in-up">
+          <div className="w-12 h-12 rounded-full border-2 border-primary-500 border-t-transparent animate-spin mx-auto mb-4" />
+          <p className="text-surface-800 font-medium font-display">Loading your roadmap...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // No roadmap state
+  if (!roadmap) {
+    return (
+      <div className="min-h-screen bg-surface-50">
+        <header className="bg-white/80 backdrop-blur-md border-b border-surface-200 sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2 text-sm font-medium text-surface-800 hover:text-primary-600 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Dashboard
+            </button>
+            <h1 className="text-xl font-display font-bold text-primary-700 tracking-tight">
+              Career Roadmap
+            </h1>
+            <div className="w-20" />
+          </div>
+        </header>
+
+        <main className="max-w-2xl mx-auto px-6 py-20 text-center animate-fade-in-up">
+          <div className="w-20 h-20 rounded-2xl bg-primary-100 flex items-center justify-center mx-auto mb-6">
+            <Map className="w-10 h-10 text-primary-500" />
+          </div>
+          <h2 className="text-2xl font-display font-bold text-surface-900 mb-3">
+            No Roadmap Yet
+          </h2>
+          <p className="text-surface-800/60 mb-8 max-w-md mx-auto">
+            Complete your profile to get a personalized career roadmap powered by AI.
+            Your roadmap will break down the journey into clear, actionable phases.
+          </p>
+          <div className="flex justify-center gap-4">
+            <button
+              onClick={() => navigate('/onboarding')}
+              className="gradient-primary text-white font-semibold px-6 py-3 rounded-xl hover:opacity-90 transition-opacity focus-ring"
+            >
+              Complete Profile
+            </button>
+            <button
+              onClick={handleRegenerate}
+              disabled={regenerating}
+              className="bg-white border border-surface-200 text-surface-800 font-semibold px-6 py-3 rounded-xl hover:bg-surface-100 transition-colors focus-ring flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+              {regenerating ? 'Generating...' : 'Generate Roadmap'}
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const phases = roadmap.phases || [];
+  const currentPhaseNumber = roadmap.current_phase_number || 1;
+  const progressPct = roadmap.progress_pct || 0;
 
   return (
-    <PageContainer>
-      <LeftPanel>
-        <button
-          onClick={() => navigate('/dashboard')}
-          style={{
-            background: 'none', border: 'none', color: '#A4ACBC',
-            cursor: 'pointer', marginBottom: '2rem', display: 'flex', alignItems: 'centre', gap: '0.5rem'
-          }}
-        >
-          ← Back to Dashboard
-        </button>
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-          <h1>Design Your Future</h1>
-          <p>AI-powered roadmap generator to guide you from where you are to where you want to be.</p>
+    <div className="min-h-screen bg-surface-50">
+      {/* ── Top Bar ─────────────────────────────────────── */}
+      <header className="bg-white/80 backdrop-blur-md border-b border-surface-200 sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2 text-sm font-medium text-surface-800 hover:text-primary-600 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" /> Dashboard
+          </button>
+          <h1 className="text-xl font-display font-bold text-primary-700 tracking-tight">
+            Career Roadmap
+          </h1>
+          <button
+            onClick={handleRegenerate}
+            disabled={regenerating}
+            className="flex items-center gap-2 text-sm font-medium text-surface-800 hover:text-primary-600 transition-colors focus-ring rounded-lg px-2 py-1"
+          >
+            <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
+            {regenerating ? 'Regenerating...' : 'Regenerate'}
+          </button>
+        </div>
+      </header>
 
-          {!isCreating && roadmap ? (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              style={{
-                background: 'rgba(255,255,255,0.05)',
-                padding: '1.5rem',
-                borderRadius: '16px',
-                border: '1px solid #1F2330'
-              }}
-            >
-              <h3 style={{ color: '#39FF14', marginBottom: '0.5rem' }}>Current Roadmap Active</h3>
-              <p style={{ fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                You are currently viewing <strong>{roadmap.title}</strong>.
-              </p>
+      <main className="max-w-4xl mx-auto px-6 py-8">
+        {/* ── Roadmap Header ────────────────────────────── */}
+        <div className="mb-8 animate-fade-in-up">
+          <h2 className="text-3xl font-display font-bold text-surface-900 mb-2">
+            {roadmap.title}
+          </h2>
+          <div className="flex flex-wrap items-center gap-4 text-sm text-surface-800/60">
+            <span className="flex items-center gap-1.5">
+              <Target className="w-4 h-4" />
+              {roadmap.total_phases} phases
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4" />
+              ~{roadmap.estimated_weeks} weeks
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4" />
+              Version {roadmap.version || 1}
+            </span>
+          </div>
+        </div>
 
-              <GenerateButton
-                onClick={() => setIsCreating(true)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+        {/* ── Overall Progress ──────────────────────────── */}
+        <div className="glass-card p-5 mb-8 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-semibold text-surface-900">Overall Progress</span>
+            <span className="text-sm font-bold text-primary-600">{progressPct}%</span>
+          </div>
+          <div className="w-full h-3 bg-surface-200 rounded-full overflow-hidden">
+            <div
+              className="h-full gradient-accent rounded-full transition-all duration-1000 ease-out"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <p className="text-xs text-surface-800/50 mt-2">
+            Phase {currentPhaseNumber} of {roadmap.total_phases}
+          </p>
+        </div>
+
+        {/* ── Phase Timeline ─────────────────────────────── */}
+        <div className="space-y-4">
+          {phases.map((phase, index) => {
+            const status = getPhaseStatus(phase.phase_number);
+            const isExpanded = expandedPhase === phase.phase_number;
+            const diffColor = getDifficultyColor(phase.difficulty);
+
+            return (
+              <div
+                key={phase.phase_number}
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${0.1 + index * 0.05}s` }}
               >
-                <Map size={20} /> Create New Roadmap
-              </GenerateButton>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-            >
-              <InputGroup>
-                <label>Current Subjects / Stream</label>
-                <input
-                  type="text"
-                  placeholder="e.g. PCM, Commerce, Computer Science"
-                  value={subjects}
-                  onChange={(e) => setSubjects(e.target.value)}
-                />
-              </InputGroup>
-
-              <InputGroup>
-                <label>Dream Career</label>
-                <input
-                  type="text"
-                  placeholder="e.g. AI Engineer, Data Scientist,"
-                  value={career}
-                  onChange={(e) => setCareer(e.target.value)}
-                />
-              </InputGroup>
-
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <InputGroup style={{ flex: 1 }}>
-                  <label>Current Level</label>
-                  <select
-                    value={currentLevel}
-                    onChange={(e) => setCurrentLevel(e.target.value)}
-                  >
-                    <option value="Beginner">Beginner</option>
-                    <option value="Intermediate">Intermediate</option>
-                    <option value="Advanced">Advanced</option>
-                  </select>
-                </InputGroup>
-
-                <InputGroup style={{ flex: 1 }}>
-                  <label>Learning Hours/Week</label>
-                  <input
-                    type="number"
-                    value={availability}
-                    onChange={(e) => setAvailability(e.target.value)}
-                  />
-                </InputGroup>
-              </div>
-
-              <GenerateButton
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleGenerate}
-                disabled={loading}
-              >
-                {loading ? <Loader className="animate-spin" /> : <><Map /> Generate Roadmap</>}
-              </GenerateButton>
-
-              {roadmap && (
+                {/* Phase Card */}
                 <button
-                  onClick={() => setIsCreating(false)}
-                  style={{
-                    width: '100%',
-                    padding: '1rem',
-                    background: 'transparent',
-                    color: '#A4ACBC',
-                    border: '1px solid #1F2330',
-                    borderRadius: '12px',
-                    marginTop: '1rem',
-                    cursor: 'pointer'
-                  }}
+                  onClick={() => setExpandedPhase(isExpanded ? null : phase.phase_number)}
+                  className={`
+                    w-full text-left glass-card p-5 transition-all duration-200
+                    ${status === 'active' ? 'border-l-4 border-l-primary-500 shadow-lg shadow-primary-500/5' : ''}
+                    ${status === 'completed' ? 'border-l-4 border-l-accent-500' : ''}
+                    ${status === 'locked' ? 'opacity-75' : 'card-hover'}
+                  `}
                 >
-                  Cancel
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3 flex-1">
+                      {/* Timeline node */}
+                      <div className={`
+                        w-10 h-10 rounded-xl flex items-center justify-center shrink-0
+                        ${status === 'active' ? 'bg-primary-100' : ''}
+                        ${status === 'completed' ? 'bg-accent-100' : ''}
+                        ${status === 'locked' ? 'bg-surface-200' : ''}
+                      `}>
+                        {getPhaseIcon(status)}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <h3 className="text-base font-display font-semibold text-surface-900">
+                            {phase.title}
+                          </h3>
+                          {status === 'active' && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
+                              Current
+                            </span>
+                          )}
+                          {status === 'completed' && (
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-600 bg-accent-50 px-2 py-0.5 rounded-full">
+                              Done
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-surface-800/60 line-clamp-2">
+                          {phase.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="hidden sm:flex flex-col items-end gap-1">
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${diffColor.bg} ${diffColor.text}`}>
+                          {phase.difficulty}
+                        </span>
+                        <span className="text-xs text-surface-800/50 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {phase.estimated_weeks}w
+                        </span>
+                      </div>
+                      {isExpanded
+                        ? <ChevronDown className="w-5 h-5 text-surface-300" />
+                        : <ChevronRight className="w-5 h-5 text-surface-300" />
+                      }
+                    </div>
+                  </div>
                 </button>
-              )}
-            </motion.div>
-          )}
-        </motion.div>
-      </LeftPanel>
 
-      <RightPanel>
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '600px', margin: '0 auto' }}>
-              {[1, 2, 3].map(i => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  style={{ height: '120px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px' }}
-                />
-              ))}
-            </div>
-          ) : roadmap ? (
-            <TimelineContainer>
-              <h2 style={{ marginBottom: '2rem', color: '#39FF14' }}>{roadmap.title}</h2>
-              <p style={{ marginBottom: '2rem', color: '#A4ACBC' }}>{roadmap.summary}</p>
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="ml-5 border-l-2 border-surface-200 pl-5 py-4 space-y-4 animate-fade-in-up">
+                    {/* Skills */}
+                    <div>
+                      <h4 className="text-xs font-semibold text-surface-800/50 uppercase tracking-wider mb-2">
+                        Skills to Learn
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {(phase.skills || []).map((skill, i) => (
+                          <span
+                            key={i}
+                            className="text-xs font-medium bg-primary-50 text-primary-700 px-3 py-1.5 rounded-full"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
 
-              {roadmap.steps?.map((step, index) => (
-                <StepCard
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  style={{
-                    borderColor: step.completed ? '#39FF14' : '#1F2330',
-                    opacity: step.completed ? 0.8 : 1
-                  }}
-                >
-                  <StepHeader>
-                    <StepTitle>
-                      <button
-                        onClick={() => handleCompleteStep(index)}
-                        disabled={step.completed}
-                        style={{
-                          background: 'none', border: 'none', cursor: step.completed ? 'default' : 'pointer',
-                          marginRight: '0.5rem', display: 'flex', alignItems: 'center'
-                        }}
-                      >
-                        {step.completed ? <CheckCircle color="#39FF14" size={24} /> : <Circle color="#555" size={24} />}
-                      </button>
-                      <StepTypeIcon type={step.type} />
-                      <span style={{ marginLeft: '0.5rem', textDecoration: step.completed ? 'line-through' : 'none', color: step.completed ? '#A4ACBC' : 'white' }}>
-                        {step.title}
+                    {/* Milestones */}
+                    {phase.milestones && phase.milestones.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold text-surface-800/50 uppercase tracking-wider mb-2">
+                          Milestones
+                        </h4>
+                        <ul className="space-y-2">
+                          {phase.milestones.map((milestone, i) => (
+                            <li key={i} className="flex items-start gap-2 text-sm text-surface-800/70">
+                              <Trophy className="w-4 h-4 text-accent-500 shrink-0 mt-0.5" />
+                              {milestone}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Phase meta */}
+                    <div className="flex items-center gap-4 pt-2 border-t border-surface-200">
+                      <span className="text-xs text-surface-800/50 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {phase.estimated_weeks} week{phase.estimated_weeks !== 1 ? 's' : ''}
                       </span>
-                    </StepTitle>
-                    <StepDuration>{step.duration}</StepDuration>
-                  </StepHeader>
-                  <p style={{ color: '#A4ACBC', fontSize: '0.95rem', lineHeight: '1.5', paddingLeft: '2.5rem' }}>
-                    {step.description}
-                  </p>
-                </StepCard>
-              ))}
-            </TimelineContainer>
-          ) : (
-            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>
-              <div style={{ textAlign: 'center' }}>
-                <Map size={64} style={{ marginBottom: '1rem', opacity: 0.2 }} />
-                <p>Enter your details to generate a roadmap.</p>
-              </div>
-            </div>
-          )}
-        </AnimatePresence>
-      </RightPanel >
-    </PageContainer >
-  );
-};
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${diffColor.bg} ${diffColor.text}`}>
+                        {phase.difficulty}
+                      </span>
+                      <span className="text-xs text-surface-800/50">
+                        {(phase.skills || []).length} skills
+                      </span>
+                    </div>
+                  </div>
+                )}
 
-export default CareerRoadmap;
+                {/* Connector line between phases */}
+                {index < phases.length - 1 && (
+                  <div className="flex justify-center py-1">
+                    <div className={`w-0.5 h-4 ${
+                      status === 'completed' ? 'bg-accent-300' : 'bg-surface-200'
+                    }`} />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </main>
+    </div>
+  );
+}

@@ -86,3 +86,348 @@ async def update_learner_profile(profile_id: str, data: Dict[str, Any]) -> Optio
     except Exception as e:
         logger.error(f"Failed to update profile {profile_id}: {e}")
         raise
+
+
+# --- Roadmaps (schema.md §3) ---
+
+async def get_active_roadmap(learner_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch the active (non-superseded) roadmap for a learner."""
+    try:
+        response = (
+            supabase.table("roadmaps")
+            .select("*")
+            .eq("learner_id", learner_id)
+            .eq("status", "active")
+            .order("version", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to fetch active roadmap for {learner_id}: {e}")
+        return None
+
+
+async def create_roadmap(learner_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Create a new roadmap, superseding any previous active one."""
+    try:
+        # First, supersede any existing active roadmap
+        supabase.table("roadmaps").update(
+            {"status": "superseded"}
+        ).eq("learner_id", learner_id).eq("status", "active").execute()
+
+        # Get next version number
+        existing = supabase.table("roadmaps").select("version").eq(
+            "learner_id", learner_id
+        ).order("version", desc=True).limit(1).execute()
+        next_version = (existing.data[0]["version"] + 1) if existing.data else 1
+
+        # Create new roadmap
+        data["learner_id"] = learner_id
+        data["version"] = next_version
+        data["status"] = "active"
+        response = supabase.table("roadmaps").insert(data).execute()
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to create roadmap for {learner_id}: {e}")
+        raise
+
+
+async def get_roadmap_history(learner_id: str) -> List[Dict[str, Any]]:
+    """Fetch all roadmap versions for a learner, newest first."""
+    try:
+        response = (
+            supabase.table("roadmaps")
+            .select("id, title, version, status, trigger_reason, created_at")
+            .eq("learner_id", learner_id)
+            .order("version", desc=True)
+            .execute()
+        )
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Failed to fetch roadmap history for {learner_id}: {e}")
+        return []
+
+
+# --- Daily Missions (schema.md §4) ---
+
+async def get_todays_mission(learner_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch today's mission for a learner (pending or in_progress)."""
+    from datetime import date
+    today = date.today().isoformat()
+    try:
+        response = (
+            supabase.table("daily_missions")
+            .select("*")
+            .eq("learner_id", learner_id)
+            .eq("assigned_date", today)
+            .in_("status", ["pending", "in_progress"])
+            .limit(1)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to fetch today's mission for {learner_id}: {e}")
+        return None
+
+
+async def get_todays_completed_mission(learner_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch today's already-completed mission (to show status, not regenerate)."""
+    from datetime import date
+    today = date.today().isoformat()
+    try:
+        response = (
+            supabase.table("daily_missions")
+            .select("*")
+            .eq("learner_id", learner_id)
+            .eq("assigned_date", today)
+            .in_("status", ["completed", "skipped", "failed"])
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to fetch completed mission for {learner_id}: {e}")
+        return None
+
+
+async def create_mission(learner_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Create a new daily mission."""
+    try:
+        data["learner_id"] = learner_id
+        response = supabase.table("daily_missions").insert(data).execute()
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to create mission for {learner_id}: {e}")
+        raise
+
+
+async def update_mission_status(
+    mission_id: str,
+    learner_id: str,
+    status: str,
+    notes: Optional[str] = None,
+    time_spent: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """Update mission status — used for failed/skipped/too_hard."""
+    try:
+        update_data: Dict[str, Any] = {"status": status}
+        if notes:
+            update_data["completion_notes"] = notes
+        if time_spent:
+            update_data["time_spent_minutes"] = time_spent
+        response = (
+            supabase.table("daily_missions")
+            .update(update_data)
+            .eq("id", mission_id)
+            .eq("learner_id", learner_id)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to update mission {mission_id}: {e}")
+        raise
+
+
+async def complete_mission(
+    mission_id: str,
+    learner_id: str,
+    notes: Optional[str] = None,
+    time_spent: Optional[int] = None,
+) -> Optional[Dict[str, Any]]:
+    """Mark a mission as completed with timestamp."""
+    from datetime import datetime, timezone
+    try:
+        update_data: Dict[str, Any] = {
+            "status": "completed",
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+        }
+        if notes:
+            update_data["completion_notes"] = notes
+        if time_spent:
+            update_data["time_spent_minutes"] = time_spent
+        response = (
+            supabase.table("daily_missions")
+            .update(update_data)
+            .eq("id", mission_id)
+            .eq("learner_id", learner_id)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to complete mission {mission_id}: {e}")
+        raise
+
+
+async def get_recent_missions(learner_id: str, limit: int = 5) -> List[Dict[str, Any]]:
+    """Fetch recent missions for AI context (to avoid repetition and gauge difficulty)."""
+    try:
+        response = (
+            supabase.table("daily_missions")
+            .select("title, target_skill, difficulty, status, assigned_date")
+            .eq("learner_id", learner_id)
+            .order("assigned_date", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Failed to fetch recent missions for {learner_id}: {e}")
+        return []
+
+
+async def get_mission_by_id(mission_id: str, learner_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch a specific mission by ID (scoped to learner)."""
+    try:
+        response = (
+            supabase.table("daily_missions")
+            .select("*")
+            .eq("id", mission_id)
+            .eq("learner_id", learner_id)
+            .single()
+            .execute()
+        )
+        return response.data if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to fetch mission {mission_id}: {e}")
+        return None
+
+
+async def calculate_streak(learner_id: str) -> int:
+    """Calculate the current consecutive-day completion streak."""
+    from datetime import date, timedelta
+    try:
+        # Fetch last 90 days of missions ordered by date
+        response = (
+            supabase.table("daily_missions")
+            .select("assigned_date, status")
+            .eq("learner_id", learner_id)
+            .eq("status", "completed")
+            .order("assigned_date", desc=True)
+            .limit(90)
+            .execute()
+        )
+        if not response.data:
+            return 0
+
+        # Count consecutive days from today/yesterday
+        completed_dates = set(row["assigned_date"] for row in response.data)
+        today = date.today()
+        streak = 0
+
+        # Start checking from today or yesterday
+        check_date = today
+        if today.isoformat() not in completed_dates:
+            check_date = today - timedelta(days=1)
+            if check_date.isoformat() not in completed_dates:
+                return 0
+
+        while check_date.isoformat() in completed_dates:
+            streak += 1
+            check_date -= timedelta(days=1)
+
+        return streak
+    except Exception as e:
+        logger.error(f"Failed to calculate streak for {learner_id}: {e}")
+        return 0
+
+
+# --- Resumes (schema.md §3) ---
+
+async def create_resume(learner_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Create a new resume record."""
+    try:
+        data["learner_id"] = learner_id
+        response = supabase.table("resumes").insert(data).execute()
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to create resume for {learner_id}: {e}")
+        raise
+
+
+async def get_resume_by_id(resume_id: str, learner_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch a specific resume by ID (scoped to learner)."""
+    try:
+        response = (
+            supabase.table("resumes")
+            .select("*")
+            .eq("id", resume_id)
+            .eq("learner_id", learner_id)
+            .single()
+            .execute()
+        )
+        return response.data if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to fetch resume {resume_id}: {e}")
+        return None
+
+
+async def get_current_resume(learner_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch the current (most recent active) resume for a learner."""
+    try:
+        response = (
+            supabase.table("resumes")
+            .select("*")
+            .eq("learner_id", learner_id)
+            .eq("is_current", True)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to fetch current resume for {learner_id}: {e}")
+        return None
+
+
+async def get_resume_history(learner_id: str) -> List[Dict[str, Any]]:
+    """Fetch all resumes for a learner, newest first."""
+    try:
+        response = (
+            supabase.table("resumes")
+            .select("id, file_name, score, is_current, created_at")
+            .eq("learner_id", learner_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Failed to fetch resume history for {learner_id}: {e}")
+        return []
+
+
+async def update_resume(resume_id: str, learner_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Update a resume record (parsed_data, score, gap_analysis)."""
+    try:
+        response = (
+            supabase.table("resumes")
+            .update(data)
+            .eq("id", resume_id)
+            .eq("learner_id", learner_id)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to update resume {resume_id}: {e}")
+        raise
+
+
+async def set_current_resume(resume_id: str, learner_id: str) -> bool:
+    """Mark a resume as current (unmarks previous current)."""
+    try:
+        # Unmark all current resumes for this learner
+        supabase.table("resumes").update(
+            {"is_current": False}
+        ).eq("learner_id", learner_id).eq("is_current", True).execute()
+
+        # Mark the target resume as current
+        supabase.table("resumes").update(
+            {"is_current": True}
+        ).eq("id", resume_id).eq("learner_id", learner_id).execute()
+
+        return True
+    except Exception as e:
+        logger.error(f"Failed to set current resume {resume_id}: {e}")
+        return False
+

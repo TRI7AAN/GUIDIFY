@@ -16,6 +16,11 @@ export const OnboardingProvider = ({ children }) => {
     gender: '',
     currentClass: '',
     location: '',
+    // Career Goals — added for roadmap generation (schema.md §1-2)
+    targetRole: '',
+    skills: [],
+    interests: [],
+    learningHours: '5',
   });
 
   const [quizResponses, setQuizResponses] = useState([]);
@@ -58,6 +63,10 @@ export const OnboardingProvider = ({ children }) => {
             gender: data.gender || '',
             currentClass: data.current_class || '',
             location: data.location || '',
+            targetRole: data.target_role || '',
+            skills: data.skills || [],
+            interests: data.interests || [],
+            learningHours: data.learning_hours || '5',
           });
 
           // Restore quiz state if exists
@@ -98,6 +107,10 @@ export const OnboardingProvider = ({ children }) => {
         gender: profileData.gender,
         current_class: profileData.currentClass,
         location: profileData.location,
+        target_role: profileData.targetRole,
+        skills: profileData.skills,
+        interests: profileData.interests,
+        learning_hours: profileData.learningHours,
         role: 'student',
         onboarding_step: 1, // Advance to next step
         updated_at: new Date(),

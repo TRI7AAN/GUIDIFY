@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GUIDIFY Routing Configuration
  * 
  * This file centralizes all route definitions for the application.
@@ -67,6 +67,18 @@ export const protectedRoutes = [
     path: "/roadmap",
     name: "Career Roadmap",
     description: "AI-powered career roadmap generator",
+    category: "career",
+  },
+  {
+    path: "/resume",
+    name: "Resume Analysis",
+    description: "AI-powered resume upload and analysis",
+    category: "career",
+  },
+  {
+    path: "/interview",
+    name: "Interview Coach",
+    description: "AI mock interview practice with feedback",
     category: "career",
   },
 

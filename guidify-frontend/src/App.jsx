@@ -1,4 +1,4 @@
-﻿import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -19,6 +19,9 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const CareerRoadmap = lazy(() => import("./pages/CareerRoadmap"));
+const ResumePage = lazy(() => import("./pages/ResumePage"));
+const InterviewPage = lazy(() => import("./pages/InterviewPage"));
+
 
 
 // Component map for route configuration
@@ -34,6 +37,9 @@ const componentMap = {
   "/dashboard": Dashboard,
   "/onboarding": Onboarding,
   "/roadmap": CareerRoadmap,
+  "/resume": ResumePage,
+  "/interview": InterviewPage,
+
 
   // Error routes
   "/404": NotFound
