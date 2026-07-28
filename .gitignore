@@ -1,0 +1,17 @@
+# Project documentation (local only)
+docs/
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Dependencies & Build Outputs
+node_modules/
+dist/
+build/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
