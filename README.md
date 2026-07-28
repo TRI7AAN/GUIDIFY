@@ -1,110 +1,122 @@
-﻿# GUIDIFY - AI-Driven Career Guidance Platform
+﻿<div align="center">
 
-GUIDIFY is a comprehensive, AI-powered career guidance platform designed to bridge the gap between learners, training providers, and the labour market. It leverages Machine Learning for personalized profiling, integrates with NCVET for verified qualifications, and provides real-time Labour Market Intelligence (LMI).
+# GUIDIFY
 
-## 🚀 Key Features
+**Your career won't plan itself. This does.**
 
-- **AI/ML Learner Profiling**: Hybrid profiling using rule-based logic and LightGBM + SentenceTransformers for deep skill analysis.
-- **NCVET Integration**: Syncs with National Council for Vocational Education and Training data for verified course recommendations.
-- **Career Guidance Dashboard**: Role-based dashboards for Learners, Trainers, and Policymakers with rich analytics.
-- **Real-time LMI**: Maps job market trends to skills using LMI ingestion pipelines.
-- **Multilingual & Accessible**: Supports English, Hindi, Bengali. WCAG AA compliant UI.
-- **Scalable Architecture**: Microservices-ready backend (FastAPI), Redis caching, Rate limiting, and Dockerized deployment.
-- **Privacy & Security**: GDPR-compliant data export/delete, RBAC, and secure data handling.
+AI-powered adaptive career guidance that learns from you, builds your roadmap, and gives you a mission every day until you're job-ready.
 
-## 🛠 Tech Stack
+[![License: MIT](https://img.shields.io/badge/license-MIT-000000.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB.svg)](https://python.org)
+[![React 19](https://img.shields.io/badge/react-19-61DAFB.svg)](https://reactjs.org)
 
-- **Frontend**: React (Vite), Styled Components, Recharts, Framer Motion, i18next.
-- **Backend**: Python (FastAPI), Uvicorn, Pydantic.
-- **ML/AI**: LightGBM, SentenceTransformers (all-MiniLM-L6-v2), Google Gemini (LLM).
-- **Database**: Supabase (PostgreSQL), Redis (Caching/Queue).
-- **Ops**: Docker, Docker Compose, Prometheus, Grafana.
-
-## 📦 Setup & Installation
-
-### Prerequisites
-- Docker & Docker Compose
-- Python 3.9+
-- Node.js 18+
-- Supabase Account (or local Postgres)
-
-### Local Development
-
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/your-repo/guidify.git
-    cd guidify
-    ```
-
-2.  **Backend Setup**
-    ```bash
-    cd guidify-backend
-    python -m venv venv
-    source venv/bin/activate  # or venv\Scripts\activate on Windows
-    pip install -r requirements.txt
-    ```
-    Create `.env` file in `guidify-backend`:
-    ```env
-    SUPABASE_URL=your_supabase_url
-    SUPABASE_KEY=your_supabase_key
-    GOOGLE_API_KEY=your_gemini_key
-    REDIS_URL=redis://localhost:6379/0
-    ```
-
-3.  **Frontend Setup**
-    ```bash
-    cd guidify-frontend
-    npm install
-    ```
-    Create `.env` file in `guidify-frontend`:
-    ```env
-    VITE_REACT_APP_SUPABASE_URL=your_supabase_url
-    VITE_REACT_APP_SUPABASE_ANON_KEY=your_supabase_key
-    ```
-
-4.  **Run with Docker Compose (Recommended)**
-    ```bash
-    # From root directory
-    docker-compose up --build
-    ```
-    - Frontend: http://localhost:3000
-    - Backend API: http://localhost:8000/docs
-    - Grafana: http://localhost:3001
-    - Prometheus: http://localhost:9090
-
-### Running Tests
-
-**Backend Tests**
-```bash
-cd guidify-backend
-pytest tests/
-```
-
-**Frontend Tests**
-```bash
-cd guidify-frontend
-npm test
-```
-
-## 📊 Monitoring & Observability
-
-- **Prometheus**: Metrics exposed at `/metrics`.
-- **Grafana**: Dashboards for API latency, error rates, and system health.
-- **Health Checks**: `/health` endpoint.
-
-## 🔒 Privacy & Compliance
-
-- **Data Export**: `GET /api/user/export`
-- **Right to be Forgotten**: `DELETE /api/user/`
-- **Consent Management**: `POST /api/user/consent`
-
-## 🤝 Contributing
-
-1. Fork the repo
-2. Create feature branch (`git checkout -b feat/amazing-feature`)
-3. Commit changes (`git commit -m 'Add feature'`)
-4. Push to branch (`git push origin feat/amazing-feature`)
-5. Open a Pull Request
+</div>
 
 ---
-**License**: MIT
+
+## What GUIDIFY Does
+
+| Problem | Solution |
+|---------|----------|
+| Generic career advice that ignores your background | AI profiles your skills, experience, and goals |
+| Static roadmaps that don't adapt | Daily missions that adjust based on your progress |
+| Resume guesswork | AI-powered scoring with actionable improvements |
+| Interview anxiety | Mock interviews with real-time AI feedback |
+
+---
+
+## How It Works
+
+```
+Sign Up → Take Assessment → Upload Resume → Get Your Roadmap → Daily Missions → Get Hired
+   ↓           ↓                  ↓                ↓                 ↓
+ Profile    Skill Gap          AI Parse        Personalized      Adapts to
+  Setup     Analysis           & Score         Roadmap           Your Pace
+```
+
+---
+
+## Features
+
+- **Smart Onboarding** — Profile + Career Goals + Personality assessment
+- **Resume Intelligence** — Upload, AI parse, score, and gap analysis
+- **Adaptive Roadmaps** — AI-generated, versioned, regenerates when you fail or accelerate
+- **Daily Missions** — Bite-sized tasks (30-45 min) that build toward your goal
+- **Progress Tracking** — Streaks, skill graphs, phase completion
+- **Adaptation Engine** — Detects patterns and adjusts your path automatically
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | React, TailwindCSS, Vite |
+| Backend | FastAPI, Python 3.11+ |
+| Database | Supabase (PostgreSQL) |
+| AI | Google Gemini |
+| Auth | Supabase Auth (Email + OAuth) |
+
+---
+
+## Quick Start
+
+```bash
+# Clone
+git clone https://github.com/your-username/guidify.git
+cd guidify
+
+# Backend
+cd guidify-backend
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Frontend (new terminal)
+cd guidify-frontend
+npm install
+npm run dev
+```
+
+**Environment Variables** — Copy `.env.example` to `.env` in both frontend and backend, then add your Supabase and Gemini API keys.
+
+---
+
+## Project Structure
+
+```
+guidify/
+├── guidify-backend/
+│   ├── app/
+│   │   ├── api/          # REST endpoints
+│   │   ├── ai_gateway/   # Central AI routing
+│   │   ├── services/     # Business logic
+│   │   ├── db/           # Database queries
+│   │   └── models/       # Pydantic schemas
+│   └── migrations/       # SQL migrations
+├── guidify-frontend/
+│   └── src/
+│       ├── pages/        # Main screens
+│       └── components/   # Reusable UI
+└── wiki/                 # Documentation
+```
+
+---
+
+## Documentation
+
+| Doc | Purpose |
+|-----|---------|
+| [PRD](wiki/prd.md) | Product requirements |
+| [Architecture](wiki/architecture.md) | System design |
+| [API](wiki/api.md) | Endpoint contracts |
+| [Schema](wiki/schema.md) | Database tables |
+| [Rules](wiki/rules.md) | Business logic |
+
+---
+
+<div align="center">
+
+**Built with care. Adapted by AI. Ready for learners.**
+
+</div>

@@ -1,5 +1,6 @@
-# Project documentation (local only)
-docs/
+# Wiki
+
+wiki/
 
 # Environment files
 .env

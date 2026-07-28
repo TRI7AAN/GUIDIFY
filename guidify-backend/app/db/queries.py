@@ -431,3 +431,118 @@ async def set_current_resume(resume_id: str, learner_id: str) -> bool:
         logger.error(f"Failed to set current resume {resume_id}: {e}")
         return False
 
+
+# --- Event Log (schema.md §7) ---
+
+async def create_event(
+    learner_id: str,
+    event_type: str,
+    payload: Dict[str, Any],
+    related_mission_id: Optional[str] = None,
+    related_roadmap_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """Create a new event log entry."""
+    try:
+        event_data: Dict[str, Any] = {
+            "learner_id": learner_id,
+            "event_type": event_type,
+            "payload": payload,
+        }
+        if related_mission_id:
+            event_data["related_mission_id"] = related_mission_id
+        if related_roadmap_id:
+            event_data["related_roadmap_id"] = related_roadmap_id
+        
+        response = supabase.table("event_log").insert(event_data).execute()
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to create event for {learner_id}: {e}")
+        raise
+
+
+async def get_recent_events(learner_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+    """Fetch recent events for a learner, newest first."""
+    try:
+        response = (
+            supabase.table("event_log")
+            .select("id, event_type, payload, created_at")
+            .eq("learner_id", learner_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Failed to fetch recent events for {learner_id}: {e}")
+        return []
+
+
+async def get_events_by_type(
+    learner_id: str,
+    event_type: str,
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
+    """Fetch events of a specific type for a learner."""
+    try:
+        response = (
+            supabase.table("event_log")
+            .select("id, event_type, payload, created_at")
+            .eq("learner_id", learner_id)
+            .eq("event_type", event_type)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Failed to fetch {event_type} events for {learner_id}: {e}")
+        return []
+
+
+async def get_last_regeneration(learner_id: str) -> Optional[str]:
+    """Get the timestamp of the last roadmap regeneration for debounce check."""
+    try:
+        response = (
+            supabase.table("event_log")
+            .select("created_at")
+            .eq("learner_id", learner_id)
+            .eq("event_type", "roadmap_regenerated")
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if response.data and len(response.data) > 0:
+            return response.data[0].get("created_at")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to fetch last regeneration for {learner_id}: {e}")
+        return None
+
+
+# --- Skill Baselines (schema.md §9) ---
+
+async def get_skill_baseline(role_or_company: str) -> Optional[Dict[str, Any]]:
+    """Fetch skill baseline for a target role or company."""
+    try:
+        response = (
+            supabase.table("skill_baselines")
+            .select("*")
+            .eq("role_or_company", role_or_company)
+            .limit(1)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to fetch skill baseline for {role_or_company}: {e}")
+        return None
+
+
+async def create_skill_baseline(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Create or update a skill baseline entry."""
+    try:
+        response = supabase.table("skill_baselines").upsert(data).execute()
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to create skill baseline: {e}")
+        raise
+

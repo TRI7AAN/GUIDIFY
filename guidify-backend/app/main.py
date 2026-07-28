@@ -52,7 +52,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 # Import new API route modules (per architecture.md §2, api.md)
-from app.api import auth, dashboard, resume, roadmap, missions, interview
+from app.api import auth, dashboard, resume, roadmap, missions, interview, adaptation
 
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -137,6 +137,9 @@ app.include_router(missions.router, prefix=API_V1, tags=["Missions"])
 
 # Interview (api.md §5)
 app.include_router(interview.router, prefix=API_V1, tags=["Interview"])
+
+# Adaptation Engine (rules.md §1-4)
+app.include_router(adaptation.router, prefix=API_V1, tags=["Adaptation"])
 
 # Dashboard (api.md §6)
 app.include_router(dashboard.router, prefix=API_V1, tags=["Dashboard"])
