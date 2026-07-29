@@ -1,19 +1,21 @@
 /**
  * Resume Page — design.md §2.4
  * 
- * Phase 1 placeholder page with upload CTA.
- * Displays file upload area and links to resume scoring when backend is ready.
+ * Phase 1: Upload resume, view AI-powered parsing results,
+ * score, gap analysis, and actionable improvement suggestions.
+ * Loads existing resume on mount if available.
  * 
  * Uses TailwindCSS design system.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { resumeAPI } from '../lib/api';
+import ResumeFeedback from '../components/resume/ResumeFeedback';
 import {
   FileText, Upload, ChevronLeft, CheckCircle2,
-  AlertCircle, Sparkles, FileUp, X
+  AlertCircle, Sparkles, FileUp, X, RotateCcw
 } from 'lucide-react';
 
 export default function ResumePage() {
@@ -21,9 +23,25 @@ export default function ResumePage() {
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await resumeAPI.getCurrent();
+        if (!cancelled && data && !data.error) setResult(data);
+      } catch {
+        // No existing resume — show upload form
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleDrag = (e) => {
     e.preventDefault();
@@ -118,7 +136,8 @@ export default function ResumePage() {
           </p>
         </div>
 
-        {/* Upload Area */}
+        {/* Upload Area — hidden when showing results */}
+        {!result && !loading && (
         <div
           className={`
             glass-card p-8 mb-6 animate-fade-in-up transition-all duration-200
@@ -174,6 +193,7 @@ export default function ResumePage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Error */}
         {error && (
@@ -204,17 +224,37 @@ export default function ResumePage() {
           </button>
         )}
 
-        {/* Result */}
-        {result && (
-          <div className="glass-card p-6 animate-fade-in-up">
-            <div className="flex items-center gap-2 mb-4">
-              <CheckCircle2 className="w-5 h-5 text-accent-500" />
-              <span className="font-semibold text-surface-900">Resume Analyzed</span>
+        {/* Loading skeleton */}
+        {loading && (
+          <div className="space-y-4 animate-pulse">
+            <div className="glass-card p-6 flex items-center gap-6">
+              <div className="w-24 h-24 rounded-full bg-surface-200" />
+              <div className="flex-1 space-y-2">
+                <div className="h-5 bg-surface-200 rounded w-48" />
+                <div className="h-4 bg-surface-200 rounded w-72" />
+              </div>
             </div>
-            <pre className="text-sm text-surface-800/70 whitespace-pre-wrap overflow-auto max-h-96">
-              {JSON.stringify(result, null, 2)}
-            </pre>
+            <div className="glass-card p-5 space-y-3">
+              <div className="h-4 bg-surface-200 rounded w-32" />
+              <div className="h-3 bg-surface-200 rounded w-full" />
+              <div className="h-3 bg-surface-200 rounded w-5/6" />
+            </div>
           </div>
+        )}
+
+        {/* Feedback View */}
+        {result && !uploading && (
+          <>
+            <ResumeFeedback data={result} />
+            <div className="mt-6 flex justify-center">
+              <button
+                onClick={() => { setResult(null); setFile(null); }}
+                className="flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+              >
+                <RotateCcw className="w-4 h-4" /> Upload New Resume
+              </button>
+            </div>
+          </>
         )}
       </main>
     </div>

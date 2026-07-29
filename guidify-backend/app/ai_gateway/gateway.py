@@ -103,6 +103,10 @@ class AIGateway:
                 "No explanation, no markdown fences, no extra text."
             )
 
+        # Allow prompt templates to override system instruction
+        if "_system_instruction" in context:
+            system_instruction = context.pop("_system_instruction")
+
         start_time = time.time()
         last_error: Optional[Exception] = None
 
@@ -278,6 +282,47 @@ class AIGateway:
                     "\n\nIMPORTANT: Your previous response did not match the required JSON schema. "
                     "Please return ONLY valid JSON with no extra text."
                 )
+            return prompt
+
+        # Interview question — uses versioned prompt template
+        if task_type == "interview.question":
+            from app.ai_gateway.prompts.interview_question import (
+                build_system_prompt as iq_system,
+                build_user_prompt as iq_user,
+            )
+            prompt = iq_user(
+                track=context.get("track", "technical"),
+                profile_summary=context.get("profile_summary", ""),
+                target_role=context.get("target_role", "Software Developer"),
+                transcript=context.get("transcript", []),
+            )
+            if schema_hint:
+                prompt += (
+                    "\n\nIMPORTANT: Your previous response did not match the required JSON schema. "
+                    "Please return ONLY valid JSON with no extra text."
+                )
+            # Override system instruction for this task
+            context["_system_instruction"] = iq_system()
+            return prompt
+
+        # Interview feedback — uses versioned prompt template
+        if task_type == "interview.feedback":
+            from app.ai_gateway.prompts.interview_feedback import (
+                build_system_prompt as if_system,
+                build_user_prompt as if_user,
+            )
+            prompt = if_user(
+                track=context.get("track", "technical"),
+                profile_summary=context.get("profile_summary", ""),
+                target_role=context.get("target_role", "Software Developer"),
+                transcript=context.get("transcript", []),
+            )
+            if schema_hint:
+                prompt += (
+                    "\n\nIMPORTANT: Your previous response did not match the required JSON schema. "
+                    "Please return ONLY valid JSON with no extra text."
+                )
+            context["_system_instruction"] = if_system()
             return prompt
 
         # Generic prompt construction for other task types

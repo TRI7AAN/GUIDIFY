@@ -379,3 +379,63 @@ class AdaptationTriggerRequest(BaseModel):
     """POST /adaptation/trigger request body — manually trigger adaptation check"""
     event_type: EventType
     payload: Dict[str, Any] = {}
+
+
+# --- Interview Models (schema.md §8, api.md §5) ---
+
+class InterviewSessionRequest(BaseModel):
+    """POST /interview/session request body — api.md §5"""
+    track: str = Field(..., pattern="^(technical|hr)$")
+
+
+class InterviewAnswerRequest(BaseModel):
+    """POST /interview/session/{id}/answer request body — api.md §5"""
+    answer: str = Field(..., min_length=1)
+
+
+class InterviewQuestionResponse(BaseModel):
+    """AI Gateway output for interview.question — prompts.md §6"""
+    question: str
+    question_type: str = "technical"
+
+
+class InterviewFeedbackResponse(BaseModel):
+    """AI Gateway output for interview.feedback — prompts.md §7"""
+    strengths: List[str] = []
+    gaps: List[str] = []
+    communication_notes: str = ""
+    readiness_subscore: int = Field(..., ge=0, le=100)
+    suggested_missions: List[Dict[str, str]] = []
+
+
+class InterviewTranscriptEntry(BaseModel):
+    """Single Q&A entry in the transcript"""
+    role: str  # "interviewer" or "candidate"
+    content: str
+    question_type: Optional[str] = None
+
+
+class InterviewSessionResponse(BaseModel):
+    """GET /interview/session/{id} response — api.md §5"""
+    id: str
+    track: str
+    status: str
+    transcript: List[InterviewTranscriptEntry] = []
+    feedback_report: Optional[InterviewFeedbackResponse] = None
+    readiness_subscore: Optional[int] = None
+    question_count: int = 0
+    created_at: Optional[datetime] = None
+
+
+class InterviewStartResponse(BaseModel):
+    """POST /interview/session response — api.md §5"""
+    session_id: str
+    first_question: str
+    track: str
+
+
+class InterviewAnswerResponse(BaseModel):
+    """POST /interview/session/{id}/answer response — api.md §5"""
+    next_question: Optional[str] = None
+    status: str = "in_progress"
+    feedback_report: Optional[InterviewFeedbackResponse] = None

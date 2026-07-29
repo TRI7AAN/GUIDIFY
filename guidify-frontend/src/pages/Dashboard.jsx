@@ -15,6 +15,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { dashboardAPI, missionsAPI } from '../lib/api';
 import MissionCard from '../components/dashboard/MissionCard';
+import AdaptationAlertBanner from '../components/dashboard/AdaptationAlertBanner';
+import SkillGraph from '../components/dashboard/SkillGraph';
 import {
   Rocket, Target, Flame, TrendingUp, FileText,
   MessageSquare, ChevronRight, Clock, Sparkles, BarChart3
@@ -125,6 +127,9 @@ export default function Dashboard() {
               : 'Your personalized career journey starts here.'}
           </p>
         </div>
+
+        {/* ── Adaptation Alerts ──────────────────────────── */}
+        <AdaptationAlertBanner />
 
         {/* ── HERO ZONE: Today's Mission ─────────────────── */}
         <section className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
@@ -248,6 +253,16 @@ export default function Dashboard() {
             </p>
           </div>
         </section>
+
+        {/* ── Skill Graph ────────────────────────────────── */}
+        {dashboard?.skill_graph?.length > 0 && (
+          <section className="mb-8 animate-fade-in-up" style={{ animationDelay: '0.22s' }}>
+            <SkillGraph
+              skills={dashboard.skill_graph}
+              onSeeAll={() => navigate('/roadmap')}
+            />
+          </section>
+        )}
 
         {/* ── Quick Actions ──────────────────────────────── */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up" style={{ animationDelay: '0.25s' }}>

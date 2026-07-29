@@ -546,3 +546,68 @@ async def create_skill_baseline(data: Dict[str, Any]) -> Optional[Dict[str, Any]
         logger.error(f"Failed to create skill baseline: {e}")
         raise
 
+
+# --- Interview Sessions (schema.md §8) ---
+
+async def create_interview_session(learner_id: str, track: str) -> Optional[Dict[str, Any]]:
+    """Create a new interview session."""
+    try:
+        response = (
+            supabase.table("interview_sessions")
+            .insert({"learner_id": learner_id, "track": track})
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to create interview session: {e}")
+        return None
+
+
+async def get_interview_session(session_id: str, learner_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch an interview session by ID, scoped to learner."""
+    try:
+        response = (
+            supabase.table("interview_sessions")
+            .select("*")
+            .eq("id", session_id)
+            .eq("learner_id", learner_id)
+            .single()
+            .execute()
+        )
+        return response.data if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to fetch interview session {session_id}: {e}")
+        return None
+
+
+async def update_interview_session(session_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Update an interview session (transcript, status, feedback)."""
+    try:
+        response = (
+            supabase.table("interview_sessions")
+            .update(data)
+            .eq("id", session_id)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to update interview session {session_id}: {e}")
+        return None
+
+
+async def get_interview_history(learner_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+    """Get recent interview sessions for a learner."""
+    try:
+        response = (
+            supabase.table("interview_sessions")
+            .select("*")
+            .eq("learner_id", learner_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return response.data if response.data else []
+    except Exception as e:
+        logger.error(f"Failed to fetch interview history for {learner_id}: {e}")
+        return []
+

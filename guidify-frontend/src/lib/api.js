@@ -132,4 +132,10 @@ export const dashboardAPI = {
   get: () => api.get('/api/v1/dashboard'),
 };
 
+/** Adaptation — rules.md §1-4 */
+export const adaptationAPI = {
+  getStatus: () => api.get('/api/v1/adaptation/status'),
+  getSkillGap: () => api.get('/api/v1/adaptation/skill-gap'),
+};
+
 export default api;

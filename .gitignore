@@ -1,11 +1,11 @@
 # Wiki
-
 wiki/
 
 # Environment files
 .env
 .env.local
 *.env
+opencode.json
 
 # Dependencies & Build Outputs
 node_modules/

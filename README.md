@@ -103,18 +103,6 @@ guidify/
 
 ---
 
-## Documentation
-
-| Doc | Purpose |
-|-----|---------|
-| [PRD](wiki/prd.md) | Product requirements |
-| [Architecture](wiki/architecture.md) | System design |
-| [API](wiki/api.md) | Endpoint contracts |
-| [Schema](wiki/schema.md) | Database tables |
-| [Rules](wiki/rules.md) | Business logic |
-
----
-
 <div align="center">
 
 **Built with care. Adapted by AI. Ready for learners.**
