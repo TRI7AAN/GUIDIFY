@@ -7,6 +7,8 @@ Per rules.md §1-2:
   - Failure pattern detection: 3 consecutive failures trigger adaptation
   - Goal change trigger: Immediate full regeneration
   - Skill gap analysis: Real-time gap calculation
+Per rules.md §6.1:
+  - Delivery-specific remedial mission triggers (2-consecutive-session threshold)
 """
 
 import logging
@@ -21,6 +23,16 @@ logger = logging.getLogger("guidify.rules_engine")
 DEBOUNCE_WINDOW_HOURS = 24
 FAILURE_THRESHOLD = 3
 MIN_MISSION_HISTORY_FOR_ADAPTATION = 3
+
+# Delivery metric thresholds for remedial triggers (rules.md §6.1)
+# If metric falls below this value in 2 consecutive sessions → remedial mission
+DELIVERY_THRESHOLDS = {
+    "eye_contact_pct": 40,        # Below 40% → practice eye contact
+    "posture_score": 0.5,         # Below 0.5 → practice posture
+    "filler_word_rate": 0.1,      # Above 10% → practice reducing fillers
+    "words_per_minute": 100,      # Below 100 WPM → practice pacing
+}
+DELIVERY_CONSECUTIVE_SESSIONS = 2
 
 
 class RulesEngine:
@@ -95,6 +107,10 @@ class RulesEngine:
         # §1.4: Certificate upload → update skill gaps
         if event_type == "certificate_uploaded":
             return await self._handle_certificate_upload(learner_id, payload)
+        
+        # §6.1: Delivery metrics submitted → check for remedial triggers
+        if event_type == "delivery_metrics_submitted":
+            return await self._check_delivery_triggers(learner_id, payload)
         
         # Default: no adaptation needed
         return {"adaptation_needed": False, "reason": "No trigger matched"}
@@ -340,3 +356,61 @@ class RulesEngine:
             "recent_events": recent_events,
             "skill_gap": skill_gap,
         }
+
+    async def _check_delivery_triggers(
+        self,
+        learner_id: str,
+        payload: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        §6.1: Check if delivery metrics across consecutive sessions trigger a remedial mission.
+        If any single metric falls below its threshold in 2 consecutive camera-enabled sessions,
+        queue a targeted remedial mission for that metric.
+        """
+        # Get recent camera-enabled sessions with delivery metrics
+        sessions = await queries.get_interview_history(learner_id, limit=10)
+        camera_sessions = [
+            s for s in sessions
+            if s.get("camera_enabled") and s.get("delivery_metrics") and s.get("status") == "completed"
+        ]
+
+        if len(camera_sessions) < DELIVERY_CONSECUTIVE_SESSIONS:
+            return {"adaptation_needed": False, "reason": "Not enough camera sessions for delivery trigger"}
+
+        # Check the most recent N sessions for consecutive threshold violations
+        recent = camera_sessions[:DELIVERY_CONSECUTIVE_SESSIONS]
+        triggered_metrics = []
+
+        for metric_name, threshold in DELIVERY_THRESHOLDS.items():
+            violations = 0
+            for session in recent:
+                dm = session.get("delivery_metrics", {})
+                value = dm.get(metric_name)
+                if value is None:
+                    break
+
+                # For most metrics, below threshold is bad; for filler_word_rate, above is bad
+                if metric_name == "filler_word_rate":
+                    if value > threshold:
+                        violations += 1
+                elif metric_name == "words_per_minute":
+                    if value < threshold:
+                        violations += 1
+                else:
+                    if value < threshold:
+                        violations += 1
+
+            if violations >= DELIVERY_CONSECUTIVE_SESSIONS:
+                triggered_metrics.append(metric_name)
+
+        if triggered_metrics:
+            logger.info(f"Delivery remedial triggers for {learner_id}: {triggered_metrics}")
+            return {
+                "adaptation_needed": True,
+                "trigger": "delivery_metrics",
+                "regeneration_type": "remedial_mission",
+                "reason": f"Delivery metrics below threshold for {len(triggered_metrics)} metric(s) across {DELIVERY_CONSECUTIVE_SESSIONS} sessions",
+                "triggered_metrics": triggered_metrics,
+            }
+
+        return {"adaptation_needed": False, "reason": "No delivery metric threshold violations"}

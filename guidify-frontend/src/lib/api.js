@@ -125,11 +125,13 @@ export const interviewAPI = {
   startSession: (track) => api.post('/api/v1/interview/session', { track }),
   submitAnswer: (sessionId, answer) => api.post(`/api/v1/interview/session/${sessionId}/answer`, { answer }),
   getSession: (sessionId) => api.get(`/api/v1/interview/session/${sessionId}`),
+  submitDeliveryMetrics: (sessionId, metrics) => api.post(`/api/v1/interview/session/${sessionId}/delivery-metrics`, metrics),
 };
 
 /** Dashboard — api.md §6 */
 export const dashboardAPI = {
   get: () => api.get('/api/v1/dashboard'),
+  getDeliveryTrends: () => api.get('/api/v1/dashboard/delivery-trends'),
 };
 
 /** Adaptation — rules.md §1-4 */

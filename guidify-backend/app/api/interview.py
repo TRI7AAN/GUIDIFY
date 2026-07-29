@@ -26,6 +26,8 @@ from app.models.schemas import (
     InterviewSessionResponse,
     InterviewTranscriptEntry,
     InterviewFeedbackResponse,
+    DeliveryMetricsRequest,
+    DeliveryMetricsResponse,
 )
 
 logger = logging.getLogger("guidify.api.interview")
@@ -197,6 +199,40 @@ async def get_interview_session(
     )
 
 
+@router.post("/interview/session/{session_id}/delivery-metrics", response_model=DeliveryMetricsResponse)
+async def submit_delivery_metrics(
+    session_id: str,
+    request: DeliveryMetricsRequest,
+    learner_id: str = Depends(get_current_learner_id),
+):
+    """
+    Submit client-side delivery analytics metrics for a completed session.
+    Called once by the client after session ends — no media, only derived numbers.
+    """
+    session = await queries.get_interview_session(session_id, learner_id)
+    if not session:
+        raise ResourceNotFoundError("Interview session")
+
+    # Store delivery metrics
+    delivery_data = {
+        "camera_enabled": request.camera_enabled,
+        "delivery_metrics": {
+            "eye_contact_pct": request.eye_contact_pct,
+            "posture_score": request.posture_score,
+            "expression_stability_score": request.expression_stability_score,
+            "fidget_frequency": request.fidget_frequency,
+            "words_per_minute": request.words_per_minute,
+            "filler_word_rate": request.filler_word_rate,
+            "pause_frequency": request.pause_frequency,
+        },
+    }
+
+    await queries.update_interview_session(session_id, delivery_data)
+    logger.info(f"Delivery metrics recorded for session {session_id}")
+
+    return DeliveryMetricsResponse()
+
+
 async def _end_session(
     session: dict,
     transcript: list,
@@ -213,14 +249,21 @@ async def _end_session(
 
     feedback_data = None
     try:
+        context = {
+            "track": session.get("track", "technical"),
+            "profile_summary": profile_summary,
+            "target_role": target_role,
+            "transcript": transcript,
+        }
+        # Include delivery metrics if already submitted (Phase 4.5)
+        delivery_metrics = session.get("delivery_metrics")
+        if delivery_metrics:
+            context["delivery_metrics"] = delivery_metrics
+            context["camera_enabled"] = session.get("camera_enabled", False)
+
         result = await gateway.generate(
             task_type="interview.feedback",
-            context={
-                "track": session.get("track", "technical"),
-                "profile_summary": profile_summary,
-                "target_role": target_role,
-                "transcript": transcript,
-            },
+            context=context,
         )
         feedback_data = result
     except AIServiceError as e:

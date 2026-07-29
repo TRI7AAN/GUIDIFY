@@ -439,3 +439,39 @@ class InterviewAnswerResponse(BaseModel):
     next_question: Optional[str] = None
     status: str = "in_progress"
     feedback_report: Optional[InterviewFeedbackResponse] = None
+
+
+class DeliveryMetricsRequest(BaseModel):
+    """POST /interview/session/{id}/delivery-metrics request — api.md §5 (Phase 4.5)"""
+    camera_enabled: bool = False
+    eye_contact_pct: Optional[int] = Field(None, ge=0, le=100)
+    posture_score: Optional[float] = Field(None, ge=0, le=1)
+    expression_stability_score: Optional[float] = Field(None, ge=0, le=1)
+    fidget_frequency: Optional[float] = Field(None, ge=0)
+    words_per_minute: Optional[int] = Field(None, ge=0)
+    filler_word_rate: Optional[float] = Field(None, ge=0, le=1)
+    pause_frequency: Optional[float] = Field(None, ge=0)
+
+
+class DeliveryMetricsResponse(BaseModel):
+    """POST /interview/session/{id}/delivery-metrics response"""
+    status: str = "recorded"
+    delivery_readiness_updated: bool = True
+
+
+class DeliveryTrendPoint(BaseModel):
+    """Single data point in a delivery trend series"""
+    session_id: str
+    value: float
+    date: Optional[str] = None
+
+
+class DeliveryTrendSeries(BaseModel):
+    """One metric's trend across sessions"""
+    metric: str
+    history: List[DeliveryTrendPoint] = []
+
+
+class DeliveryTrendsResponse(BaseModel):
+    """GET /dashboard/delivery-trends response — api.md §6"""
+    trends: List[DeliveryTrendSeries] = []

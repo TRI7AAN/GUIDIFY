@@ -21,6 +21,9 @@ export const OnboardingProvider = ({ children }) => {
     skills: [],
     interests: [],
     learningHours: '5',
+    // DPDP consent (rules.md §7)
+    consentDataProcessing: false,
+    consentAiTraining: false,
   });
 
   const [quizResponses, setQuizResponses] = useState([]);
@@ -67,6 +70,8 @@ export const OnboardingProvider = ({ children }) => {
             skills: data.skills || [],
             interests: data.interests || [],
             learningHours: data.learning_hours || '5',
+            consentDataProcessing: data.consent_data_processing || false,
+            consentAiTraining: data.consent_ai_training || false,
           });
 
           // Restore quiz state if exists
@@ -111,6 +116,8 @@ export const OnboardingProvider = ({ children }) => {
         skills: profileData.skills,
         interests: profileData.interests,
         learning_hours: profileData.learningHours,
+        consent_data_processing: profileData.consentDataProcessing,
+        consent_ai_training: profileData.consentAiTraining,
         role: 'student',
         onboarding_step: 1, // Advance to next step
         updated_at: new Date(),

@@ -316,6 +316,8 @@ class AIGateway:
                 profile_summary=context.get("profile_summary", ""),
                 target_role=context.get("target_role", "Software Developer"),
                 transcript=context.get("transcript", []),
+                delivery_metrics=context.get("delivery_metrics"),
+                camera_enabled=context.get("camera_enabled", False),
             )
             if schema_hint:
                 prompt += (

@@ -3,16 +3,18 @@ Dashboard Routes — api.md §6
 
 Endpoints:
     GET /dashboard — Aggregated view for the home screen
+    GET /dashboard/delivery-trends — Delivery Analytics longitudinal trends (Phase 4.5)
 
 Phase 2 implementation: aggregates real streak, roadmap progress, and skill data.
 """
 
 import logging
+from typing import List, Dict, Any
 from fastapi import APIRouter, Depends
 
 from app.core.auth import get_current_learner_id
 from app.db import queries
-from app.models.schemas import DashboardResponse, SkillGraphEntry
+from app.models.schemas import DashboardResponse, SkillGraphEntry, DeliveryTrendsResponse, DeliveryTrendSeries, DeliveryTrendPoint
 
 router = APIRouter(tags=["Dashboard"])
 logger = logging.getLogger("guidify.api.dashboard")
@@ -78,3 +80,45 @@ async def get_dashboard(
         placement_readiness=min(progress_pct, 100),  # Estimate from roadmap progress
         skill_graph=skill_graph[:8],  # Cap at 8 skills for clean radar display
     )
+
+
+@router.get("/dashboard/delivery-trends", response_model=DeliveryTrendsResponse)
+async def get_delivery_trends(
+    learner_id: str = Depends(get_current_learner_id),
+):
+    """
+    Longitudinal delivery metrics trends — api.md §6.
+    Compute-on-read from interview_sessions.delivery_metrics (schema.md §8.1).
+    """
+    sessions = await queries.get_interview_history(learner_id, limit=50)
+
+    # Collect metrics across sessions
+    metric_names = ["eye_contact_pct", "posture_score", "filler_word_rate", "words_per_minute"]
+    trend_data: Dict[str, List[DeliveryTrendPoint]] = {m: [] for m in metric_names}
+
+    for session in sessions:
+        if session.get("status") != "completed":
+            continue
+        dm = session.get("delivery_metrics")
+        if not dm or not isinstance(dm, dict):
+            continue
+
+        session_id = session.get("id", "")
+        created_at = session.get("created_at", "")
+
+        for metric in metric_names:
+            value = dm.get(metric)
+            if value is not None:
+                trend_data[metric].append(DeliveryTrendPoint(
+                    session_id=session_id,
+                    value=float(value),
+                    date=str(created_at) if created_at else None,
+                ))
+
+    trends = [
+        DeliveryTrendSeries(metric=m, history=points)
+        for m, points in trend_data.items()
+        if points
+    ]
+
+    return DeliveryTrendsResponse(trends=trends)

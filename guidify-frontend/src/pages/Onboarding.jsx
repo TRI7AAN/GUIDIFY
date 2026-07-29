@@ -15,6 +15,7 @@ import { useOnboarding } from '../contexts/OnboardingContext';
 import { useAuth } from '../contexts/AuthContext';
 import ProfileForm from '../components/onboarding/ProfileForm';
 import CareerGoalsForm from '../components/onboarding/CareerGoalsForm';
+import ConsentStep from '../components/onboarding/ConsentStep';
 import AdaptivePersonalityTest from '../components/onboarding/AdaptivePersonalityTest';
 
 const Onboarding = () => {
@@ -29,10 +30,11 @@ const Onboarding = () => {
     if (onboardingComplete) { navigate('/dashboard'); }
   }, [user, onboardingComplete, authLoading, navigate]);
 
-  // Steps Definition — added CareerGoalsForm as step 2
+  // Steps Definition
   const steps = [
     { title: 'Profile Information', component: <ProfileForm /> },
     { title: 'Career Goals', component: <CareerGoalsForm /> },
+    { title: 'Data Consent', component: <ConsentStep /> },
     { title: 'AI Personality Analysis', component: <AdaptivePersonalityTest /> },
   ];
 
