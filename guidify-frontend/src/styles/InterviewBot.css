@@ -1,10 +1,10 @@
+/* InterviewBot.css — inherits variables from index.css :root */
+/* Aliases for legacy usage in this file */
 :root {
-    --bg-1: #0e1116;
+    --neon: var(--primary);
+    --lav: #D0BFFF;
+    --bg-1: var(--bg-dark);
     --bg-2: #12131a;
-    --neon: #00ff84;
-    --lav: #d0bfff;
-    --card: rgba(255, 255, 255, 0.03);
-    --glass-border: rgba(255, 255, 255, 0.06);
 }
 
 * {

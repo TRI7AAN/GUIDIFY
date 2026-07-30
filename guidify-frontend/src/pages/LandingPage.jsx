@@ -13,15 +13,8 @@ const LandingPage = () => {
           <main className="flex-grow max-w-7xl mx-auto w-full px-4 md:px-8">
             {/* Hero Section */}
             <section className="text-center py-24 md:py-40 px-4">
-              <h1 className="text-7xl md:text-11xl font-bold text-white leading-tight mb-4   ">
-                GUIDIFY
-              </h1>
-              <h3 className="text-7xl md:text-7xl font-bold text-white leading-tight mb-4   ">
-                One-Stop Personalized Career & Education Advisor
-              </h3>
-              <h5 className="text-5xl md:text-5xl font-bold text-white leading-tight mb-4">
-                Career Guidance, <span className="text-[var(--emerald-neon)]">Reimagined.</span>
-              </h5>
+              <h1 className="text-7xl md:text-10xl font-bold text-white leading-tight mb-4">GUIDIFY</h1>
+              <h3 className="text-4xl md:text-6xl font-bold text-white leading-tight mb-4">Career Guidance, <span className="text-[var(--emerald-neon)]">Reimagined.</span></h3>
               <p className="text-xl md:text-2xl text-[var(--lucid-lavender)] max-w-3xl mx-auto mb-8">
                 Step into the future of mentorship. We fuse AI precision with human ambition to forge your perfect career path.
               </p>
@@ -31,7 +24,7 @@ const LandingPage = () => {
                 </a>
                 <div className="flex items-center justify-center p-4 bg-gray-800/30 rounded-lg w-full sm:w-auto">
                   <div className="w-3 h-3 bg-[var(--emerald-neon)] rounded-full animate-ping mr-3"></div>
-                  <span className="text-[var(--lucid-lavender)]">AI is personalizing your journey...</span>
+                  <span className="text-[var(--lucid-lavender)]" href="/register">AI is personalizing your journey...</span>
                 </div>
               </div>
             </section>

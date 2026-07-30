@@ -127,24 +127,8 @@ function RegisterPage() {
 
       if (error) throw error;
 
-      // Create a profile with onboarding_complete set to false
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              user_id: data.user.id,
-              name: name,
-              email: email,
-              onboarding_complete: false
-            }
-          ]);
-
-        if (profileError) {
-          console.error('Error creating profile:', profileError);
-          throw profileError;
-        }
-      }
+      // Profile is auto-created by the handle_new_user() trigger in Supabase
+      // No manual insert needed — it inserts (id, email, full_name) via SECURITY DEFINER
 
       // Redirect to onboarding after successful registration
       navigate("/onboarding");
@@ -225,7 +209,7 @@ function RegisterPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/onboarding`
+          redirectTo: `${window.location.origin}/auth/callback`
         }
       });
       if (error) throw error;

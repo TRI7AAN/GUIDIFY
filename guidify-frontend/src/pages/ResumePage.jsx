@@ -105,17 +105,17 @@ export default function ResumePage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-50">
+    <div className="min-h-screen bg-[#0D0F18]">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-surface-200 sticky top-0 z-50">
+      <header className="bg-[#0D0F18]/80 backdrop-blur-md border-b border-[#1F2330] sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 text-sm font-medium text-surface-800 hover:text-primary-600 transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-[#A4ACBC] hover:text-[#3cff14] transition-colors"
           >
             <ChevronLeft className="w-4 h-4" /> Dashboard
           </button>
-          <h1 className="text-xl font-display font-bold text-primary-700 tracking-tight">
+          <h1 className="text-xl font-display font-bold text-[#3cff14] tracking-tight">
             Resume Analysis
           </h1>
           <div className="w-20" />
@@ -124,13 +124,13 @@ export default function ResumePage() {
 
       <main className="max-w-2xl mx-auto px-6 py-12">
         <div className="text-center mb-8 animate-fade-in-up">
-          <div className="w-16 h-16 rounded-2xl bg-primary-100 flex items-center justify-center mx-auto mb-4">
-            <FileText className="w-8 h-8 text-primary-500" />
+          <div className="w-16 h-16 rounded-2xl bg-[#3cff14]/10 flex items-center justify-center mx-auto mb-4">
+            <FileText className="w-8 h-8 text-[#3cff14]" />
           </div>
-          <h2 className="text-2xl font-display font-bold text-surface-900 mb-2">
+          <h2 className="text-2xl font-display font-bold text-white mb-2">
             AI Resume Analysis
           </h2>
-          <p className="text-surface-800/60 max-w-md mx-auto">
+          <p className="text-[#A4ACBC] max-w-md mx-auto">
             Upload your resume for AI-powered parsing, scoring, and actionable feedback 
             tailored to your target career role.
           </p>
@@ -140,9 +140,9 @@ export default function ResumePage() {
         {!result && !loading && (
         <div
           className={`
-            glass-card p-8 mb-6 animate-fade-in-up transition-all duration-200
-            ${dragActive ? 'border-2 border-dashed border-primary-400 bg-primary-50/30' : 'border-2 border-dashed border-surface-300'}
-            ${file ? 'border-accent-400 bg-accent-50/20' : ''}
+            bg-[#151821] border border-[#1F2330] p-8 mb-6 rounded-xl animate-fade-in-up transition-all duration-200
+            ${dragActive ? 'border-2 border-dashed border-[#3cff14]/50 bg-[#3cff14]/5' : 'border-2 border-dashed border-[#1F2330]'}
+            ${file ? 'border-[#4AD8E6]/50 bg-[#4AD8E6]/5' : ''}
           `}
           style={{ animationDelay: '0.1s' }}
           onDragEnter={handleDrag}
@@ -152,8 +152,8 @@ export default function ResumePage() {
         >
           {!file ? (
             <div className="text-center">
-              <FileUp className="w-12 h-12 text-surface-300 mx-auto mb-4" />
-              <p className="text-surface-800/70 mb-2">
+              <FileUp className="w-12 h-12 text-[#A4ACBC] mx-auto mb-4" />
+              <p className="text-[#A4ACBC] mb-2">
                 Drag & drop your resume here, or
               </p>
               <label className="inline-block cursor-pointer">
@@ -167,26 +167,26 @@ export default function ResumePage() {
                   onChange={handleFileSelect}
                 />
               </label>
-              <p className="text-xs text-surface-800/40 mt-3">
+              <p className="text-xs text-[#A4ACBC]/60 mt-3">
                 Supports PDF and DOCX • Max 10MB
               </p>
             </div>
           ) : (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-accent-100 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-accent-600" />
+                <div className="w-10 h-10 rounded-xl bg-[#4AD8E6]/10 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-[#4AD8E6]" />
                 </div>
                 <div>
-                  <p className="font-medium text-surface-900">{file.name}</p>
-                  <p className="text-xs text-surface-800/50">
+                  <p className="font-medium text-white">{file.name}</p>
+                  <p className="text-xs text-[#A4ACBC]">
                     {(file.size / 1024).toFixed(1)} KB
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => { setFile(null); setError(null); }}
-                className="text-surface-800/40 hover:text-danger transition-colors"
+                className="text-[#A4ACBC]/60 hover:text-red-400 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -197,9 +197,9 @@ export default function ResumePage() {
 
         {/* Error */}
         {error && (
-          <div className="flex items-start gap-2 p-4 rounded-xl bg-rose-50 border border-rose-200 mb-6 animate-fade-in-up">
-            <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
-            <p className="text-sm text-rose-700">{error}</p>
+          <div className="flex items-start gap-2 p-4 rounded-xl bg-red-900/20 border border-red-500/30 mb-6 animate-fade-in-up">
+            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <p className="text-sm text-red-300">{error}</p>
           </div>
         )}
 
@@ -227,17 +227,17 @@ export default function ResumePage() {
         {/* Loading skeleton */}
         {loading && (
           <div className="space-y-4 animate-pulse">
-            <div className="glass-card p-6 flex items-center gap-6">
-              <div className="w-24 h-24 rounded-full bg-surface-200" />
+            <div className="bg-[#151821] border border-[#1F2330] p-6 rounded-xl flex items-center gap-6">
+              <div className="w-24 h-24 rounded-full bg-[#1F2330]" />
               <div className="flex-1 space-y-2">
-                <div className="h-5 bg-surface-200 rounded w-48" />
-                <div className="h-4 bg-surface-200 rounded w-72" />
+                <div className="h-5 bg-[#1F2330] rounded w-48" />
+                <div className="h-4 bg-[#1F2330] rounded w-72" />
               </div>
             </div>
-            <div className="glass-card p-5 space-y-3">
-              <div className="h-4 bg-surface-200 rounded w-32" />
-              <div className="h-3 bg-surface-200 rounded w-full" />
-              <div className="h-3 bg-surface-200 rounded w-5/6" />
+            <div className="bg-[#151821] border border-[#1F2330] p-5 rounded-xl space-y-3">
+              <div className="h-4 bg-[#1F2330] rounded w-32" />
+              <div className="h-3 bg-[#1F2330] rounded w-full" />
+              <div className="h-3 bg-[#1F2330] rounded w-5/6" />
             </div>
           </div>
         )}
@@ -249,7 +249,7 @@ export default function ResumePage() {
             <div className="mt-6 flex justify-center">
               <button
                 onClick={() => { setResult(null); setFile(null); }}
-                className="flex items-center gap-2 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors"
+                className="flex items-center gap-2 text-sm font-medium text-[#3cff14] hover:text-[#3cff14]/80 transition-colors"
               >
                 <RotateCcw className="w-4 h-4" /> Upload New Resume
               </button>

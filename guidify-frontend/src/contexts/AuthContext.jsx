@@ -13,12 +13,13 @@ export const AuthProvider = ({ children }) => {
   // Ref to track latest user ID to avoid stale closures in async ops
   const userIdRef = useRef(null);
   const abortControllerRef = useRef(null);
+  const syncingRef = useRef(false);
 
   /**
    * 2. Fetch Profile With Retry
    * Retries fetching the profile up to maxRetries times.
    */
-  const fetchProfileWithRetry = async (userId, retries = 5, delayMs = 500) => {
+  const fetchProfileWithRetry = async (userId, retries = 3, delayMs = 300) => {
     if (!userId) return null;
 
     // Cancel previous request
@@ -32,15 +33,15 @@ export const AuthProvider = ({ children }) => {
       try {
         if (controller.signal.aborted) return null;
 
-        // Timeout wrapper (8 seconds)
+        // Timeout wrapper (8 seconds — Supabase can be slow on cold starts)
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Profile fetch timeout")), 8000)
         );
 
         const fetchPromise = supabase
-          .from('profiles')
-          .select('onboarding_complete, onboarding_step')
-          .eq('user_id', userId)
+          .from('learners')
+          .select('onboarding_completed')
+          .eq('id', userId)
           .single()
           .abortSignal(controller.signal);
 
@@ -82,15 +83,27 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       userIdRef.current = null;
       setAuthToken(null);
+      localStorage.removeItem('guidify_token');
       setOnboardingComplete(false);
       setLoading(false);
+      syncingRef.current = false;
       return;
     }
+
+    // Deduplicate: skip if already syncing for this user
+    if (syncingRef.current && userIdRef.current === currentUser.id) return;
+    syncingRef.current = true;
 
     // Set basics immediately
     setUser(currentUser);
     userIdRef.current = currentUser.id;
     setAuthToken(session?.access_token);
+    // Persist token to localStorage so it survives page refresh
+    if (session?.access_token) {
+      localStorage.setItem('guidify_token', session.access_token);
+    } else {
+      localStorage.removeItem('guidify_token');
+    }
 
     try {
       // BUG-07: Profile is created by the DB trigger `on_auth_user_created` on signup.
@@ -98,7 +111,7 @@ export const AuthProvider = ({ children }) => {
       const profile = await fetchProfileWithRetry(currentUser.id);
 
       if (profile) {
-        setOnboardingComplete(profile.onboarding_complete);
+        setOnboardingComplete(profile.onboarding_completed);
 
         // Fire-and-forget: update login streak (no user_id in body — extracted from JWT server-side)
         apiClient.post('/api/gamification/daily-login')
@@ -110,6 +123,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error("Sync auth state error:", err);
     } finally {
+      syncingRef.current = false;
       setLoading(false);
     }
   };
@@ -118,19 +132,19 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
-    // MED-07 FIX: Safety valve — if auth takes >7 seconds, explicitly sign out to ensure
+    // MED-07 FIX: Safety valve — if auth takes >15 seconds, explicitly sign out to ensure
     // the app doesn't reach a partially-initialized state where user=null but isLoading=false
     // without protected routes knowing to redirect to login.
     const safetyTimer = setTimeout(() => {
       if (mounted) {
-        console.warn("⚠️ Auth initialization timed out (7s). Clearing session state and redirecting.");
+        console.warn("⚠️ Auth initialization timed out (15s). Clearing session state and redirecting.");
         setUser(null);
         setOnboardingComplete(false);
         setAuthToken(null);
         setLoading(false);
         // Protected routes check `user === null` + `loading === false` → redirect to /login automatically
       }
-    }, 7000);
+    }, 15000);
 
     const initAuth = async () => {
       try {
@@ -162,13 +176,11 @@ export const AuthProvider = ({ children }) => {
       const currentUserId = session?.user?.id;
       const prevUserId = userIdRef.current;
 
-      // Only sync if user changed or specific events occurred
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED' || currentUserId !== prevUserId) {
-        if (event === 'TOKEN_REFRESHED' && currentUserId === prevUserId) {
-          setAuthToken(session?.access_token);
-          return;
-        }
+      // Only sync if user actually changed or signed in
+      if (event === 'SIGNED_IN' || currentUserId !== prevUserId) {
         await syncAuthState(session?.user, session);
+      } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        setAuthToken(session?.access_token);
       } else if (event === 'SIGNED_OUT') {
         syncAuthState(null, null);
       }

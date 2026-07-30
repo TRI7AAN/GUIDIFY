@@ -25,9 +25,10 @@ const apiClient = axios.create({
 // Circuit Breaker State
 let failureCount = 0;
 let circuitOpenUntil = 0;
-// Circuit Breaker Configuration (Production-grade settings)
-const MAX_FAILURES = 5;          // Open circuit after 5 consecutive failures
-const CIRCUIT_OPEN_MS = 30000;   // Keep circuit open for 30 seconds before retrying
+let lastFailureTime = 0;
+// Circuit Breaker Configuration
+const MAX_FAILURES = 8;          // Open circuit after 8 consecutive failures
+const CIRCUIT_OPEN_MS = 10000;   // Keep circuit open for 10 seconds before retrying
 
 // In-memory token store
 let memoryToken = null;
@@ -42,10 +43,14 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // Request Interceptor
 apiClient.interceptors.request.use(
   (config) => {
-    // Circuit Breaker Check
+    // Circuit Breaker Check — allow through in half-open state to test recovery
     const now = Date.now();
     if (now < circuitOpenUntil) {
-      return Promise.reject(new Error('Circuit open: temporarily blocked due to repeated failures'));
+      if (now - lastFailureTime > CIRCUIT_OPEN_MS / 2) {
+        // Half-open: allow probe request through
+      } else {
+        return Promise.reject(new Error('Circuit open: temporarily blocked due to repeated failures'));
+      }
     }
 
     // Auth Token
@@ -73,8 +78,8 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Handle 401 Unauthorized
-    if (error.response && error.response.status === 401) {
+    // Handle 401/403 Unauthorized
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       localStorage.removeItem('guidify_token');
       localStorage.removeItem('guidify_user');
       window.dispatchEvent(new CustomEvent('auth:unauthorized'));
@@ -84,9 +89,9 @@ apiClient.interceptors.response.use(
     // Circuit Breaker Logic for Network/Server Errors
     if (!error.response || error.response.status >= 500) {
       failureCount++;
+      lastFailureTime = Date.now();
       if (failureCount >= MAX_FAILURES) {
         circuitOpenUntil = Date.now() + CIRCUIT_OPEN_MS;
-        // Circuit breaker activated - requests will be blocked temporarily
       }
     }
 

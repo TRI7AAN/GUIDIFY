@@ -14,6 +14,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../utils/supabaseClient';
 import { Target, Plus, X, Clock, Sparkles } from 'lucide-react';
 
 // Skill suggestions by category — helps users who don't know what to type
@@ -40,6 +42,7 @@ const LEARNING_HOURS = [
 
 export default function CareerGoalsForm() {
   const { profileData, setProfileData, nextStep, isLoading } = useOnboarding();
+  const { user } = useAuth();
 
   const [targetRole, setTargetRole] = useState(profileData.targetRole || '');
   const [skills, setSkills] = useState(profileData.skills || []);
@@ -96,7 +99,7 @@ export default function CareerGoalsForm() {
     e.preventDefault();
     if (!validate()) return;
 
-    // Save to context and advance
+    // Save to context
     setProfileData(prev => ({
       ...prev,
       targetRole,
@@ -105,24 +108,40 @@ export default function CareerGoalsForm() {
       learningHours,
     }));
 
+    // Save to DB
+    try {
+      await supabase
+        .from('learners')
+        .update({
+          target_role: targetRole,
+          skills: skills,
+          interests: interests,
+          learning_hours: learningHours,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id);
+    } catch (e) {
+      console.error("Failed to save career goals:", e);
+    }
+
     nextStep();
   };
 
   return (
     <div className="max-w-xl mx-auto animate-fade-in-up">
-      <div className="text-center mb-8">
-        <div className="w-14 h-14 rounded-2xl bg-primary-100 flex items-center justify-center mx-auto mb-4">
-          <Target className="w-7 h-7 text-primary-600" />
+      <div className="text-center mb-4">
+        <div className="w-10 h-10 rounded-2xl bg-primary-100 flex items-center justify-center mx-auto mb-2">
+          <Target className="w-5 h-5 text-primary-600" />
         </div>
-        <h2 className="text-2xl font-display font-bold text-surface-900 mb-2">
+        <h2 className="text-xl font-display font-bold text-surface-900 mb-1">
           Your Career Goals
         </h2>
-        <p className="text-surface-800/60 text-sm">
+        <p className="text-surface-800/60 text-xs">
           This information drives your personalized roadmap and daily missions.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Target Role */}
         <div>
           <label className="block text-sm font-medium text-surface-900 mb-1.5">
@@ -133,7 +152,7 @@ export default function CareerGoalsForm() {
             value={targetRole}
             onChange={(e) => { setTargetRole(e.target.value); if (errors.targetRole) setErrors(prev => ({...prev, targetRole: null})); }}
             placeholder="e.g. Full Stack Developer, Data Scientist, Product Manager"
-            className="w-full px-4 py-3 rounded-xl border border-surface-300 bg-white text-surface-900 placeholder:text-surface-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+            className="w-full px-4 py-3 rounded-xl border border-surface-300 bg-white text-surface-50 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
           />
           {errors.targetRole && <p className="text-danger text-xs mt-1">{errors.targetRole}</p>}
         </div>
@@ -150,7 +169,7 @@ export default function CareerGoalsForm() {
               onChange={(e) => setSkillInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill(skillInput); } }}
               placeholder="Type a skill and press Enter"
-              className="flex-1 px-4 py-2.5 rounded-xl border border-surface-300 bg-white text-surface-900 placeholder:text-surface-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
+              className="flex-1 px-4 py-2.5 rounded-xl border border-surface-300 bg-white text-surface-50 placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
             />
             <button
               type="button"
@@ -249,7 +268,7 @@ export default function CareerGoalsForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-3.5 rounded-xl gradient-primary text-white font-semibold text-base hover:opacity-90 transition-opacity focus-ring disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full py-2.5 rounded-xl gradient-primary text-white font-semibold text-sm hover:opacity-90 transition-opacity focus-ring disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <Sparkles className="w-4 h-4" />
           {isLoading ? 'Saving...' : 'Continue to Personality Analysis'}

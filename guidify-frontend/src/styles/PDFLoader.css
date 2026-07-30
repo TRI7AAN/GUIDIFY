@@ -1,20 +1,21 @@
+/* PDFLoader.css — inherits variables from index.css :root */
 .pdf-container {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #0f172a;
-  color: white;
-  font-family: 'Inter', sans-serif;
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: var(--font-body);
 }
 
 .pdf-card {
-  background: #1e293b;
+  background: var(--card);
   padding: 2rem;
   border-radius: 1rem;
   max-width: 600px;
   width: 100%;
-  box-shadow: 0 4px 30px rgba(0, 255, 170, 0.1);
+  box-shadow: 0 4px 30px rgba(60, 255, 20, 0.1);
 }
 
 h1 {
@@ -25,7 +26,7 @@ h1 {
 
 p {
   text-align: center;
-  color: #94a3b8;
+  color: var(--text-secondary);
   margin-bottom: 1.5rem;
 }
 
@@ -34,17 +35,17 @@ p {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 2px dashed #334155;
+  border: 2px dashed var(--card-border);
   padding: 2rem;
   border-radius: 0.75rem;
   cursor: pointer;
   margin-bottom: 1.5rem;
-  background: #0f172a;
+  background: var(--bg-dark);
   transition: border-color 0.2s ease-in-out;
 }
 
 .upload-box:hover {
-  border-color: #10b981;
+  border-color: var(--primary);
 }
 
 .upload-icon {
@@ -54,30 +55,30 @@ p {
 
 .submit-btn {
   width: 100%;
-  background: #10b981;
+  background: var(--primary);
   padding: 0.75rem;
   border: none;
   border-radius: 0.5rem;
   font-weight: 600;
   font-size: 1rem;
-  color: black;
+  color: var(--bg-dark);
   cursor: pointer;
   transition: background 0.2s ease-in-out;
 }
 
 .submit-btn:hover {
-  background: #0d9465;
+  background: var(--primary-dark);
 }
 
 .results {
   margin-top: 2rem;
   padding: 1rem;
-  background: #0f172a;
+  background: var(--bg-dark);
   border-radius: 0.75rem;
 }
 
 .results pre {
-  background: #1e293b;
+  background: var(--card);
   padding: 0.75rem;
   border-radius: 0.5rem;
   overflow-x: auto;

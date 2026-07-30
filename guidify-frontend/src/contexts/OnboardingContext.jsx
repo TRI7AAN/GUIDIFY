@@ -50,9 +50,9 @@ export const OnboardingProvider = ({ children }) => {
 
       try {
         const { data, error } = await supabase
-          .from('profiles')
+          .from('learners')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('id', user.id)
           .single();
 
         if (error && error.code !== 'PGRST116') {
@@ -61,7 +61,7 @@ export const OnboardingProvider = ({ children }) => {
 
         if (mounted && data) {
           setProfileData({
-            name: data.name || '',
+            name: data.full_name || '',
             age: data.age || '',
             gender: data.gender || '',
             currentClass: data.current_class || '',
@@ -79,9 +79,7 @@ export const OnboardingProvider = ({ children }) => {
           if (data.career_suggestion) setCareerSuggestion(data.career_suggestion);
 
           // Determine step:
-          // If DB says completed, but we are in Onboarding flow, maybe redirect?
-          // The Page component handles redirection. We just provide truth.
-          if (data.onboarding_complete) {
+          if (data.onboarding_completed) {
             updateOnboardingStatus(true);
           } else {
             setCurrentStep(data.onboarding_step || 0);
@@ -97,7 +95,7 @@ export const OnboardingProvider = ({ children }) => {
     initOnboarding();
 
     return () => { mounted = false; };
-  }, [user]);
+  }, [user?.id]);
 
   /**
    * Save Step 1: Profile Info
@@ -106,26 +104,18 @@ export const OnboardingProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const updates = {
-        user_id: user.id,
-        name: profileData.name,
-        age: profileData.age,
-        gender: profileData.gender,
-        current_class: profileData.currentClass,
-        location: profileData.location,
-        target_role: profileData.targetRole,
-        skills: profileData.skills,
-        interests: profileData.interests,
-        learning_hours: profileData.learningHours,
-        consent_data_processing: profileData.consentDataProcessing,
-        consent_ai_training: profileData.consentAiTraining,
-        role: 'student',
-        onboarding_step: 1, // Advance to next step
-        updated_at: new Date(),
+        full_name: profileData.name,
+        age: profileData.age ? Number(profileData.age) : null,
+        gender: profileData.gender || null,
+        current_class: profileData.currentClass || null,
+        location: profileData.location || null,
+        updated_at: new Date().toISOString(),
       };
 
       const { error } = await supabase
-        .from('profiles')
-        .upsert(updates);
+        .from('learners')
+        .update(updates)
+        .eq('id', user.id);
 
       if (error) throw error;
 
@@ -163,13 +153,12 @@ export const OnboardingProvider = ({ children }) => {
 
       // 2. Update scores & step in profile
       const { error: profileError } = await supabase
-        .from('profiles')
+        .from('learners')
         .update({
           category_scores: quizScores,
-          onboarding_step: 2,
           updated_at: new Date()
         })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
 
       if (profileError) throw profileError;
 
@@ -191,14 +180,13 @@ export const OnboardingProvider = ({ children }) => {
     try {
       setIsLoading(true);
       const { error } = await supabase
-        .from('profiles')
+        .from('learners')
         .update({
           career_suggestion: suggestion,
-          onboarding_complete: true,
-          onboarding_step: 4,
+          onboarding_completed: true,
           updated_at: new Date()
         })
-        .eq('user_id', user.id);
+        .eq('id', user.id);
 
       if (error) throw error;
 
@@ -246,7 +234,7 @@ export const OnboardingProvider = ({ children }) => {
     setCurrentStep(next);
     // Background save of step
     try {
-      await supabase.from('profiles').update({ onboarding_step: next }).eq('user_id', user.id);
+      await supabase.from('learners').update({ onboarding_step: next }).eq('id', user.id);
     } catch (e) {
       console.warn("Failed to persist step:", e);
     }

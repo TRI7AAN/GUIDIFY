@@ -10,22 +10,22 @@ const FormContainer = styled(motion.div)`
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 2.5rem;
+  padding: 1.5rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   max-width: 600px;
   margin: 0 auto;
 `;
 
 const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   position: relative;
 `;
 
 const Label = styled.label`
   display: block;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.3rem;
   color: #A4ACBC;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -50,9 +50,9 @@ const Input = styled.input`
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 0.8rem 1rem 0.8rem 2.8rem;
+  padding: 0.6rem 1rem 0.6rem 2.8rem;
   color: white;
-  font-size: 1rem;
+  font-size: 0.9rem;
   transition: all 0.3s ease;
 
   &:focus {
@@ -77,9 +77,9 @@ const Select = styled.select`
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  padding: 0.8rem 1rem 0.8rem 2.8rem;
+  padding: 0.6rem 1rem 0.6rem 2.8rem;
   color: white;
-  font-size: 1rem;
+  font-size: 0.9rem;
   transition: all 0.3s ease;
   appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
@@ -101,8 +101,8 @@ const Select = styled.select`
 
 const ErrorMsg = styled.div`
   color: #ff4d4d;
-  font-size: 0.85rem;
-  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
   margin-left: 0.2rem;
 `;
 
@@ -135,17 +135,17 @@ const LocationButton = styled.button`
 
 const SubmitButton = styled.button`
   width: 100%;
-  padding: 1rem;
+  padding: 0.75rem;
   background: #39FF14;
   color: black;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1rem;
   border: none;
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s;
   box-shadow: 0 4px 20px rgba(57, 255, 20, 0.3);
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 
   &:hover {
     transform: translateY(-2px);
@@ -163,7 +163,7 @@ const SubmitButton = styled.button`
 `;
 
 const ProfileForm = () => {
-  const { profileData, setProfileData, saveProfileData, nextStep, isLoading } = useOnboarding();
+  const { profileData, setProfileData, saveProfileData, isLoading } = useOnboarding();
   const { user } = useAuth();
   const [errors, setErrors] = useState({});
   const [locationLoading, setLocationLoading] = useState(false);
@@ -246,8 +246,7 @@ const ProfileForm = () => {
 
     try {
       const success = await saveProfileData();
-      if (success) nextStep();
-      else setErrors(prev => ({ ...prev, form: 'Failed to save. Try again.' }));
+      if (!success) setErrors(prev => ({ ...prev, form: 'Failed to save. Try again.' }));
     } catch (error) {
       setErrors(prev => ({ ...prev, form: error.message }));
     }
@@ -259,7 +258,7 @@ const ProfileForm = () => {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <h2 style={{ fontSize: '1.8rem', fontWeight: '700', marginBottom: '2rem', textAlign: 'center', color: 'white' }}>
+      <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1.2rem', textAlign: 'center', color: 'white' }}>
         Tell us about yourself
       </h2>
 

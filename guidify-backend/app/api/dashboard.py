@@ -72,6 +72,16 @@ async def get_dashboard(
     # Calculate streak from missions
     streak_days = await queries.calculate_streak(learner_id)
 
+    # Fetch personality category_scores from learners table
+    category_scores = None
+    try:
+        from app.services.supabase_client import supabase
+        result = supabase.table("learners").select("category_scores").eq("id", learner_id).single().execute()
+        if result.data:
+            category_scores = result.data.get("category_scores")
+    except Exception as e:
+        logger.warning(f"Failed to fetch category_scores: {e}")
+
     return DashboardResponse(
         streak_days=streak_days,
         current_phase=current_phase,
@@ -79,6 +89,7 @@ async def get_dashboard(
         interview_readiness=0,  # Phase 4
         placement_readiness=min(progress_pct, 100),  # Estimate from roadmap progress
         skill_graph=skill_graph[:8],  # Cap at 8 skills for clean radar display
+        category_scores=category_scores,
     )
 
 

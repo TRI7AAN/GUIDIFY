@@ -20,9 +20,9 @@ import {
 } from 'lucide-react';
 
 const SCORE_COLORS = {
-  high: { ring: 'text-accent-500', bg: 'bg-accent-50', label: 'Strong' },
-  mid: { ring: 'text-amber-500', bg: 'bg-amber-50', label: 'Decent' },
-  low: { ring: 'text-rose-500', bg: 'bg-rose-50', label: 'Needs Work' },
+  high: { ring: 'text-[#4AD8E6]', bg: 'bg-[#4AD8E6]/10', label: 'Strong' },
+  mid: { ring: 'text-amber-500', bg: 'bg-amber-900/30', label: 'Decent' },
+  low: { ring: 'text-rose-500', bg: 'bg-rose-900/30', label: 'Needs Work' },
 };
 
 function getScoreTier(score) {
@@ -39,7 +39,7 @@ function ScoreRing({ score }) {
   return (
     <div className="relative w-24 h-24">
       <svg className="w-24 h-24 -rotate-90" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r="36" fill="none" stroke="#e5e7eb" strokeWidth="6" />
+        <circle cx="40" cy="40" r="36" fill="none" stroke="#1F2330" strokeWidth="6" />
         <circle
           cx="40" cy="40" r="36" fill="none"
           className={tier.ring}
@@ -52,8 +52,8 @@ function ScoreRing({ score }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-display font-bold text-surface-900">{score}</span>
-        <span className="text-[10px] font-medium text-surface-800/50">/ 100</span>
+        <span className="text-2xl font-display font-bold text-white">{score}</span>
+        <span className="text-[10px] font-medium text-[#A4ACBC]">/ 100</span>
       </div>
     </div>
   );
@@ -62,10 +62,10 @@ function ScoreRing({ score }) {
 function SectionHeader({ icon: Icon, title, count }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <Icon className="w-4 h-4 text-primary-500" />
-      <h3 className="text-sm font-semibold text-surface-900">{title}</h3>
+      <Icon className="w-4 h-4 text-[#3cff14]" />
+      <h3 className="text-sm font-semibold text-white">{title}</h3>
       {count != null && (
-        <span className="text-[10px] bg-surface-100 text-surface-800/60 px-1.5 py-0.5 rounded-full">
+        <span className="text-[10px] bg-[#1F2330] text-[#A4ACBC] px-1.5 py-0.5 rounded-full">
           {count}
         </span>
       )}
@@ -75,8 +75,8 @@ function SectionHeader({ icon: Icon, title, count }) {
 
 function SkillTag({ skill, type = 'tech' }) {
   const styles = type === 'tech'
-    ? 'bg-primary-100 text-primary-700'
-    : 'bg-violet-100 text-violet-700';
+    ? 'bg-[#3cff14]/10 text-[#3cff14]'
+    : 'bg-violet-900/30 text-violet-400';
   return (
     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${styles}`}>
       {skill}
@@ -86,16 +86,16 @@ function SkillTag({ skill, type = 'tech' }) {
 
 function GapItem({ gap }) {
   const impactStyles = {
-    high: 'border-l-rose-400 bg-rose-50/50',
-    medium: 'border-l-amber-400 bg-amber-50/50',
-    low: 'border-l-surface-300 bg-surface-50',
+    high: 'border-l-rose-400 bg-rose-900/20',
+    medium: 'border-l-amber-400 bg-amber-900/20',
+    low: 'border-l-[#1F2330] bg-[#151821]',
   };
   return (
     <div className={`border-l-2 pl-3 py-2 rounded-r-lg ${impactStyles[gap.impact] || impactStyles.medium}`}>
-      <p className="text-sm font-medium text-surface-900">{gap.area}</p>
-      <p className="text-xs text-surface-800/60 mt-0.5">{gap.description}</p>
+      <p className="text-sm font-medium text-white">{gap.area}</p>
+      <p className="text-xs text-[#A4ACBC] mt-0.5">{gap.description}</p>
       {gap.suggestion && (
-        <p className="text-xs text-primary-600 mt-1 flex items-center gap-1">
+        <p className="text-xs text-[#3cff14] mt-1 flex items-center gap-1">
           <ArrowUpRight className="w-3 h-3" /> {gap.suggestion}
         </p>
       )}
@@ -105,14 +105,14 @@ function GapItem({ gap }) {
 
 function ImprovementItem({ item }) {
   return (
-    <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-50">
-      <span className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-bold flex items-center justify-center shrink-0">
+    <div className="flex items-start gap-3 p-3 rounded-xl bg-[#151821]">
+      <span className="w-6 h-6 rounded-full bg-[#3cff14]/10 text-[#3cff14] text-xs font-bold flex items-center justify-center shrink-0">
         {item.priority}
       </span>
       <div>
-        <p className="text-sm font-medium text-surface-900">{item.action}</p>
+        <p className="text-sm font-medium text-white">{item.action}</p>
         {item.example && (
-          <p className="text-xs text-surface-800/50 mt-1 italic">e.g. {item.example}</p>
+          <p className="text-xs text-[#A4ACBC] mt-1 italic">e.g. {item.example}</p>
         )}
       </div>
     </div>
@@ -138,13 +138,13 @@ export default function ResumeFeedback({ data }) {
   return (
     <div className="space-y-4 animate-fade-in-up">
       {/* Score Hero */}
-      <div className="glass-card p-6 flex items-center gap-6">
+      <div className="bg-[#151821] border border-[#1F2330] p-6 rounded-xl flex items-center gap-6">
         <ScoreRing score={overallScore ?? 0} />
         <div className="flex-1">
-          <h2 className="text-lg font-display font-bold text-surface-900 mb-1">
+          <h2 className="text-lg font-display font-bold text-white mb-1">
             Resume Score: {getScoreTier(overallScore ?? 0).label}
           </h2>
-          <p className="text-sm text-surface-800/60">
+          <p className="text-sm text-[#A4ACBC]">
             {overallScore >= 75
               ? 'Your resume is strong. Minor refinements can make it even better.'
               : overallScore >= 50
@@ -155,7 +155,7 @@ export default function ResumeFeedback({ data }) {
             <div className="flex gap-3 mt-3 flex-wrap">
               {Object.entries(score.section_scores).map(([section, s]) => (
                 <div key={section} className="text-center">
-                  <div className="text-xs text-surface-800/50 capitalize">{section.replace(/_/g, ' ')}</div>
+                  <div className="text-xs text-[#A4ACBC] capitalize">{section.replace(/_/g, ' ')}</div>
                   <div className={`text-sm font-bold ${getScoreTier(s).ring}`}>{s}</div>
                 </div>
               ))}
@@ -166,11 +166,11 @@ export default function ResumeFeedback({ data }) {
 
       {/* Parsed Summary */}
       {parsed?.summary && (
-        <div className="glass-card p-5">
+        <div className="bg-[#151821] border border-[#1F2330] p-5 rounded-xl">
           <SectionHeader icon={User} title="Professional Summary" />
-          <p className="text-sm text-surface-800/70 leading-relaxed">{parsed.summary}</p>
+          <p className="text-sm text-[#A4ACBC] leading-relaxed">{parsed.summary}</p>
           {parsed.total_years_experience > 0 && (
-            <p className="text-xs text-surface-800/50 mt-2">
+            <p className="text-xs text-[#A4ACBC] mt-2">
               {parsed.total_years_experience} years of experience
             </p>
           )}
@@ -179,17 +179,17 @@ export default function ResumeFeedback({ data }) {
 
       {/* Skills */}
       {parsed && (parsed.technical_skills?.length > 0 || parsed.soft_skills?.length > 0) && (
-        <div className="glass-card p-5">
+        <div className="bg-[#151821] border border-[#1F2330] p-5 rounded-xl">
           <button onClick={() => toggle('skills')} className="w-full flex items-center justify-between">
             <SectionHeader icon={Code2} title="Extracted Skills"
               count={(parsed.technical_skills?.length || 0) + (parsed.soft_skills?.length || 0)} />
-            {expandedSections.skills ? <ChevronUp className="w-4 h-4 text-surface-800/40" /> : <ChevronDown className="w-4 h-4 text-surface-800/40" />}
+            {expandedSections.skills ? <ChevronUp className="w-4 h-4 text-[#A4ACBC]" /> : <ChevronDown className="w-4 h-4 text-[#A4ACBC]" />}
           </button>
           {expandedSections.skills && (
             <div className="mt-2 space-y-3 animate-fade-in-up">
               {parsed.technical_skills?.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-surface-800/40 uppercase tracking-wider mb-1.5">Technical</p>
+                  <p className="text-[10px] font-semibold text-[#A4ACBC] uppercase tracking-wider mb-1.5">Technical</p>
                   <div className="flex flex-wrap gap-1.5">
                     {parsed.technical_skills.map((s, i) => <SkillTag key={i} skill={s} type="tech" />)}
                   </div>
@@ -197,7 +197,7 @@ export default function ResumeFeedback({ data }) {
               )}
               {parsed.soft_skills?.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-surface-800/40 uppercase tracking-wider mb-1.5">Soft Skills</p>
+                  <p className="text-[10px] font-semibold text-[#A4ACBC] uppercase tracking-wider mb-1.5">Soft Skills</p>
                   <div className="flex flex-wrap gap-1.5">
                     {parsed.soft_skills.map((s, i) => <SkillTag key={i} skill={s} type="soft" />)}
                   </div>
@@ -210,23 +210,23 @@ export default function ResumeFeedback({ data }) {
 
       {/* Experience */}
       {parsed?.experience?.length > 0 && (
-        <div className="glass-card p-5">
+        <div className="bg-[#151821] border border-[#1F2330] p-5 rounded-xl">
           <button onClick={() => toggle('experience')} className="w-full flex items-center justify-between">
             <SectionHeader icon={Briefcase} title="Work Experience" count={parsed.experience.length} />
-            {expandedSections.experience ? <ChevronUp className="w-4 h-4 text-surface-800/40" /> : <ChevronDown className="w-4 h-4 text-surface-800/40" />}
+            {expandedSections.experience ? <ChevronUp className="w-4 h-4 text-[#A4ACBC]" /> : <ChevronDown className="w-4 h-4 text-[#A4ACBC]" />}
           </button>
           {expandedSections.experience && (
             <div className="mt-2 space-y-3 animate-fade-in-up">
               {parsed.experience.map((exp, i) => (
-                <div key={i} className="pl-3 border-l-2 border-surface-200">
-                  <p className="text-sm font-semibold text-surface-900">{exp.title}</p>
-                  <p className="text-xs text-surface-800/60">{exp.company} {exp.start_date && `· ${exp.start_date} - ${exp.end_date || 'Present'}`}</p>
-                  {exp.description && <p className="text-xs text-surface-800/70 mt-1">{exp.description}</p>}
+                <div key={i} className="pl-3 border-l-2 border-[#1F2330]">
+                  <p className="text-sm font-semibold text-white">{exp.title}</p>
+                  <p className="text-xs text-[#A4ACBC]">{exp.company} {exp.start_date && `· ${exp.start_date} - ${exp.end_date || 'Present'}`}</p>
+                  {exp.description && <p className="text-xs text-[#A4ACBC] mt-1">{exp.description}</p>}
                   {exp.responsibilities?.length > 0 && (
                     <ul className="mt-1 space-y-0.5">
                       {exp.responsibilities.map((r, j) => (
-                        <li key={j} className="text-xs text-surface-800/60 flex items-start gap-1.5">
-                          <span className="w-1 h-1 rounded-full bg-primary-400 mt-1.5 shrink-0" />
+                        <li key={j} className="text-xs text-[#A4ACBC] flex items-start gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-[#3cff14] mt-1.5 shrink-0" />
                           {r}
                         </li>
                       ))}
@@ -241,18 +241,18 @@ export default function ResumeFeedback({ data }) {
 
       {/* Education */}
       {parsed?.education?.length > 0 && (
-        <div className="glass-card p-5">
+        <div className="bg-[#151821] border border-[#1F2330] p-5 rounded-xl">
           <button onClick={() => toggle('education')} className="w-full flex items-center justify-between">
             <SectionHeader icon={GraduationCap} title="Education" count={parsed.education.length} />
-            {expandedSections.education ? <ChevronUp className="w-4 h-4 text-surface-800/40" /> : <ChevronDown className="w-4 h-4 text-surface-800/40" />}
+            {expandedSections.education ? <ChevronUp className="w-4 h-4 text-[#A4ACBC]" /> : <ChevronDown className="w-4 h-4 text-[#A4ACBC]" />}
           </button>
           {expandedSections.education && (
             <div className="mt-2 space-y-2 animate-fade-in-up">
               {parsed.education.map((edu, i) => (
-                <div key={i} className="pl-3 border-l-2 border-surface-200">
-                  <p className="text-sm font-semibold text-surface-900">{edu.degree} {edu.field_of_study && `in ${edu.field_of_study}`}</p>
-                  <p className="text-xs text-surface-800/60">{edu.institution} {edu.end_date && `· ${edu.end_date}`}</p>
-                  {edu.gpa && <p className="text-xs text-surface-800/50 mt-0.5">GPA: {edu.gpa}</p>}
+                <div key={i} className="pl-3 border-l-2 border-[#1F2330]">
+                  <p className="text-sm font-semibold text-white">{edu.degree} {edu.field_of_study && `in ${edu.field_of_study}`}</p>
+                  <p className="text-xs text-[#A4ACBC]">{edu.institution} {edu.end_date && `· ${edu.end_date}`}</p>
+                  {edu.gpa && <p className="text-xs text-[#A4ACBC] mt-0.5">GPA: {edu.gpa}</p>}
                 </div>
               ))}
             </div>
@@ -262,10 +262,10 @@ export default function ResumeFeedback({ data }) {
 
       {/* Gap Analysis */}
       {score?.gaps?.length > 0 && (
-        <div className="glass-card p-5">
+        <div className="bg-[#151821] border border-[#1F2330] p-5 rounded-xl">
           <button onClick={() => toggle('gaps')} className="w-full flex items-center justify-between">
             <SectionHeader icon={AlertTriangle} title="Gap Analysis" count={score.gaps.length} />
-            {expandedSections.gaps ? <ChevronUp className="w-4 h-4 text-surface-800/40" /> : <ChevronDown className="w-4 h-4 text-surface-800/40" />}
+            {expandedSections.gaps ? <ChevronUp className="w-4 h-4 text-[#A4ACBC]" /> : <ChevronDown className="w-4 h-4 text-[#A4ACBC]" />}
           </button>
           {expandedSections.gaps && (
             <div className="mt-2 space-y-2 animate-fade-in-up">
@@ -277,10 +277,10 @@ export default function ResumeFeedback({ data }) {
 
       {/* Top Improvements */}
       {score?.top_improvements?.length > 0 && (
-        <div className="glass-card p-5">
+        <div className="bg-[#151821] border border-[#1F2330] p-5 rounded-xl">
           <button onClick={() => toggle('improvements')} className="w-full flex items-center justify-between">
             <SectionHeader icon={TrendingUp} title="Top Improvements" count={score.top_improvements.length} />
-            {expandedSections.improvements ? <ChevronUp className="w-4 h-4 text-surface-800/40" /> : <ChevronDown className="w-4 h-4 text-surface-800/40" />}
+            {expandedSections.improvements ? <ChevronUp className="w-4 h-4 text-[#A4ACBC]" /> : <ChevronDown className="w-4 h-4 text-[#A4ACBC]" />}
           </button>
           {expandedSections.improvements && (
             <div className="mt-2 space-y-2 animate-fade-in-up">
@@ -292,25 +292,25 @@ export default function ResumeFeedback({ data }) {
 
       {/* ATS Compatibility */}
       {score?.ats_compatibility && (
-        <div className="glass-card p-5">
+        <div className="bg-[#151821] border border-[#1F2330] p-5 rounded-xl">
           <button onClick={() => toggle('ats')} className="w-full flex items-center justify-between">
             <SectionHeader icon={Shield} title="ATS Compatibility" count={`${score.ats_compatibility.score}%`} />
-            {expandedSections.ats ? <ChevronUp className="w-4 h-4 text-surface-800/40" /> : <ChevronDown className="w-4 h-4 text-surface-800/40" />}
+            {expandedSections.ats ? <ChevronUp className="w-4 h-4 text-[#A4ACBC]" /> : <ChevronDown className="w-4 h-4 text-[#A4ACBC]" />}
           </button>
           {expandedSections.ats && (
             <div className="mt-2 space-y-3 animate-fade-in-up">
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 rounded-full bg-surface-100 overflow-hidden">
+                <div className="flex-1 h-2 rounded-full bg-[#1F2330] overflow-hidden">
                   <div
                     className={`h-full rounded-full ${getScoreTier(score.ats_compatibility.score).ring.replace('text-', 'bg-')}`}
                     style={{ width: `${score.ats_compatibility.score}%` }}
                   />
                 </div>
-                <span className="text-sm font-bold text-surface-900">{score.ats_compatibility.score}%</span>
+                <span className="text-sm font-bold text-white">{score.ats_compatibility.score}%</span>
               </div>
               {score.ats_compatibility.issues?.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-surface-800/40 uppercase tracking-wider mb-1">Issues</p>
+                  <p className="text-[10px] font-semibold text-[#A4ACBC] uppercase tracking-wider mb-1">Issues</p>
                   <ul className="space-y-1">
                     {score.ats_compatibility.issues.map((issue, i) => (
                       <li key={i} className="text-xs text-rose-600 flex items-start gap-1.5">
@@ -323,11 +323,11 @@ export default function ResumeFeedback({ data }) {
               )}
               {score.ats_compatibility.suggestions?.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold text-surface-800/40 uppercase tracking-wider mb-1">Suggestions</p>
+                  <p className="text-[10px] font-semibold text-[#A4ACBC] uppercase tracking-wider mb-1">Suggestions</p>
                   <ul className="space-y-1">
                     {score.ats_compatibility.suggestions.map((s, i) => (
-                      <li key={i} className="text-xs text-primary-600 flex items-start gap-1.5">
-                        <span className="w-1 h-1 rounded-full bg-primary-400 mt-1.5 shrink-0" />
+                      <li key={i} className="text-xs text-[#3cff14] flex items-start gap-1.5">
+                        <span className="w-1 h-1 rounded-full bg-[#3cff14] mt-1.5 shrink-0" />
                         {s}
                       </li>
                     ))}
@@ -341,12 +341,12 @@ export default function ResumeFeedback({ data }) {
 
       {/* Strengths */}
       {score?.strengths?.length > 0 && (
-        <div className="glass-card p-5">
+        <div className="bg-[#151821] border border-[#1F2330] p-5 rounded-xl">
           <SectionHeader icon={CheckCircle2} title="Strengths" count={score.strengths.length} />
           <ul className="mt-2 space-y-1.5">
             {score.strengths.map((s, i) => (
-              <li key={i} className="text-sm text-surface-800/70 flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent-500 shrink-0 mt-0.5" />
+              <li key={i} className="text-sm text-[#A4ACBC] flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#4AD8E6] shrink-0 mt-0.5" />
                 {s}
               </li>
             ))}

@@ -146,28 +146,19 @@ Output JSON ONLY. No markdown."""
     @staticmethod
     def generate_quiz_questions(user_profile) -> dict:
         """
-        Generates a batch of 10 adaptive questions based on user profile.
-        NOTE: This is synchronous — use generate_quiz_questions_async() from async routes.
+        Generates a batch of 5 adaptive questions based on user profile.
+        Reduced from 10 to 5 for faster generation (~2s vs ~5s).
         """
-        prompt = f"""
-        You are an expert career counselor and psychometrician.
-        User Profile: {json.dumps(user_profile)}
-        
-        Generate 10 psychometric multiple-choice questions to assess this student's aptitude, personality, and career interests.
-        
-        Return a JSON object with a key "questions" containing a list of 10 questions.
-        Each question must have:
-        - "question_text": String
-        - "options": Array of 4 objects {{"text": "...", "trait_impact": "..."}}
-        - "question_type": "multiple_choice"
-        
-        Output JSON ONLY. No markdown.
-        """
+        prompt = f"""Generate 5 psychometric multiple-choice questions for career assessment.
+User Profile: {json.dumps(user_profile)}
 
-        response = ask_gemini(prompt, model="gemini-2.5-flash-lite")
+Each question: question_text, 4 options with text+trait_impact, question_type="multiple_choice".
+Output JSON: {{"questions": [...]}}. No markdown."""
+
+        response = ask_gemini(prompt, model="gemini-2.5-flash")
         result = extract_json_from_response(response)
 
-        if not result or "questions" not in result or len(result["questions"]) < 5:
+        if not result or "questions" not in result or len(result["questions"]) < 3:
             return {"questions": []}
 
         return result
@@ -181,31 +172,20 @@ Output JSON ONLY. No markdown."""
         """
         from app.services.supabase_client import supabase
 
-        history_text = json.dumps(all_responses[-20:], indent=2)  # Cap at 20 entries
+        history_text = json.dumps(all_responses[-15:], indent=2)
 
-        prompt = f"""
-        You are a world-class behavioral psychologist. Analyze the following Q&A session from a student:
-        {history_text}
-        
-        Generate a highly detailed personality profile.
-        
-        Return a JSON object with the following structure:
-        {{
-          "traits": {{ "Analytical": <0-100>, "Creative": <0-100>, "Social": <0-100>, "Technical": <0-100>, "Leadership": <0-100> }},
-          "summary": "One sentence summary...",
-          "top_careers": ["Data Scientist", "AI Engineer", "Product Manager"]
-        }}
-        """
+        prompt = f"""Analyze this Q&A session and return a personality profile as JSON.
+Q&A: {history_text}
 
-        # CQ-02 FIX: Primary model
+Return: {{"traits": {{"Technical": 0-100, "Creative": 0-100, "Communication": 0-100, "Leadership": 0-100, "Analytical": 0-100, "Adaptability": 0-100}}, "summary": "one sentence", "top_careers": ["...", "...", "..."]}}"""
+
         try:
-            response = await ask_gemini_async(prompt, model="gemini-2.5-flash-lite")
+            response = await ask_gemini_async(prompt, model="gemini-2.5-flash")
         except Exception as e:
             import logging
-            logging.getLogger("guidify").warning(f"Primary model failed: {e}. Falling back to gemini-1.5-flash")
-            # CQ-02 FIX: Fallback uses a DIFFERENT model — not the same one
+            logging.getLogger("guidify").warning(f"Primary model failed: {e}. Falling back to gemini-2.5-flash-lite")
             try:
-                response = await ask_gemini_async(prompt, model="gemini-1.5-flash")
+                response = await ask_gemini_async(prompt, model="gemini-2.5-flash-lite")
             except Exception as fallback_err:
                 import logging
                 logging.getLogger("guidify").error(f"Fallback model also failed: {fallback_err}")
@@ -216,27 +196,18 @@ Output JSON ONLY. No markdown."""
         # Fallback if JSON extraction fails
         if not analysis_result:
             analysis_result = {
-                "traits": {"Analytical": 75, "Creative": 65, "Social": 70, "Technical": 80, "Leadership": 60},
+                "traits": {"Technical": 70, "Creative": 65, "Communication": 60, "Leadership": 55, "Analytical": 75, "Adaptability": 68},
                 "summary": "You are a balanced thinker with a strong aptitude for problem-solving and innovation.",
                 "top_careers": ["Software Engineer", "Data Analyst", "Project Manager"]
             }
 
-        # Save to personality_profiles table
+        # Save to learners table
         try:
-            data = {
-                "user_id": user_id,
-                "traits": analysis_result.get("traits"),
-                "summary": analysis_result.get("summary"),
-                "top_careers": analysis_result.get("top_careers"),
-                "raw_responses": all_responses
-            }
-            supabase.table("personality_profiles").upsert(data, on_conflict="user_id").execute()
-
-            # Sync key fields to profiles table for dashboard visibility
-            supabase.table("profiles").update({
+            supabase.table("learners").update({
                 "category_scores": analysis_result.get("traits"),
+                "personality_analysis": analysis_result,
                 "career_suggestion": analysis_result.get("summary"),
-            }).eq("user_id", user_id).execute()
+            }).eq("id", user_id).execute()
 
         except Exception as e:
             import logging

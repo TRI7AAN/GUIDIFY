@@ -1,15 +1,8 @@
-:root {
-  --deep-space-blue: #0D0C1D;
-  --emerald-neon: #39FF14;
-  --lucid-lavender: #D0BFFF;
-  --cyber-white: #F0F8FF;
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
-}
+/* Inherits variables from index.css :root */
 
 body {
-  background-color: var(--deep-space-blue);
-  font-family: 'Sora', sans-serif;
+  background-color: var(--bg-dark);
+  font-family: var(--font-display);
   color: var(--cyber-white);
 }
 

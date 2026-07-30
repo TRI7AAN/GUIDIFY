@@ -4,7 +4,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { OnboardingProvider } from "./contexts/OnboardingContext";
 import PublicLayout from "./components/layout/PublicLayout";
-import PrivateLayout from "./components/layout/PrivateLayout";
+import AppShell from "./components/layout/AppShell";
 import ProtectedRoute from "./components/layout/ProtectedRoute";
 import { publicRoutes, protectedRoutes, errorRoutes } from "./routes";
 import ErrorBoundary from "./components/common/ErrorBoundary";
@@ -81,23 +81,19 @@ function App() {
                   {/* Protected Routes - require authentication */}
                   <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
 
-                    {/* Onboarding - PrivateLayout (No Navbar) */}
+                    {/* Onboarding — no sidebar shell */}
                     <Route
                       path="/onboarding"
-                      element={
-                        <PrivateLayout>
-                          <Onboarding />
-                        </PrivateLayout>
-                      }
+                      element={<Onboarding />}
                     />
 
-                    {/* Dashboard & others - PrivateLayout (No Navbar) */}
+                    {/* Dashboard & others — with AppShell (sidebar + topbar) */}
                     <Route
                       path="/dashboard"
                       element={
-                        <PrivateLayout>
+                        <AppShell>
                           <Dashboard />
-                        </PrivateLayout>
+                        </AppShell>
                       }
                     />
 
@@ -109,9 +105,9 @@ function App() {
                         key={route.path}
                         path={route.path}
                         element={
-                          <PrivateLayout>
+                          <AppShell>
                             {React.createElement(componentMap[route.path])}
-                          </PrivateLayout>
+                          </AppShell>
                         }
                       />
                     ))}

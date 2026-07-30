@@ -186,6 +186,7 @@ class DashboardResponse(BaseModel):
     interview_readiness: int = 0
     placement_readiness: int = 0
     skill_graph: List[SkillGraphEntry] = []
+    category_scores: Optional[Dict[str, int]] = None
 
 
 # --- Resume Models (schema.md §3, api.md §2) ---

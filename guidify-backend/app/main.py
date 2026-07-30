@@ -52,7 +52,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 # Import new API route modules (per architecture.md §2, api.md)
-from app.api import auth, dashboard, resume, roadmap, missions, interview, adaptation
+from app.api import auth, dashboard, resume, roadmap, missions, interview, adaptation, psychometric
 
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -143,6 +143,9 @@ app.include_router(adaptation.router, prefix=API_V1, tags=["Adaptation"])
 
 # Dashboard (api.md §6)
 app.include_router(dashboard.router, prefix=API_V1, tags=["Dashboard"])
+
+# Psychometric (onboarding personality assessment)
+app.include_router(psychometric.router, prefix=API_V1, tags=["Psychometric"])
 
 # Prometheus metrics — secured endpoint for internal scraping
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")

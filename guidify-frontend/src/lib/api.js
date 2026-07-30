@@ -26,14 +26,20 @@ const api = axios.create({
 // Circuit breaker state
 let failureCount = 0;
 let circuitOpenUntil = 0;
-const MAX_FAILURES = 5;
-const CIRCUIT_OPEN_MS = 30000;
+let lastFailureTime = 0;
+const MAX_FAILURES = 8;
+const CIRCUIT_OPEN_MS = 10000;
 
 // Request interceptor — attach Supabase JWT
 api.interceptors.request.use(async (config) => {
-  // Circuit breaker check
+  // Circuit breaker check — allow through in half-open state to test recovery
   if (Date.now() < circuitOpenUntil) {
-    return Promise.reject(new Error('Circuit open: temporarily blocked'));
+    // Half-open: if enough time has passed since last failure, allow one probe request
+    if (Date.now() - lastFailureTime > CIRCUIT_OPEN_MS / 2) {
+      // Allow this request through as a probe
+    } else {
+      return Promise.reject(new Error('Circuit open: temporarily blocked'));
+    }
   }
 
   // Get current session token from Supabase
@@ -59,8 +65,8 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     if (!originalRequest) return Promise.reject(error);
 
-    // Handle 401
-    if (error.response?.status === 401) {
+    // Handle 401/403
+    if (error.response?.status === 401 || error.response?.status === 403) {
       window.dispatchEvent(new CustomEvent('auth:unauthorized'));
       return Promise.reject(error);
     }
@@ -68,6 +74,7 @@ api.interceptors.response.use(
     // Circuit breaker
     if (!error.response || error.response.status >= 500) {
       failureCount++;
+      lastFailureTime = Date.now();
       if (failureCount >= MAX_FAILURES) {
         circuitOpenUntil = Date.now() + CIRCUIT_OPEN_MS;
       }

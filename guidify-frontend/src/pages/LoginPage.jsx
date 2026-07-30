@@ -103,7 +103,7 @@ const LoginPage = () => {
   const [loginAttempts, setLoginAttempts] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
 
-  const { login, authError, loading: authLoading } = useAuth();
+  const { signIn, authError, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -166,7 +166,7 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const result = await login({ email, password });
+      const result = await signIn({ email, password });
 
       if (result.error) throw result.error;
 

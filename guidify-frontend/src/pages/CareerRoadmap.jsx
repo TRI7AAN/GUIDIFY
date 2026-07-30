@@ -69,10 +69,10 @@ export default function RoadmapView() {
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case 'beginner': return { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' };
-      case 'intermediate': return { bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500' };
-      case 'advanced': return { bg: 'bg-rose-100', text: 'text-rose-700', dot: 'bg-rose-500' };
-      default: return { bg: 'bg-surface-200', text: 'text-surface-800', dot: 'bg-surface-300' };
+      case 'beginner': return { bg: 'bg-emerald-900/30', text: 'text-emerald-400', dot: 'bg-emerald-500' };
+      case 'intermediate': return { bg: 'bg-amber-900/30', text: 'text-amber-400', dot: 'bg-amber-500' };
+      case 'advanced': return { bg: 'bg-rose-900/30', text: 'text-rose-400', dot: 'bg-rose-500' };
+      default: return { bg: 'bg-[#1F2330]', text: 'text-[#A4ACBC]', dot: 'bg-[#A4ACBC]' };
     }
   };
 
@@ -94,10 +94,10 @@ export default function RoadmapView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface-50 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0D0F18] flex items-center justify-center">
         <div className="text-center animate-fade-in-up">
-          <div className="w-12 h-12 rounded-full border-2 border-primary-500 border-t-transparent animate-spin mx-auto mb-4" />
-          <p className="text-surface-800 font-medium font-display">Loading your roadmap...</p>
+          <div className="w-12 h-12 rounded-full border-2 border-[#3cff14] border-t-transparent animate-spin mx-auto mb-4" />
+          <p className="text-[#A4ACBC] font-medium font-display">Loading your roadmap...</p>
         </div>
       </div>
     );
@@ -106,16 +106,16 @@ export default function RoadmapView() {
   // No roadmap state
   if (!roadmap) {
     return (
-      <div className="min-h-screen bg-surface-50">
-        <header className="bg-white/80 backdrop-blur-md border-b border-surface-200 sticky top-0 z-50">
+      <div className="min-h-screen bg-[#0D0F18]">
+        <header className="bg-[#0D0F18]/80 backdrop-blur-md border-b border-[#1F2330] sticky top-0 z-50">
           <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
             <button
               onClick={() => navigate('/dashboard')}
-              className="flex items-center gap-2 text-sm font-medium text-surface-800 hover:text-primary-600 transition-colors"
+              className="flex items-center gap-2 text-sm font-medium text-[#A4ACBC] hover:text-[#3cff14] transition-colors"
             >
               <ChevronLeft className="w-4 h-4" /> Dashboard
             </button>
-            <h1 className="text-xl font-display font-bold text-primary-700 tracking-tight">
+            <h1 className="text-xl font-display font-bold text-[#3cff14] tracking-tight">
               Career Roadmap
             </h1>
             <div className="w-20" />
@@ -123,13 +123,13 @@ export default function RoadmapView() {
         </header>
 
         <main className="max-w-2xl mx-auto px-6 py-20 text-center animate-fade-in-up">
-          <div className="w-20 h-20 rounded-2xl bg-primary-100 flex items-center justify-center mx-auto mb-6">
-            <Map className="w-10 h-10 text-primary-500" />
+          <div className="w-20 h-20 rounded-2xl bg-[#3cff14]/10 flex items-center justify-center mx-auto mb-6">
+            <Map className="w-10 h-10 text-[#3cff14]" />
           </div>
-          <h2 className="text-2xl font-display font-bold text-surface-900 mb-3">
+          <h2 className="text-2xl font-display font-bold text-white mb-3">
             No Roadmap Yet
           </h2>
-          <p className="text-surface-800/60 mb-8 max-w-md mx-auto">
+          <p className="text-[#A4ACBC] mb-8 max-w-md mx-auto">
             Complete your profile to get a personalized career roadmap powered by AI.
             Your roadmap will break down the journey into clear, actionable phases.
           </p>
@@ -143,7 +143,7 @@ export default function RoadmapView() {
             <button
               onClick={handleRegenerate}
               disabled={regenerating}
-              className="bg-white border border-surface-200 text-surface-800 font-semibold px-6 py-3 rounded-xl hover:bg-surface-100 transition-colors focus-ring flex items-center gap-2"
+              className="bg-[#151821] border border-[#1F2330] text-[#A4ACBC] font-semibold px-6 py-3 rounded-xl hover:bg-[#1F2330] transition-colors focus-ring flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
               {regenerating ? 'Generating...' : 'Generate Roadmap'}
@@ -159,23 +159,23 @@ export default function RoadmapView() {
   const progressPct = roadmap.progress_pct || 0;
 
   return (
-    <div className="min-h-screen bg-surface-50">
+    <div className="min-h-screen bg-[#0D0F18]">
       {/* ── Top Bar ─────────────────────────────────────── */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-surface-200 sticky top-0 z-50">
+      <header className="bg-[#0D0F18]/80 backdrop-blur-md border-b border-[#1F2330] sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <button
             onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 text-sm font-medium text-surface-800 hover:text-primary-600 transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-[#A4ACBC] hover:text-[#3cff14] transition-colors"
           >
             <ChevronLeft className="w-4 h-4" /> Dashboard
           </button>
-          <h1 className="text-xl font-display font-bold text-primary-700 tracking-tight">
+          <h1 className="text-xl font-display font-bold text-[#3cff14] tracking-tight">
             Career Roadmap
           </h1>
           <button
             onClick={handleRegenerate}
             disabled={regenerating}
-            className="flex items-center gap-2 text-sm font-medium text-surface-800 hover:text-primary-600 transition-colors focus-ring rounded-lg px-2 py-1"
+            className="flex items-center gap-2 text-sm font-medium text-[#A4ACBC] hover:text-[#3cff14] transition-colors focus-ring rounded-lg px-2 py-1"
           >
             <RefreshCw className={`w-4 h-4 ${regenerating ? 'animate-spin' : ''}`} />
             {regenerating ? 'Regenerating...' : 'Regenerate'}
@@ -186,10 +186,10 @@ export default function RoadmapView() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         {/* ── Roadmap Header ────────────────────────────── */}
         <div className="mb-8 animate-fade-in-up">
-          <h2 className="text-3xl font-display font-bold text-surface-900 mb-2">
+          <h2 className="text-3xl font-display font-bold text-white mb-2">
             {roadmap.title}
           </h2>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-surface-800/60">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-[#A4ACBC]">
             <span className="flex items-center gap-1.5">
               <Target className="w-4 h-4" />
               {roadmap.total_phases} phases
@@ -206,18 +206,18 @@ export default function RoadmapView() {
         </div>
 
         {/* ── Overall Progress ──────────────────────────── */}
-        <div className="glass-card p-5 mb-8 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
+        <div className="bg-[#151821] border border-[#1F2330] p-5 mb-8 animate-fade-in-up rounded-xl" style={{ animationDelay: '0.05s' }}>
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-surface-900">Overall Progress</span>
-            <span className="text-sm font-bold text-primary-600">{progressPct}%</span>
+            <span className="text-sm font-semibold text-white">Overall Progress</span>
+            <span className="text-sm font-bold text-[#3cff14]">{progressPct}%</span>
           </div>
-          <div className="w-full h-3 bg-surface-200 rounded-full overflow-hidden">
+          <div className="w-full h-3 bg-[#1F2330] rounded-full overflow-hidden">
             <div
               className="h-full gradient-accent rounded-full transition-all duration-1000 ease-out"
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <p className="text-xs text-surface-800/50 mt-2">
+          <p className="text-xs text-[#A4ACBC] mt-2">
             Phase {currentPhaseNumber} of {roadmap.total_phases}
           </p>
         </div>
@@ -239,10 +239,10 @@ export default function RoadmapView() {
                 <button
                   onClick={() => setExpandedPhase(isExpanded ? null : phase.phase_number)}
                   className={`
-                    w-full text-left glass-card p-5 transition-all duration-200
-                    ${status === 'active' ? 'border-l-4 border-l-primary-500 shadow-lg shadow-primary-500/5' : ''}
-                    ${status === 'completed' ? 'border-l-4 border-l-accent-500' : ''}
-                    ${status === 'locked' ? 'opacity-75' : 'card-hover'}
+                    w-full text-left bg-[#151821] border border-[#1F2330] p-5 rounded-xl transition-all duration-200
+                    ${status === 'active' ? 'border-l-4 border-l-[#3cff14] shadow-lg shadow-[#3cff14]/5' : ''}
+                    ${status === 'completed' ? 'border-l-4 border-l-[#4AD8E6]' : ''}
+                    ${status === 'locked' ? 'opacity-75' : 'hover:border-[#3cff14]/30'}
                   `}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -250,30 +250,30 @@ export default function RoadmapView() {
                       {/* Timeline node */}
                       <div className={`
                         w-10 h-10 rounded-xl flex items-center justify-center shrink-0
-                        ${status === 'active' ? 'bg-primary-100' : ''}
-                        ${status === 'completed' ? 'bg-accent-100' : ''}
-                        ${status === 'locked' ? 'bg-surface-200' : ''}
+                        ${status === 'active' ? 'bg-[#3cff14]/10' : ''}
+                        ${status === 'completed' ? 'bg-[#4AD8E6]/10' : ''}
+                        ${status === 'locked' ? 'bg-[#1F2330]' : ''}
                       `}>
                         {getPhaseIcon(status)}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="text-base font-display font-semibold text-surface-900">
+                          <h3 className="text-base font-display font-semibold text-white">
                             {phase.title}
                           </h3>
                           {status === 'active' && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary-600 bg-primary-50 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#3cff14] bg-[#3cff14]/10 px-2 py-0.5 rounded-full">
                               Current
                             </span>
                           )}
                           {status === 'completed' && (
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-accent-600 bg-accent-50 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#4AD8E6] bg-[#4AD8E6]/10 px-2 py-0.5 rounded-full">
                               Done
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-surface-800/60 line-clamp-2">
+                        <p className="text-sm text-[#A4ACBC] line-clamp-2">
                           {phase.description}
                         </p>
                       </div>
@@ -284,14 +284,14 @@ export default function RoadmapView() {
                         <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${diffColor.bg} ${diffColor.text}`}>
                           {phase.difficulty}
                         </span>
-                        <span className="text-xs text-surface-800/50 flex items-center gap-1">
+                        <span className="text-xs text-[#A4ACBC] flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {phase.estimated_weeks}w
                         </span>
                       </div>
                       {isExpanded
-                        ? <ChevronDown className="w-5 h-5 text-surface-300" />
-                        : <ChevronRight className="w-5 h-5 text-surface-300" />
+                        ? <ChevronDown className="w-5 h-5 text-[#A4ACBC]" />
+                        : <ChevronRight className="w-5 h-5 text-[#A4ACBC]" />
                       }
                     </div>
                   </div>
@@ -299,17 +299,17 @@ export default function RoadmapView() {
 
                 {/* Expanded Details */}
                 {isExpanded && (
-                  <div className="ml-5 border-l-2 border-surface-200 pl-5 py-4 space-y-4 animate-fade-in-up">
+                  <div className="ml-5 border-l-2 border-[#1F2330] pl-5 py-4 space-y-4 animate-fade-in-up">
                     {/* Skills */}
                     <div>
-                      <h4 className="text-xs font-semibold text-surface-800/50 uppercase tracking-wider mb-2">
+                      <h4 className="text-xs font-semibold text-[#A4ACBC] uppercase tracking-wider mb-2">
                         Skills to Learn
                       </h4>
                       <div className="flex flex-wrap gap-2">
                         {(phase.skills || []).map((skill, i) => (
                           <span
                             key={i}
-                            className="text-xs font-medium bg-primary-50 text-primary-700 px-3 py-1.5 rounded-full"
+                            className="text-xs font-medium bg-[#3cff14]/10 text-[#3cff14] px-3 py-1.5 rounded-full"
                           >
                             {skill}
                           </span>
@@ -320,13 +320,13 @@ export default function RoadmapView() {
                     {/* Milestones */}
                     {phase.milestones && phase.milestones.length > 0 && (
                       <div>
-                        <h4 className="text-xs font-semibold text-surface-800/50 uppercase tracking-wider mb-2">
+                        <h4 className="text-xs font-semibold text-[#A4ACBC] uppercase tracking-wider mb-2">
                           Milestones
                         </h4>
                         <ul className="space-y-2">
                           {phase.milestones.map((milestone, i) => (
-                            <li key={i} className="flex items-start gap-2 text-sm text-surface-800/70">
-                              <Trophy className="w-4 h-4 text-accent-500 shrink-0 mt-0.5" />
+                            <li key={i} className="flex items-start gap-2 text-sm text-[#A4ACBC]">
+                              <Trophy className="w-4 h-4 text-[#4AD8E6] shrink-0 mt-0.5" />
                               {milestone}
                             </li>
                           ))}
@@ -335,15 +335,15 @@ export default function RoadmapView() {
                     )}
 
                     {/* Phase meta */}
-                    <div className="flex items-center gap-4 pt-2 border-t border-surface-200">
-                      <span className="text-xs text-surface-800/50 flex items-center gap-1">
+                    <div className="flex items-center gap-4 pt-2 border-t border-[#1F2330]">
+                      <span className="text-xs text-[#A4ACBC] flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
                         {phase.estimated_weeks} week{phase.estimated_weeks !== 1 ? 's' : ''}
                       </span>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${diffColor.bg} ${diffColor.text}`}>
                         {phase.difficulty}
                       </span>
-                      <span className="text-xs text-surface-800/50">
+                      <span className="text-xs text-[#A4ACBC]">
                         {(phase.skills || []).length} skills
                       </span>
                     </div>
@@ -354,7 +354,7 @@ export default function RoadmapView() {
                 {index < phases.length - 1 && (
                   <div className="flex justify-center py-1">
                     <div className={`w-0.5 h-4 ${
-                      status === 'completed' ? 'bg-accent-300' : 'bg-surface-200'
+                      status === 'completed' ? 'bg-[#4AD8E6]/50' : 'bg-[#1F2330]'
                     }`} />
                   </div>
                 )}

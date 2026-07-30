@@ -39,34 +39,34 @@ function DeliveryConsentScreen({ onProceed, track }) {
   return (
     <div className="max-w-xl mx-auto animate-fade-in-up">
       <div className="text-center mb-8">
-        <div className="w-14 h-14 rounded-2xl bg-primary-100 flex items-center justify-center mx-auto mb-4">
-          <Video className="w-7 h-7 text-primary-600" />
+        <div className="w-14 h-14 rounded-2xl bg-[#3cff14]/10 flex items-center justify-center mx-auto mb-4">
+          <Video className="w-7 h-7 text-[#3cff14]" />
         </div>
-        <h2 className="text-2xl font-display font-bold text-surface-900 mb-2">
+        <h2 className="text-2xl font-display font-bold text-white mb-2">
           Interview Settings
         </h2>
-        <p className="text-surface-800/60 text-sm">
+        <p className="text-[#A4ACBC] text-sm">
           {track === 'technical' ? 'Technical' : 'HR / Behavioral'} interview · 10 questions
         </p>
       </div>
 
       {supported && (
         <label className={`block p-5 rounded-xl border transition-all cursor-pointer mb-4 ${
-          cameraWanted ? 'border-primary-400 bg-primary-50' : 'border-surface-200 bg-white hover:border-surface-300'
+          cameraWanted ? 'border-[#3cff14] bg-[#3cff14]/10' : 'border-[#1F2330] bg-[#151821] hover:border-[#3cff14]/50'
         }`}>
           <div className="flex items-start gap-3">
             <input
               type="checkbox"
               checked={cameraWanted}
               onChange={(e) => setCameraWanted(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500"
+              className="mt-0.5 w-4 h-4 rounded border-[#1F2330] text-[#3cff14] focus:ring-[#3cff14]"
             />
             <div>
-              <p className="font-medium text-surface-900 flex items-center gap-2">
+              <p className="font-medium text-white flex items-center gap-2">
                 Enable camera for delivery feedback
-                <span className="text-[10px] bg-surface-100 text-surface-800/50 px-1.5 py-0.5 rounded-full font-semibold">Optional</span>
+                <span className="text-[10px] bg-[#1F2330] text-[#A4ACBC] px-1.5 py-0.5 rounded-full font-semibold">Optional</span>
               </p>
-              <p className="text-sm text-surface-800/60 mt-1 leading-relaxed">
+              <p className="text-sm text-[#A4ACBC] mt-1 leading-relaxed">
                 Your camera never leaves your device — we only calculate a few numbers like eye contact percentage and pacing. No video is recorded or uploaded.
               </p>
             </div>
@@ -75,9 +75,9 @@ function DeliveryConsentScreen({ onProceed, track }) {
       )}
 
       {!supported && (
-        <div className="glass-card p-5 mb-4">
-          <p className="text-sm text-surface-800/60 flex items-center gap-2">
-            <CameraOff className="w-4 h-4 text-surface-800/40" />
+        <div className="bg-[#151821] border border-[#1F2330] rounded-xl p-5 mb-4">
+          <p className="text-sm text-[#A4ACBC] flex items-center gap-2">
+            <CameraOff className="w-4 h-4 text-[#A4ACBC]/50" />
             Camera delivery feedback is not supported on this device/browser. You'll proceed with text-only.
           </p>
         </div>
@@ -97,32 +97,32 @@ function FeedbackReport({ feedback, onRestart }) {
   if (!feedback) return null;
   return (
     <div className="space-y-4 animate-fade-in-up">
-      <div className="glass-card p-6 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-primary-100 flex items-center justify-center mx-auto mb-4">
-          <CheckCircle2 className="w-8 h-8 text-primary-500" />
+      <div className="bg-[#151821] border border-[#1F2330] rounded-xl p-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-[#3cff14]/10 flex items-center justify-center mx-auto mb-4">
+          <CheckCircle2 className="w-8 h-8 text-[#3cff14]" />
         </div>
-        <h3 className="text-xl font-display font-bold text-surface-900 mb-1">Interview Complete</h3>
+        <h3 className="text-xl font-display font-bold text-white mb-1">Interview Complete</h3>
         <div className="mt-4">
-          <span className="text-4xl font-display font-bold text-primary-600">{feedback.readiness_subscore}</span>
-          <span className="text-sm text-surface-800/50 ml-1">/ 100</span>
-          <p className="text-xs text-surface-800/50 mt-1">Readiness Score</p>
+          <span className="text-4xl font-display font-bold text-[#3cff14]">{feedback.readiness_subscore}</span>
+          <span className="text-sm text-[#A4ACBC] ml-1">/ 100</span>
+          <p className="text-xs text-[#A4ACBC] mt-1">Readiness Score</p>
         </div>
       </div>
 
       {feedback.communication_notes && (
-        <div className="glass-card p-5">
-          <p className="text-sm font-semibold text-surface-900 mb-2">Overall</p>
-          <p className="text-sm text-surface-800/70 leading-relaxed">{feedback.communication_notes}</p>
+        <div className="bg-[#151821] border border-[#1F2330] rounded-xl p-5">
+          <p className="text-sm font-semibold text-white mb-2">Overall</p>
+          <p className="text-sm text-[#A4ACBC] leading-relaxed">{feedback.communication_notes}</p>
         </div>
       )}
 
       {feedback.strengths?.length > 0 && (
-        <div className="glass-card p-5">
-          <p className="text-sm font-semibold text-surface-900 mb-2">Strengths</p>
+        <div className="bg-[#151821] border border-[#1F2330] rounded-xl p-5">
+          <p className="text-sm font-semibold text-white mb-2">Strengths</p>
           <ul className="space-y-1.5">
             {feedback.strengths.map((s, i) => (
-              <li key={i} className="text-sm text-surface-800/70 flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-accent-500 shrink-0 mt-0.5" />
+              <li key={i} className="text-sm text-[#A4ACBC] flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[#4AD8E6] shrink-0 mt-0.5" />
                 {s}
               </li>
             ))}
@@ -131,11 +131,11 @@ function FeedbackReport({ feedback, onRestart }) {
       )}
 
       {feedback.gaps?.length > 0 && (
-        <div className="glass-card p-5">
-          <p className="text-sm font-semibold text-surface-900 mb-2">Areas to Improve</p>
+        <div className="bg-[#151821] border border-[#1F2330] rounded-xl p-5">
+          <p className="text-sm font-semibold text-white mb-2">Areas to Improve</p>
           <ul className="space-y-1.5">
             {feedback.gaps.map((g, i) => (
-              <li key={i} className="text-sm text-surface-800/70 flex items-start gap-2">
+              <li key={i} className="text-sm text-[#A4ACBC] flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 {g}
               </li>
@@ -145,15 +145,15 @@ function FeedbackReport({ feedback, onRestart }) {
       )}
 
       {feedback.suggested_missions?.length > 0 && (
-        <div className="glass-card p-5">
-          <p className="text-sm font-semibold text-surface-900 mb-2">Suggested Practice</p>
+        <div className="bg-[#151821] border border-[#1F2330] rounded-xl p-5">
+          <p className="text-sm font-semibold text-white mb-2">Suggested Practice</p>
           <ul className="space-y-1.5">
             {feedback.suggested_missions.map((m, i) => (
-              <li key={i} className="text-sm text-surface-800/70 flex items-center gap-2">
-                <ArrowUpRight className="w-3.5 h-3.5 text-primary-500 shrink-0 mt-0.5" />
+              <li key={i} className="text-sm text-[#A4ACBC] flex items-center gap-2">
+                <ArrowUpRight className="w-3.5 h-3.5 text-[#3cff14] shrink-0 mt-0.5" />
                 <span>{m.title}</span>
                 {m.target_skill && (
-                  <span className="text-[10px] bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded-full">{m.target_skill}</span>
+                  <span className="text-[10px] bg-[#3cff14]/10 text-[#3cff14] px-1.5 py-0.5 rounded-full">{m.target_skill}</span>
                 )}
               </li>
             ))}
@@ -163,7 +163,7 @@ function FeedbackReport({ feedback, onRestart }) {
 
       <button
         onClick={onRestart}
-        className="w-full glass-card p-4 text-center text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-[#151821] border border-[#1F2330] rounded-xl p-4 text-center text-sm font-medium text-[#3cff14] hover:border-[#3cff14] transition-colors flex items-center justify-center gap-2"
       >
         <RotateCcw className="w-4 h-4" /> Start New Interview
       </button>
@@ -288,16 +288,16 @@ export default function InterviewPage() {
       <video ref={videoRef} className="hidden" playsInline muted width={320} height={240} />
 
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-surface-200 sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+      <header className="bg-[#0D0F18]/80 backdrop-blur-md border-b border-[#1F2330] sticky top-0 z-50">
+        <div className="max-w-3xl mx-auto px-6 pr-6 pl-2 py-4 grid grid-cols-[auto_1fr_auto] items-center">
           <button
             onClick={() => phase === 'select' ? navigate('/dashboard') : handleRestart()}
-            className="flex items-center gap-2 text-sm font-medium text-surface-800 hover:text-primary-600 transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-[#A4ACBC] hover:text-[#3cff14] transition-colors -ml-1"
           >
             <ChevronLeft className="w-4 h-4" />
             {phase === 'select' ? 'Dashboard' : 'Exit'}
           </button>
-          <h1 className="text-xl font-display font-bold text-primary-700 tracking-tight">
+          <h1 className="text-xl font-display font-bold text-[#3cff14] tracking-tight text-center justify-self-center">
             AI Interview Coach
           </h1>
           <div className="w-20" />
@@ -308,8 +308,8 @@ export default function InterviewPage() {
       {phase === 'select' && (
         <main className="flex-1 max-w-3xl mx-auto px-6 py-12 w-full">
           <div className="text-center mb-10 animate-fade-in-up">
-            <h2 className="text-2xl font-display font-bold text-surface-900 mb-2">Choose Your Track</h2>
-            <p className="text-surface-800/60 text-sm">10 questions. AI-powered feedback. No pressure.</p>
+            <h2 className="text-2xl font-display font-bold text-white mb-2">Choose Your Track</h2>
+            <p className="text-[#A4ACBC] text-sm">10 questions. AI-powered feedback. No pressure.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             {TRACKS.map((t) => (
@@ -317,13 +317,13 @@ export default function InterviewPage() {
                 key={t.id}
                 onClick={() => handleTrackSelected(t.id)}
                 disabled={loading}
-                className="glass-card card-hover p-6 text-left group"
+                className="bg-[#151821] border border-[#1F2330] rounded-xl p-6 text-left group hover:border-[#3cff14] transition-colors"
               >
-                <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center mb-4 group-hover:bg-primary-200 transition-colors">
-                  <t.icon className="w-6 h-6 text-primary-500" />
+                <div className="w-12 h-12 rounded-xl bg-[#3cff14]/10 flex items-center justify-center mb-4 group-hover:bg-[#3cff14]/20 transition-colors">
+                  <t.icon className="w-6 h-6 text-[#3cff14]" />
                 </div>
-                <h3 className="font-display font-semibold text-surface-900 mb-1">{t.label}</h3>
-                <p className="text-sm text-surface-800/60">{t.desc}</p>
+                <h3 className="font-display font-semibold text-white mb-1">{t.label}</h3>
+                <p className="text-sm text-[#A4ACBC]">{t.desc}</p>
               </button>
             ))}
           </div>
@@ -342,10 +342,10 @@ export default function InterviewPage() {
         <>
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-3xl mx-auto px-6 py-6 space-y-4">
-              <div className="text-center text-xs text-surface-800/40 mb-4 flex items-center justify-center gap-2">
+              <div className="text-center text-xs text-[#A4ACBC]/60 mb-4 flex items-center justify-center gap-2">
                 {track === 'technical' ? 'Technical' : 'HR / Behavioral'} Interview
                 {cameraEnabled && (
-                  <span className="inline-flex items-center gap-1 text-primary-500">
+                  <span className="inline-flex items-center gap-1 text-[#3cff14]">
                     <Camera className="w-3 h-3" /> Camera active
                   </span>
                 )}
@@ -354,10 +354,10 @@ export default function InterviewPage() {
                 <div key={i} className={`flex ${msg.role === 'candidate' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     msg.role === 'interviewer'
-                      ? 'bg-white border border-surface-200 text-surface-900'
+                      ? 'bg-[#151821] border border-[#1F2330] text-white'
                       : msg.role === 'candidate'
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-surface-100 text-surface-800/60 text-xs text-center mx-auto'
+                      ? 'bg-[#3cff14] text-[#0D0F18]'
+                      : 'bg-[#151821] text-[#A4ACBC] text-xs text-center mx-auto'
                   }`}>
                     {msg.content}
                   </div>
@@ -365,16 +365,16 @@ export default function InterviewPage() {
               ))}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="bg-white border border-surface-200 rounded-2xl px-4 py-3 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 text-primary-500 animate-spin" />
-                    <span className="text-xs text-surface-800/50">Thinking...</span>
+                  <div className="bg-[#151821] border border-[#1F2330] rounded-2xl px-4 py-3 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 text-[#3cff14] animate-spin" />
+                    <span className="text-xs text-[#A4ACBC]">Thinking...</span>
                   </div>
                 </div>
               )}
               <div ref={chatEndRef} />
             </div>
           </div>
-          <div className="border-t border-surface-200 bg-white/80 backdrop-blur-md p-4">
+          <div className="border-t border-[#1F2330] bg-[#0D0F18]/80 backdrop-blur-md p-4">
             <div className="max-w-3xl mx-auto flex gap-3">
               <input
                 type="text"
@@ -383,7 +383,7 @@ export default function InterviewPage() {
                 onKeyDown={handleKeyDown}
                 placeholder="Type your answer..."
                 disabled={loading}
-                className="flex-1 text-sm px-4 py-3 rounded-xl border border-surface-200 bg-white focus:outline-none focus:border-primary-400 transition-colors disabled:opacity-50"
+                className="flex-1 text-sm px-4 py-3 rounded-xl border border-[#1F2330] bg-[#151821] text-white focus:outline-none focus:border-[#3cff14] transition-colors disabled:opacity-50 placeholder:text-[#A4ACBC]"
                 autoFocus
               />
               <button

@@ -1,57 +1,93 @@
 /* GUIDIFY Design System — index.css
- * Per design.md §3: Calm, focused palette. Credible for graduates, not gamified.
+ * Cyberpunk/Neon theme: dark backgrounds, neon green primary, cyan accents
  * TailwindCSS v4 — using @import and @theme directives
  */
 
 @import "tailwindcss";
 
-/* ── Design Tokens per design.md §3 ──────────────────────────────── */
+/* ── Design Tokens ─────────────────────────────────────────────────── */
 @theme {
-  /* Primary — Deep indigo/blue for trust & professionalism */
-  --color-primary-50: oklch(0.97 0.01 270);
-  --color-primary-100: oklch(0.93 0.03 270);
-  --color-primary-200: oklch(0.86 0.06 270);
-  --color-primary-300: oklch(0.75 0.10 268);
-  --color-primary-400: oklch(0.63 0.15 266);
-  --color-primary-500: oklch(0.53 0.19 265);
-  --color-primary-600: oklch(0.45 0.20 264);
-  --color-primary-700: oklch(0.38 0.18 264);
-  --color-primary-800: oklch(0.32 0.14 264);
-  --color-primary-900: oklch(0.27 0.10 264);
+  /* Primary — Neon green (#3cff14) for cyber aesthetic */
+  --color-primary-50: oklch(0.96 0.04 142);
+  --color-primary-100: oklch(0.92 0.08 142);
+  --color-primary-200: oklch(0.88 0.16 142);
+  --color-primary-300: oklch(0.84 0.22 142);
+  --color-primary-400: oklch(0.80 0.26 142);
+  --color-primary-500: oklch(0.88 0.28 142);
+  --color-primary-600: oklch(0.78 0.24 142);
+  --color-primary-700: oklch(0.68 0.20 142);
+  --color-primary-800: oklch(0.55 0.16 142);
+  --color-primary-900: oklch(0.42 0.12 142);
 
-  /* Accent — Warm teal for progress/success states */
-  --color-accent-50: oklch(0.97 0.02 175);
-  --color-accent-100: oklch(0.93 0.04 175);
-  --color-accent-200: oklch(0.86 0.08 175);
-  --color-accent-300: oklch(0.76 0.12 175);
-  --color-accent-400: oklch(0.65 0.14 175);
-  --color-accent-500: oklch(0.55 0.14 175);
-  --color-accent-600: oklch(0.47 0.12 175);
+  /* Accent — Cyan/teal (#4AD8E6) for secondary highlights */
+  --color-accent-50: oklch(0.96 0.03 192);
+  --color-accent-100: oklch(0.92 0.06 192);
+  --color-accent-200: oklch(0.87 0.09 192);
+  --color-accent-300: oklch(0.83 0.11 192);
+  --color-accent-400: oklch(0.78 0.10 192);
+  --color-accent-500: oklch(0.73 0.09 192);
+  --color-accent-600: oklch(0.65 0.08 192);
 
-  /* Surface — Subtle warm grays */
-  --color-surface-50: oklch(0.985 0.002 75);
-  --color-surface-100: oklch(0.965 0.004 75);
-  --color-surface-200: oklch(0.93 0.006 75);
-  --color-surface-300: oklch(0.88 0.008 75);
-  --color-surface-800: oklch(0.25 0.01 270);
-  --color-surface-900: oklch(0.18 0.015 270);
-  --color-surface-950: oklch(0.13 0.02 270);
+  /* Surface — Dark-first: 50 = darkest (bg), 900/950 = lightest (text on dark) */
+  --color-surface-50: oklch(0.13 0.02 270);    /* #0D0F18 — main bg */
+  --color-surface-100: oklch(0.16 0.018 270);   /* #12151f — slightly lighter */
+  --color-surface-200: oklch(0.20 0.015 270);   /* #151821 — card bg */
+  --color-surface-300: oklch(0.25 0.015 270);   /* #1F2330 — borders */
+  --color-surface-400: oklch(0.35 0.015 270);   /* #333847 — muted text */
+  --color-surface-500: oklch(0.50 0.015 270);   /* #6b7280 — secondary text */
+  --color-surface-600: oklch(0.65 0.01 270);    /* #9ca3af — lighter text */
+  --color-surface-700: oklch(0.78 0.008 270);   /* #c4c9d4 — near-white text */
+  --color-surface-800: oklch(0.88 0.005 270);   /* #e2e5ea — light text */
+  --color-surface-900: oklch(0.95 0.003 270);   /* #f1f3f5 — near-white */
+  --color-surface-950: oklch(0.98 0.002 270);   /* #fafbfc — pure white */
 
   /* Semantic */
-  --color-danger: oklch(0.60 0.20 25);
-  --color-warning: oklch(0.75 0.15 75);
-  --color-success: oklch(0.65 0.17 155);
+  --color-danger: oklch(0.65 0.22 25);
+  --color-warning: oklch(0.80 0.15 75);
+  --color-success: oklch(0.88 0.28 142);
 
-  /* Typography — design.md §3: strong display typeface + clean body */
-  --font-display: 'Outfit', system-ui, sans-serif;
+  /* Typography */
+  --font-display: 'Space Grotesk', 'Outfit', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
 
   /* Border radius */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.25rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-full: 9999px;
+}
+
+/* ── CSS Custom Properties (legacy styled-component support) ──────── */
+:root {
+  --primary: #3cff14;
+  --primary-light: #6fff4d;
+  --primary-dark: #2db810;
+  --accent: #4AD8E6;
+
+  /* Legacy aliases used by landing/testimonials */
+  --emerald-neon: #3cff14;
+  --lucid-lavender: #D0BFFF;
+
+  --bg-dark: #0D0F18;
+  --bg-light: #f6f8f5;
+  --card: #151821;
+  --card-border: #1F2330;
+  --text-primary: #FFFFFF;
+  --text-secondary: #A4ACBC;
+
+  --cyber-white: #F0F8FF;
+  --glass-bg: rgba(21, 24, 33, 0.8);
+  --glass-border: rgba(31, 35, 48, 0.7);
+  --glass-bg-light: rgba(255, 255, 255, 0.05);
+
+  --border-radius-sm: 0.375rem;
+  --border-radius-md: 0.5rem;
+  --border-radius-lg: 1rem;
+  --border-radius-xl: 1.5rem;
+
+  color-scheme: dark;
 }
 
 /* ── Global Styles ───────────────────────────────────────────────── */
@@ -64,68 +100,80 @@ html {
 
 body {
   margin: 0;
-  background-color: var(--color-surface-50);
-  color: var(--color-surface-900);
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
   line-height: 1.6;
 }
 
-/* Display font for headings — per design.md §3: "one strong display typeface" */
+#root {
+  min-height: 0;
+}
+
 h1, h2, h3 {
   font-family: var(--font-display);
   font-weight: 600;
   line-height: 1.2;
+  color: var(--text-primary);
+}
+
+a {
+  color: var(--primary);
 }
 
 /* ── Utility Classes ─────────────────────────────────────────────── */
 
-/* Glassmorphism card — used for mission cards, dashboard panels */
 .glass-card {
-  background: rgba(255, 255, 255, 0.72);
+  background: var(--glass-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-xl);
-  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius-xl);
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.3);
 }
 
-/* Subtle card hover lift — design.md §3: "subtle, purposeful motion" */
 .card-hover {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 40px rgba(60, 255, 20, 0.08);
 }
 
-/* Primary gradient — used for CTAs, hero elements */
 .gradient-primary {
-  background: linear-gradient(135deg, var(--color-primary-500), var(--color-primary-700));
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
 }
 
-/* Accent gradient — used for progress indicators */
 .gradient-accent {
-  background: linear-gradient(135deg, var(--color-accent-400), var(--color-accent-600));
+  background: linear-gradient(135deg, var(--accent), #2BC0D0);
 }
 
-/* Focus ring for accessibility — WCAG AA */
 .focus-ring:focus-visible {
-  outline: 2px solid var(--color-primary-500);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
-/* ── Animations (subtle, purposeful per design.md §3) ────────────── */
+/* ── Scrollbar (dark theme) ──────────────────────────────────────── */
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--card-border);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
+/* ── Animations ─────────────────────────────────────────────────── */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .animate-fade-in-up {
   animation: fadeInUp 0.4s ease-out forwards;
 }
@@ -134,15 +182,17 @@ h1, h2, h3 {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
-
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--color-surface-200) 25%,
-    var(--color-surface-100) 50%,
-    var(--color-surface-200) 75%
-  );
+  background: linear-gradient(90deg, var(--card) 25%, rgba(31,35,48,0.5) 50%, var(--card) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
-  border-radius: var(--radius-md);
+  border-radius: var(--border-radius-md);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(60, 255, 20, 0.4); }
+  50% { box-shadow: 0 0 16px 4px rgba(60, 255, 20, 0.15); }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
