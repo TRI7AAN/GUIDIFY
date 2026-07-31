@@ -16,7 +16,7 @@ from typing import List, Dict, Any, Optional
 from app.services.gemini_client import ask_gemini, ask_gemini_async, extract_json_from_response, _sanitize_user_input
 
 # CQ-01 FIX: Use the centralized singleton Supabase client
-from app.services.supabase_client import supabase
+from app.services.supabase_client import supabase_admin as supabase
 import logging
 
 logger = logging.getLogger("guidify")

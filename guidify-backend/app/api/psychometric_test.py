@@ -120,7 +120,7 @@ async def submit_test(request: SubmitTestRequest):
     saved = False
     if request.user_id:
         try:
-            from app.services.supabase_client import supabase
+            from app.services.supabase_client import supabase_admin as supabase
             supabase.table("psychometric_results").upsert({
                 "user_id": request.user_id,
                 "session_id": request.session_id,
@@ -159,7 +159,7 @@ async def get_result(
 
     # Fall back to database
     try:
-        from app.services.supabase_client import supabase
+        from app.services.supabase_client import supabase_admin as supabase
         response = (
             supabase.table("psychometric_results")
             .select("*")

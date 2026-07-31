@@ -68,7 +68,7 @@ async def submit_psychometrics(
     Per rules.md §9.1: Enforces 6-month retake cooldown.
     """
     from app.services.psychometrics_scoring import score_all, get_ipip_version, get_riasec_version
-    from app.services.supabase_client import supabase
+    from app.services.supabase_client import supabase_admin as supabase
 
     # Validate consent if provided
     if request.consent_id:
@@ -188,7 +188,7 @@ async def get_psychometrics_status(
     Returns whether the assessment is complete and the eligible-for-retake date.
     Per api.md §7.
     """
-    from app.services.supabase_client import supabase
+    from app.services.supabase_client import supabase_admin as supabase
 
     try:
         result = (

@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from app.services.supabase_client import supabase
+from app.services.supabase_client import supabase_admin as supabase
 
 class GamificationService:
     @staticmethod

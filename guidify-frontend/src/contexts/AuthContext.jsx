@@ -18,14 +18,14 @@ export const AuthProvider = ({ children }) => {
    * 2. Fetch Profile With Retry
    * Retries fetching the profile up to maxRetries times.
    */
-  const fetchProfileWithRetry = async (userId, retries = 3, delayMs = 500) => {
+  const fetchProfileWithRetry = async (userId, retries = 3, delayMs = 300) => {
     if (!userId) return null;
 
     for (let i = 0; i < retries; i++) {
       try {
-        // Timeout wrapper (15 seconds — Supabase can be slow on cold starts)
+        // Timeout wrapper (8 seconds — fast fail, retry handles transient issues)
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Profile fetch timeout")), 15000)
+          setTimeout(() => reject(new Error("Profile fetch timeout")), 8000)
         );
 
         const fetchPromise = supabase
@@ -113,19 +113,20 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
-    // MED-07 FIX: Safety valve — if auth takes >15 seconds, explicitly sign out to ensure
+    // MED-07 FIX: Safety valve — if auth takes >30 seconds, explicitly sign out to ensure
     // the app doesn't reach a partially-initialized state where user=null but isLoading=false
     // without protected routes knowing to redirect to login.
+    // 30s allows 3 retries at 8s each (24s max) with buffer for cold starts.
     const safetyTimer = setTimeout(() => {
       if (mounted) {
-        console.warn("⚠️ Auth initialization timed out (15s). Clearing session state and redirecting.");
+        console.warn("⚠️ Auth initialization timed out (30s). Clearing session state and redirecting.");
         setUser(null);
         setOnboardingComplete(false);
         setAuthToken(null);
         setLoading(false);
         // Protected routes check `user === null` + `loading === false` → redirect to /login automatically
       }
-    }, 15000);
+    }, 30000);
 
     const initAuth = async () => {
       try {

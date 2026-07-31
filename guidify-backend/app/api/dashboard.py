@@ -32,12 +32,14 @@ async def get_dashboard(
     """
     async def _fetch_category_scores(lid: str):
         try:
-            from app.services.supabase_client import supabase
+            from app.services.supabase_client import supabase_admin
             result = await asyncio.to_thread(
-                supabase.table("learners").select("category_scores").eq("id", lid).single().execute
+                supabase_admin.table("learner_profiles").select("questionnaire_data").eq("learner_id", lid).order("created_at", desc=True).limit(1).single().execute
             )
             if result.data:
-                return result.data.get("category_scores")
+                qd = result.data.get("questionnaire_data", {})
+                if isinstance(qd, dict):
+                    return qd.get("category_scores")
         except Exception as e:
             logger.warning(f"Failed to fetch category_scores: {e}")
         return None

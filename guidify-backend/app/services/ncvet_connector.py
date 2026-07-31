@@ -2,7 +2,7 @@ import os
 import httpx
 from typing import List, Dict, Any
 from tenacity import retry, stop_after_attempt, wait_exponential
-from app.services.supabase_client import supabase
+from app.services.supabase_client import supabase_admin as supabase
 
 NCVET_API_URL = os.environ.get("NCVET_API_URL", "https://api.ncvet.gov.in/mock") # Mock URL
 NCVET_API_KEY = os.environ.get("NCVET_API_KEY", "mock_key")
