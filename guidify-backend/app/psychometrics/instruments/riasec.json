@@ -1,0 +1,33 @@
+{
+  "instrument": "RIASEC-18",
+  "version": "1.0",
+  "description": "Short-form Holland Codes (RIASEC) career interest assessment. Based on the O*NET Interest Profiler framework. Public domain scoring approach.",
+  "scoring_method": "likert_sum_normalized",
+  "scale_range": [1, 5],
+  "normalize_to": [0, 100],
+  "items": [
+    {"id": "ria_1", "text": "Build things with your hands.", "dimension": "realistic"},
+    {"id": "ria_2", "text": "Work outdoors or with nature.", "dimension": "realistic"},
+    {"id": "ria_3", "text": "Use tools, machines, or vehicles.", "dimension": "realistic"},
+
+    {"id": "ria_4", "text": "Investigate scientific problems.", "dimension": "investigative"},
+    {"id": "ria_5", "text": "Analyze data or ideas.", "dimension": "investigative"},
+    {"id": "ria_6", "text": "Solve complex puzzles.", "dimension": "investigative"},
+
+    {"id": "ria_7", "text": "Express yourself through art or writing.", "dimension": "artistic"},
+    {"id": "ria_8", "text": "Create original works.", "dimension": "artistic"},
+    {"id": "ria_9", "text": "Perform or entertain others.", "dimension": "artistic"},
+
+    {"id": "ria_10", "text": "Help or teach others.", "dimension": "social"},
+    {"id": "ria_11", "text": "Work in a team to solve problems.", "dimension": "social"},
+    {"id": "ria_12", "text": "Counsel or support people.", "dimension": "social"},
+
+    {"id": "ria_13", "text": "Lead or direct a team.", "dimension": "enterprising"},
+    {"id": "ria_14", "text": "Sell products or ideas.", "dimension": "enterprising"},
+    {"id": "ria_15", "text": "Convince people to take action.", "dimension": "enterprising"},
+
+    {"id": "ria_16", "text": "Organize data or records.", "dimension": "conventional"},
+    {"id": "ria_17", "text": "Follow a detailed procedure.", "dimension": "conventional"},
+    {"id": "ria_18", "text": "Work with numbers accurately.", "dimension": "conventional"}
+  ]
+}

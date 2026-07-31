@@ -24,6 +24,8 @@ from pydantic import BaseModel, ValidationError
 
 from app.ai_gateway.providers.base import AIProvider
 from app.ai_gateway.providers.gemini import GeminiProvider
+from app.ai_gateway.providers.openrouter import OpenRouterProvider
+from app.core.config import settings
 from app.core.exceptions import AIServiceError
 
 logger = logging.getLogger("guidify.ai_gateway")
@@ -45,21 +47,29 @@ class AIGateway:
     # Per techspec.md §3.1: "swap models per task (e.g., cheaper model for daily
     # mission text, stronger model for full roadmap generation)"
     TASK_MODEL_MAP: Dict[str, str] = {
-        "roadmap.generate": "gemini-2.5-flash",       # Expensive, infrequent
-        "mission.generate": "gemini-2.5-flash-lite",   # Cheap, frequent
-        "resume.parse": "gemini-2.5-flash",
-        "resume.score": "gemini-2.5-flash",
-        "interview.question": "gemini-2.5-flash-lite",
-        "interview.feedback": "gemini-2.5-flash",
-        "test.hello": "gemini-2.5-flash-lite",         # Phase 0 test task
+        "roadmap.generate": "nvidia/nemotron-3-super-120b-a12b:free",
+        "mission.generate": "nvidia/nemotron-3-super-120b-a12b:free",
+        "resume.parse": "nvidia/nemotron-3-super-120b-a12b:free",
+        "resume.score": "nvidia/nemotron-3-super-120b-a12b:free",
+        "interview.question": "nvidia/nemotron-3-super-120b-a12b:free",
+        "interview.feedback": "nvidia/nemotron-3-super-120b-a12b:free",
+        "psychometrics.narrate": "nvidia/nemotron-3-super-120b-a12b:free",
+        "test.hello": "nvidia/nemotron-3-super-120b-a12b:free",
     }
 
     def __init__(self, provider: Optional[AIProvider] = None):
         """
         Initialize the gateway with a provider.
-        Defaults to GeminiProvider if none specified.
+        Defaults to OpenRouterProvider (Nemotron 3 Super) if none specified.
+        Falls back to GeminiProvider if OpenRouter key is not configured.
         """
-        self._provider = provider or GeminiProvider()
+        if provider:
+            self._provider = provider
+        elif settings.OPENROUTER_API_KEY:
+            self._provider = OpenRouterProvider()
+        else:
+            logger.warning("OPENROUTER_API_KEY not set — falling back to Gemini")
+            self._provider = GeminiProvider()
 
     async def generate(
         self,
@@ -204,7 +214,23 @@ class AIGateway:
 
         # Roadmap generation — uses versioned prompt template
         if task_type == "roadmap.generate":
-            from app.ai_gateway.prompts.roadmap_generate import ROADMAP_GENERATE_V1
+            from app.ai_gateway.prompts.roadmap_generate import (
+                ROADMAP_GENERATE_V1, PSYCHOMETRIC_SECTION, PSYCHOMETRIC_INSTRUCTIONS,
+            )
+
+            # Build psychometric section if context present
+            psychometric_narrative = context.get("psychometric_narrative")
+            if psychometric_narrative:
+                psychometric_section = PSYCHOMETRIC_SECTION.format(
+                    psychometric_narrative=psychometric_narrative,
+                    psychometric_pacing=context.get("psychometric_pacing", "mixed"),
+                    psychometric_tone=context.get("psychometric_tone", "encouraging"),
+                )
+                psychometric_instructions = PSYCHOMETRIC_INSTRUCTIONS
+            else:
+                psychometric_section = ""
+                psychometric_instructions = ""
+
             prompt = ROADMAP_GENERATE_V1.format(
                 target_role=context.get("target_role", "Software Developer"),
                 segment=context.get("segment", "college"),
@@ -213,6 +239,8 @@ class AIGateway:
                 strengths=", ".join(context.get("strengths", [])) or "None listed",
                 weaknesses=", ".join(context.get("weaknesses", [])) or "None listed",
                 learning_hours=context.get("learning_hours", "5"),
+                psychometric_section=psychometric_section,
+                psychometric_instructions=psychometric_instructions,
             )
             if schema_hint:
                 prompt += (
@@ -327,6 +355,21 @@ class AIGateway:
             context["_system_instruction"] = if_system()
             return prompt
 
+        # Psychometrics narrate — uses versioned prompt template
+        if task_type == "psychometrics.narrate":
+            from app.ai_gateway.prompts.psychometrics_narrate import build_narrate_prompt
+            prompt = build_narrate_prompt(
+                ipip_scores=context.get("ipip_scores", {}),
+                riasec_scores=context.get("riasec_scores", {}),
+                grit_score=context.get("grit_score"),
+            )
+            if schema_hint:
+                prompt += (
+                    "\n\nIMPORTANT: Your previous response did not match the required JSON schema. "
+                    "Please return ONLY valid JSON with no extra text."
+                )
+            return prompt
+
         # Generic prompt construction for other task types
         prompt_parts = [
             f"Task: {task_type}",
@@ -376,3 +419,7 @@ class AIGateway:
                 pass
 
         return {}
+
+
+# Module-level singleton — reused across all request handlers
+gateway = AIGateway()

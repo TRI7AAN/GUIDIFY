@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FaCheckCircle, FaCircle, FaLock } from 'react-icons/fa';
+import { CheckCircle, Circle, Lock } from 'lucide-react';
 
 const TimelineContainer = styled.div`
   position: relative;
@@ -120,9 +120,9 @@ const RoadmapTimeline = ({ steps = [] }) => {
                         transition={{ delay: index * 0.1 }}
                     >
                         <IconWrapper $completed={isCompleted} $active={isActive}>
-                            {isCompleted ? <FaCheckCircle color="black" size={20} /> :
-                                isActive ? <FaCircle color="black" size={16} /> :
-                                    <FaLock color="#555" size={16} />}
+                            {isCompleted ? <CheckCircle color="black" size={20} /> :
+                                isActive ? <Circle color="black" size={16} /> :
+                                    <Lock color="#555" size={16} />}
                         </IconWrapper>
 
                         <ContentCard $active={isActive}>

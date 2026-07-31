@@ -7,6 +7,6 @@ Centralizes prompt versioning, retries, cost logging, and provider abstraction.
 Per techspec.md §2-3: Never call Gemini directly from feature code.
 """
 
-from app.ai_gateway.gateway import AIGateway
+from app.ai_gateway.gateway import AIGateway, gateway
 
-__all__ = ["AIGateway"]
+__all__ = ["AIGateway", "gateway"]

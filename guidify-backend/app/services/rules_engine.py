@@ -11,6 +11,7 @@ Per rules.md §6.1:
   - Delivery-specific remedial mission triggers (2-consecutive-session threshold)
 """
 
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
@@ -335,19 +336,15 @@ class RulesEngine:
         Get current adaptation status for a learner.
         Returns debounce status, recent events, and skill gap.
         """
-        # Check debounce
-        in_debounce = await self._is_in_debounce_window(learner_id)
-        last_regeneration = await queries.get_last_regeneration(learner_id)
-        
-        # Get recent events
-        recent_events = await queries.get_recent_events(learner_id, limit=10)
-        
-        # Get failure count
-        consecutive_failures = await self._count_consecutive_failures(learner_id)
-        
-        # Get skill gap
-        skill_gap = await self.calculate_skill_gap(learner_id)
-        
+        # Run all independent DB calls in parallel
+        in_debounce, last_regeneration, recent_events, consecutive_failures, skill_gap = await asyncio.gather(
+            self._is_in_debounce_window(learner_id),
+            queries.get_last_regeneration(learner_id),
+            queries.get_recent_events(learner_id, limit=10),
+            self._count_consecutive_failures(learner_id),
+            self.calculate_skill_gap(learner_id),
+        )
+
         return {
             "in_debounce_window": in_debounce,
             "last_regeneration": last_regeneration,

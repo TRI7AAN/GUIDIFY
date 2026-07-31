@@ -12,6 +12,7 @@ Usage in routes:
         ...
 """
 
+import asyncio
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -40,7 +41,8 @@ async def get_current_learner_id(
 
     try:
         # Supabase SDK v2: pass JWT directly to get_user()
-        user_response = supabase.auth.get_user(token)
+        # Wrap in asyncio.to_thread to avoid blocking the event loop
+        user_response = await asyncio.to_thread(supabase.auth.get_user, token)
         if user_response and user_response.user:
             return user_response.user.id
         raise InvalidTokenError("Could not validate token")

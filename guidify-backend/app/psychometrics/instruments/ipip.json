@@ -1,0 +1,34 @@
+{
+  "instrument": "IPIP-NEO-20",
+  "version": "1.0",
+  "description": "Short-form Big Five personality assessment from the International Personality Item Pool (IPIP). Public domain, free for commercial use.",
+  "scoring_method": "likert_sum_normalized",
+  "scale_range": [1, 5],
+  "normalize_to": [0, 100],
+  "items": [
+    {"id": "ipip_1", "text": "I am the life of the party.", "scale": "extraversion", "reverse": false},
+    {"id": "ipip_2", "text": "I don't talk a lot.", "scale": "extraversion", "reverse": true},
+    {"id": "ipip_3", "text": "I feel comfortable around people.", "scale": "extraversion", "reverse": false},
+    {"id": "ipip_4", "text": "I keep in the background.", "scale": "extraversion", "reverse": true},
+
+    {"id": "ipip_5", "text": "I get stressed out easily.", "scale": "neuroticism", "reverse": false},
+    {"id": "ipip_6", "text": "I am relaxed most of the time.", "scale": "neuroticism", "reverse": true},
+    {"id": "ipip_7", "text": "I worry about things.", "scale": "neuroticism", "reverse": false},
+    {"id": "ipip_8", "text": "I seldom feel blue.", "scale": "neuroticism", "reverse": true},
+
+    {"id": "ipip_9", "text": "I have a vivid imagination.", "scale": "openness", "reverse": false},
+    {"id": "ipip_10", "text": "I have difficulty understanding abstract ideas.", "scale": "openness", "reverse": true},
+    {"id": "ipip_11", "text": "I enjoy hearing new ideas.", "scale": "openness", "reverse": false},
+    {"id": "ipip_12", "text": "I do not like art.", "scale": "openness", "reverse": true},
+
+    {"id": "ipip_13", "text": "I feel little concern for others.", "scale": "agreeableness", "reverse": true},
+    {"id": "ipip_14", "text": "I am interested in people's problems.", "scale": "agreeableness", "reverse": false},
+    {"id": "ipip_15", "text": "I insult people.", "scale": "agreeableness", "reverse": true},
+    {"id": "ipip_16", "text": "I sympathize with others' feelings.", "scale": "agreeableness", "reverse": false},
+
+    {"id": "ipip_17", "text": "I am always prepared.", "scale": "conscientiousness", "reverse": false},
+    {"id": "ipip_18", "text": "I leave my belongings around.", "scale": "conscientiousness", "reverse": true},
+    {"id": "ipip_19", "text": "I pay attention to details.", "scale": "conscientiousness", "reverse": false},
+    {"id": "ipip_20", "text": "I make a mess of things.", "scale": "conscientiousness", "reverse": true}
+  ]
+}

@@ -1,6 +1,6 @@
 ﻿import React, { createContext, useState, useContext, useEffect, useRef, useMemo } from "react";
 import { supabase } from "../utils/supabaseClient";
-import apiClient, { setAuthToken } from "../api/apiClient";
+import { setAuthToken } from "../api/apiClient";
 import Loading from "../components/common/Loading";
 
 const AuthContext = createContext();
@@ -12,47 +12,34 @@ export const AuthProvider = ({ children }) => {
 
   // Ref to track latest user ID to avoid stale closures in async ops
   const userIdRef = useRef(null);
-  const abortControllerRef = useRef(null);
   const syncingRef = useRef(false);
 
   /**
    * 2. Fetch Profile With Retry
    * Retries fetching the profile up to maxRetries times.
    */
-  const fetchProfileWithRetry = async (userId, retries = 3, delayMs = 300) => {
+  const fetchProfileWithRetry = async (userId, retries = 3, delayMs = 500) => {
     if (!userId) return null;
-
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
 
     for (let i = 0; i < retries; i++) {
       try {
-        if (controller.signal.aborted) return null;
-
-        // Timeout wrapper (8 seconds — Supabase can be slow on cold starts)
+        // Timeout wrapper (15 seconds — Supabase can be slow on cold starts)
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Profile fetch timeout")), 8000)
+          setTimeout(() => reject(new Error("Profile fetch timeout")), 15000)
         );
 
         const fetchPromise = supabase
           .from('learners')
           .select('onboarding_completed')
           .eq('id', userId)
-          .single()
-          .abortSignal(controller.signal);
+          .single();
 
         const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
         if (error) {
           if (error.code === 'PGRST116') {
             // Profile not found - might be race condition during creation.
-            // Retry allows time for the createProfileIfNotExists to finish.
             console.warn(`Profile missing (attempt ${i + 1}/${retries}). Retrying...`);
-            // If last retry and still missing, return falsy
             if (i === retries - 1) return null;
           } else {
             throw error;
@@ -61,15 +48,13 @@ export const AuthProvider = ({ children }) => {
           return data;
         }
 
-        // Wait before retry
-        await new Promise(r => setTimeout(r, delayMs * Math.pow(1.5, i))); // Exponential backoff
+        // Wait before retry with exponential backoff
+        await new Promise(r => setTimeout(r, delayMs * Math.pow(1.5, i)));
 
       } catch (err) {
-        if (controller.signal.aborted || err.name === 'AbortError') return null;
         console.error(`Fetch profile error (attempt ${i + 1}):`, err);
-
-        if (i === retries - 1) return null; // Give up
-        await new Promise(r => setTimeout(r, delayMs));
+        if (i === retries - 1) return null;
+        await new Promise(r => setTimeout(r, delayMs * Math.pow(1.5, i)));
       }
     }
     return null;
@@ -112,10 +97,6 @@ export const AuthProvider = ({ children }) => {
 
       if (profile) {
         setOnboardingComplete(profile.onboarding_completed);
-
-        // Fire-and-forget: update login streak (no user_id in body — extracted from JWT server-side)
-        apiClient.post('/api/gamification/daily-login')
-          .catch(err => console.warn("Streak update failed:", err));
       } else {
         console.warn("Profile not found after retries. User may need to complete signup.");
         setOnboardingComplete(false);
@@ -190,7 +171,6 @@ export const AuthProvider = ({ children }) => {
       mounted = false;
       clearTimeout(safetyTimer);
       subscription.unsubscribe();
-      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
   }, []);
 

@@ -9,6 +9,7 @@ Endpoints:
     POST /missions/{mission_id}/status    — Update status (failed/skipped/in_progress)
 """
 
+import asyncio
 import logging
 import random
 from datetime import date
@@ -20,7 +21,7 @@ from pydantic import BaseModel
 from app.core.auth import get_current_learner_id
 from app.core.exceptions import ResourceNotFoundError
 from app.db import queries
-from app.ai_gateway import AIGateway
+from app.ai_gateway.gateway import gateway
 from app.models.schemas import (
     MissionGenerateResponse,
     MissionCompleteRequest,
@@ -135,10 +136,13 @@ async def _generate_daily_mission(learner_id: str) -> dict:
         - active roadmap (current phase, skills)
         - recent mission history (avoid repetition, gauge difficulty)
     """
-    # Fetch learner and profile
-    learner = await queries.get_learner(learner_id)
-    profile = await queries.get_learner_profile(learner_id)
-    roadmap = await queries.get_active_roadmap(learner_id)
+    # Fetch learner, profile, roadmap, and recent missions in parallel
+    learner, profile, roadmap, recent_missions = await asyncio.gather(
+        queries.get_learner(learner_id),
+        queries.get_learner_profile(learner_id),
+        queries.get_active_roadmap(learner_id),
+        queries.get_recent_missions(learner_id, limit=5),
+    )
 
     # Determine current phase from roadmap
     current_phase_title = "Foundations"
@@ -180,9 +184,6 @@ async def _generate_daily_mission(learner_id: str) -> dict:
                 learning_hours = 5
     estimated_minutes = min(max(int(learning_hours * 60 / 7 * 0.7), 20), 60)
 
-    # Fetch recent mission history
-    recent_missions = await queries.get_recent_missions(learner_id, limit=5)
-
     # Build context for AI Gateway
     context = {
         "target_role": learner.get("target_role", "Software Developer") if learner else "Software Developer",
@@ -198,7 +199,6 @@ async def _generate_daily_mission(learner_id: str) -> dict:
     }
 
     # Call AI Gateway
-    gateway = AIGateway()
     try:
         result = await gateway.generate(
             task_type="mission.generate",

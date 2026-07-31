@@ -25,6 +25,7 @@ supabase==2.9.1
 # AI / ML
 # ----------------------------
 google-genai==0.8.0
+openai>=1.50.0
 sentence-transformers==3.2.1
 scikit-learn==1.5.2
 lightgbm==4.5.0

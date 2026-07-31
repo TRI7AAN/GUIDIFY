@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaGlobe } from 'react-icons/fa';
+import { Globe } from 'lucide-react';
 
 const SwitcherContainer = styled.div`
   position: relative;
@@ -87,7 +87,7 @@ const LanguageSwitcher = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
             >
-                <FaGlobe />
+                <Globe size={18} />
                 <span>{currentLang.label.split(' ')[0]}</span>
             </ToggleButton>
 

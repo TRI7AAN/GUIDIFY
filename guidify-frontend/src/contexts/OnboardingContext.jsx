@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { useAuth } from './AuthContext';
 
@@ -245,7 +245,7 @@ export const OnboardingProvider = ({ children }) => {
   };
 
 
-  const value = {
+  const value = useMemo(() => ({
     profileData,
     setProfileData,
     quizResponses,
@@ -260,8 +260,13 @@ export const OnboardingProvider = ({ children }) => {
     calculateCategoryScores,
     nextStep,
     prevStep,
-    error
-  };
+    error,
+  }), [
+    profileData, quizResponses, quizScores, careerSuggestion,
+    currentStep, isLoading, error,
+    saveProfileData, saveQuizResponses, saveCareerSuggestion,
+    calculateCategoryScores, nextStep, prevStep,
+  ]);
 
   return (
     <OnboardingContext.Provider value={value}>

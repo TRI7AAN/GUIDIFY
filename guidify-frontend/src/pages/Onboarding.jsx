@@ -17,6 +17,7 @@ import ProfileForm from '../components/onboarding/ProfileForm';
 import CareerGoalsForm from '../components/onboarding/CareerGoalsForm';
 import ConsentStep from '../components/onboarding/ConsentStep';
 import AdaptivePersonalityTest from '../components/onboarding/AdaptivePersonalityTest';
+import PsychometricFitCheck from '../components/onboarding/PsychometricFitCheck';
 
 const Onboarding = () => {
   const { currentStep, isLoading: contextLoading } = useOnboarding();
@@ -35,6 +36,7 @@ const Onboarding = () => {
     { title: 'Profile Information', component: <ProfileForm /> },
     { title: 'Career Goals', component: <CareerGoalsForm /> },
     { title: 'Data Consent', component: <ConsentStep /> },
+    { title: 'Quick Fit Check', component: <PsychometricFitCheck /> },
     { title: 'AI Personality Analysis', component: <AdaptivePersonalityTest /> },
   ];
 

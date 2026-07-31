@@ -7,6 +7,7 @@ All queries operate through the Supabase client with RLS enforcement.
 Per techspec.md §7: Every table with learner data is scoped by auth.uid().
 """
 
+import asyncio
 from typing import Any, Dict, List, Optional
 import logging
 
@@ -15,12 +16,17 @@ from app.services.supabase_client import supabase, supabase_admin
 logger = logging.getLogger("guidify.db")
 
 
+async def _run_query(query_builder):
+    """Run a synchronous Supabase query in a thread pool to avoid blocking the event loop."""
+    return await asyncio.to_thread(query_builder.execute)
+
+
 # --- Learners (schema.md §1) ---
 
 async def get_learner(learner_id: str) -> Optional[Dict[str, Any]]:
     """Fetch a learner record by ID."""
     try:
-        response = supabase.table("learners").select("*").eq("id", learner_id).single().execute()
+        response = await _run_query(supabase.table("learners").select("*").eq("id", learner_id).single())
         return response.data if response.data else None
     except Exception as e:
         logger.error(f"Failed to fetch learner {learner_id}: {e}")
@@ -31,7 +37,7 @@ async def upsert_learner(learner_id: str, data: Dict[str, Any]) -> Optional[Dict
     """Create or update a learner record."""
     try:
         data["id"] = learner_id
-        response = supabase.table("learners").upsert(data).execute()
+        response = await _run_query(supabase.table("learners").upsert(data))
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Failed to upsert learner {learner_id}: {e}")
@@ -41,7 +47,7 @@ async def upsert_learner(learner_id: str, data: Dict[str, Any]) -> Optional[Dict
 async def update_learner(learner_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Update specific fields on a learner record."""
     try:
-        response = supabase.table("learners").update(data).eq("id", learner_id).execute()
+        response = await _run_query(supabase.table("learners").update(data).eq("id", learner_id))
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Failed to update learner {learner_id}: {e}")
@@ -53,13 +59,12 @@ async def update_learner(learner_id: str, data: Dict[str, Any]) -> Optional[Dict
 async def get_learner_profile(learner_id: str) -> Optional[Dict[str, Any]]:
     """Fetch the learner profile for a given learner."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("learner_profiles")
             .select("*")
             .eq("learner_id", learner_id)
             .order("created_at", desc=True)
             .limit(1)
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -71,7 +76,7 @@ async def create_learner_profile(learner_id: str, data: Dict[str, Any]) -> Optio
     """Create a new learner profile record."""
     try:
         data["learner_id"] = learner_id
-        response = supabase.table("learner_profiles").insert(data).execute()
+        response = await _run_query(supabase.table("learner_profiles").insert(data))
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Failed to create profile for learner {learner_id}: {e}")
@@ -81,7 +86,7 @@ async def create_learner_profile(learner_id: str, data: Dict[str, Any]) -> Optio
 async def update_learner_profile(profile_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Update an existing learner profile."""
     try:
-        response = supabase.table("learner_profiles").update(data).eq("id", profile_id).execute()
+        response = await _run_query(supabase.table("learner_profiles").update(data).eq("id", profile_id))
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Failed to update profile {profile_id}: {e}")
@@ -93,14 +98,13 @@ async def update_learner_profile(profile_id: str, data: Dict[str, Any]) -> Optio
 async def get_active_roadmap(learner_id: str) -> Optional[Dict[str, Any]]:
     """Fetch the active (non-superseded) roadmap for a learner."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("roadmaps")
             .select("*")
             .eq("learner_id", learner_id)
             .eq("status", "active")
             .order("version", desc=True)
             .limit(1)
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -112,21 +116,25 @@ async def create_roadmap(learner_id: str, data: Dict[str, Any]) -> Optional[Dict
     """Create a new roadmap, superseding any previous active one."""
     try:
         # First, supersede any existing active roadmap
-        supabase.table("roadmaps").update(
-            {"status": "superseded"}
-        ).eq("learner_id", learner_id).eq("status", "active").execute()
+        await _run_query(
+            supabase.table("roadmaps").update(
+                {"status": "superseded"}
+            ).eq("learner_id", learner_id).eq("status", "active")
+        )
 
         # Get next version number
-        existing = supabase.table("roadmaps").select("version").eq(
-            "learner_id", learner_id
-        ).order("version", desc=True).limit(1).execute()
+        existing = await _run_query(
+            supabase.table("roadmaps").select("version").eq(
+                "learner_id", learner_id
+            ).order("version", desc=True).limit(1)
+        )
         next_version = (existing.data[0]["version"] + 1) if existing.data else 1
 
         # Create new roadmap
         data["learner_id"] = learner_id
         data["version"] = next_version
         data["status"] = "active"
-        response = supabase.table("roadmaps").insert(data).execute()
+        response = await _run_query(supabase.table("roadmaps").insert(data))
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Failed to create roadmap for {learner_id}: {e}")
@@ -136,12 +144,11 @@ async def create_roadmap(learner_id: str, data: Dict[str, Any]) -> Optional[Dict
 async def get_roadmap_history(learner_id: str) -> List[Dict[str, Any]]:
     """Fetch all roadmap versions for a learner, newest first."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("roadmaps")
             .select("id, title, version, status, trigger_reason, created_at")
             .eq("learner_id", learner_id)
             .order("version", desc=True)
-            .execute()
         )
         return response.data if response.data else []
     except Exception as e:
@@ -156,14 +163,13 @@ async def get_todays_mission(learner_id: str) -> Optional[Dict[str, Any]]:
     from datetime import date
     today = date.today().isoformat()
     try:
-        response = (
+        response = await _run_query(
             supabase.table("daily_missions")
             .select("*")
             .eq("learner_id", learner_id)
             .eq("assigned_date", today)
             .in_("status", ["pending", "in_progress"])
             .limit(1)
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -176,7 +182,7 @@ async def get_todays_completed_mission(learner_id: str) -> Optional[Dict[str, An
     from datetime import date
     today = date.today().isoformat()
     try:
-        response = (
+        response = await _run_query(
             supabase.table("daily_missions")
             .select("*")
             .eq("learner_id", learner_id)
@@ -184,7 +190,6 @@ async def get_todays_completed_mission(learner_id: str) -> Optional[Dict[str, An
             .in_("status", ["completed", "skipped", "failed"])
             .order("created_at", desc=True)
             .limit(1)
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -196,7 +201,7 @@ async def create_mission(learner_id: str, data: Dict[str, Any]) -> Optional[Dict
     """Create a new daily mission."""
     try:
         data["learner_id"] = learner_id
-        response = supabase.table("daily_missions").insert(data).execute()
+        response = await _run_query(supabase.table("daily_missions").insert(data))
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Failed to create mission for {learner_id}: {e}")
@@ -217,12 +222,11 @@ async def update_mission_status(
             update_data["completion_notes"] = notes
         if time_spent:
             update_data["time_spent_minutes"] = time_spent
-        response = (
+        response = await _run_query(
             supabase.table("daily_missions")
             .update(update_data)
             .eq("id", mission_id)
             .eq("learner_id", learner_id)
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -247,12 +251,11 @@ async def complete_mission(
             update_data["completion_notes"] = notes
         if time_spent:
             update_data["time_spent_minutes"] = time_spent
-        response = (
+        response = await _run_query(
             supabase.table("daily_missions")
             .update(update_data)
             .eq("id", mission_id)
             .eq("learner_id", learner_id)
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -263,13 +266,12 @@ async def complete_mission(
 async def get_recent_missions(learner_id: str, limit: int = 5) -> List[Dict[str, Any]]:
     """Fetch recent missions for AI context (to avoid repetition and gauge difficulty)."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("daily_missions")
             .select("title, target_skill, difficulty, status, assigned_date")
             .eq("learner_id", learner_id)
             .order("assigned_date", desc=True)
             .limit(limit)
-            .execute()
         )
         return response.data if response.data else []
     except Exception as e:
@@ -280,13 +282,12 @@ async def get_recent_missions(learner_id: str, limit: int = 5) -> List[Dict[str,
 async def get_mission_by_id(mission_id: str, learner_id: str) -> Optional[Dict[str, Any]]:
     """Fetch a specific mission by ID (scoped to learner)."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("daily_missions")
             .select("*")
             .eq("id", mission_id)
             .eq("learner_id", learner_id)
             .single()
-            .execute()
         )
         return response.data if response.data else None
     except Exception as e:
@@ -299,14 +300,13 @@ async def calculate_streak(learner_id: str) -> int:
     from datetime import date, timedelta
     try:
         # Fetch last 90 days of missions ordered by date
-        response = (
+        response = await _run_query(
             supabase.table("daily_missions")
             .select("assigned_date, status")
             .eq("learner_id", learner_id)
             .eq("status", "completed")
             .order("assigned_date", desc=True)
             .limit(90)
-            .execute()
         )
         if not response.data:
             return 0
@@ -339,7 +339,7 @@ async def create_resume(learner_id: str, data: Dict[str, Any]) -> Optional[Dict[
     """Create a new resume record."""
     try:
         data["learner_id"] = learner_id
-        response = supabase.table("resumes").insert(data).execute()
+        response = await _run_query(supabase.table("resumes").insert(data))
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Failed to create resume for {learner_id}: {e}")
@@ -349,13 +349,12 @@ async def create_resume(learner_id: str, data: Dict[str, Any]) -> Optional[Dict[
 async def get_resume_by_id(resume_id: str, learner_id: str) -> Optional[Dict[str, Any]]:
     """Fetch a specific resume by ID (scoped to learner)."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("resumes")
             .select("*")
             .eq("id", resume_id)
             .eq("learner_id", learner_id)
             .single()
-            .execute()
         )
         return response.data if response.data else None
     except Exception as e:
@@ -366,14 +365,13 @@ async def get_resume_by_id(resume_id: str, learner_id: str) -> Optional[Dict[str
 async def get_current_resume(learner_id: str) -> Optional[Dict[str, Any]]:
     """Fetch the current (most recent active) resume for a learner."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("resumes")
             .select("*")
             .eq("learner_id", learner_id)
             .eq("is_current", True)
             .order("created_at", desc=True)
             .limit(1)
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -384,12 +382,11 @@ async def get_current_resume(learner_id: str) -> Optional[Dict[str, Any]]:
 async def get_resume_history(learner_id: str) -> List[Dict[str, Any]]:
     """Fetch all resumes for a learner, newest first."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("resumes")
             .select("id, file_name, score, is_current, created_at")
             .eq("learner_id", learner_id)
             .order("created_at", desc=True)
-            .execute()
         )
         return response.data if response.data else []
     except Exception as e:
@@ -400,12 +397,11 @@ async def get_resume_history(learner_id: str) -> List[Dict[str, Any]]:
 async def update_resume(resume_id: str, learner_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Update a resume record (parsed_data, score, gap_analysis)."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("resumes")
             .update(data)
             .eq("id", resume_id)
             .eq("learner_id", learner_id)
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -417,14 +413,18 @@ async def set_current_resume(resume_id: str, learner_id: str) -> bool:
     """Mark a resume as current (unmarks previous current)."""
     try:
         # Unmark all current resumes for this learner
-        supabase.table("resumes").update(
-            {"is_current": False}
-        ).eq("learner_id", learner_id).eq("is_current", True).execute()
+        await _run_query(
+            supabase.table("resumes").update(
+                {"is_current": False}
+            ).eq("learner_id", learner_id).eq("is_current", True)
+        )
 
         # Mark the target resume as current
-        supabase.table("resumes").update(
-            {"is_current": True}
-        ).eq("id", resume_id).eq("learner_id", learner_id).execute()
+        await _run_query(
+            supabase.table("resumes").update(
+                {"is_current": True}
+            ).eq("id", resume_id).eq("learner_id", learner_id)
+        )
 
         return True
     except Exception as e:
@@ -453,7 +453,7 @@ async def create_event(
         if related_roadmap_id:
             event_data["related_roadmap_id"] = related_roadmap_id
         
-        response = supabase.table("event_log").insert(event_data).execute()
+        response = await _run_query(supabase.table("event_log").insert(event_data))
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Failed to create event for {learner_id}: {e}")
@@ -463,13 +463,12 @@ async def create_event(
 async def get_recent_events(learner_id: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Fetch recent events for a learner, newest first."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("event_log")
             .select("id, event_type, payload, created_at")
             .eq("learner_id", learner_id)
             .order("created_at", desc=True)
             .limit(limit)
-            .execute()
         )
         return response.data if response.data else []
     except Exception as e:
@@ -484,14 +483,13 @@ async def get_events_by_type(
 ) -> List[Dict[str, Any]]:
     """Fetch events of a specific type for a learner."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("event_log")
             .select("id, event_type, payload, created_at")
             .eq("learner_id", learner_id)
             .eq("event_type", event_type)
             .order("created_at", desc=True)
             .limit(limit)
-            .execute()
         )
         return response.data if response.data else []
     except Exception as e:
@@ -502,14 +500,13 @@ async def get_events_by_type(
 async def get_last_regeneration(learner_id: str) -> Optional[str]:
     """Get the timestamp of the last roadmap regeneration for debounce check."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("event_log")
             .select("created_at")
             .eq("learner_id", learner_id)
             .eq("event_type", "roadmap_regenerated")
             .order("created_at", desc=True)
             .limit(1)
-            .execute()
         )
         if response.data and len(response.data) > 0:
             return response.data[0].get("created_at")
@@ -524,12 +521,11 @@ async def get_last_regeneration(learner_id: str) -> Optional[str]:
 async def get_skill_baseline(role_or_company: str) -> Optional[Dict[str, Any]]:
     """Fetch skill baseline for a target role or company."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("skill_baselines")
             .select("*")
             .eq("role_or_company", role_or_company)
             .limit(1)
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -540,7 +536,7 @@ async def get_skill_baseline(role_or_company: str) -> Optional[Dict[str, Any]]:
 async def create_skill_baseline(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Create or update a skill baseline entry."""
     try:
-        response = supabase.table("skill_baselines").upsert(data).execute()
+        response = await _run_query(supabase.table("skill_baselines").upsert(data))
         return response.data[0] if response.data else None
     except Exception as e:
         logger.error(f"Failed to create skill baseline: {e}")
@@ -552,10 +548,9 @@ async def create_skill_baseline(data: Dict[str, Any]) -> Optional[Dict[str, Any]
 async def create_interview_session(learner_id: str, track: str) -> Optional[Dict[str, Any]]:
     """Create a new interview session."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("interview_sessions")
             .insert({"learner_id": learner_id, "track": track})
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -566,13 +561,12 @@ async def create_interview_session(learner_id: str, track: str) -> Optional[Dict
 async def get_interview_session(session_id: str, learner_id: str) -> Optional[Dict[str, Any]]:
     """Fetch an interview session by ID, scoped to learner."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("interview_sessions")
             .select("*")
             .eq("id", session_id)
             .eq("learner_id", learner_id)
             .single()
-            .execute()
         )
         return response.data if response.data else None
     except Exception as e:
@@ -583,11 +577,10 @@ async def get_interview_session(session_id: str, learner_id: str) -> Optional[Di
 async def update_interview_session(session_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Update an interview session (transcript, status, feedback)."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("interview_sessions")
             .update(data)
             .eq("id", session_id)
-            .execute()
         )
         return response.data[0] if response.data else None
     except Exception as e:
@@ -598,13 +591,12 @@ async def update_interview_session(session_id: str, data: Dict[str, Any]) -> Opt
 async def get_interview_history(learner_id: str, limit: int = 10) -> List[Dict[str, Any]]:
     """Get recent interview sessions for a learner."""
     try:
-        response = (
+        response = await _run_query(
             supabase.table("interview_sessions")
-            .select("*")
+            .select("id, status, delivery_metrics, created_at, readiness_subscore, camera_enabled, track")
             .eq("learner_id", learner_id)
             .order("created_at", desc=True)
             .limit(limit)
-            .execute()
         )
         return response.data if response.data else []
     except Exception as e:

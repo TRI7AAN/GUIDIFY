@@ -18,8 +18,12 @@ class Settings(BaseSettings):
     SUPABASE_KEY: str                          # Anon/public key — used for client-facing ops (RLS enforced)
     SUPABASE_SERVICE_KEY: str = ""             # CRIT-06 FIX: Service role key for admin operations
 
-    # Google Gemini AI Configuration (CRIT-01 FIX: renamed from GOOGLE_API_KEY to match .env)
-    GOOGLE_API_KEY: str
+    # Google Gemini AI Configuration
+    GOOGLE_API_KEY: str = ""
+
+    # OpenRouter AI Configuration
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "nvidia/nemotron-3-super-120b-a12b:free"
 
     # AI Gateway Configuration — per techspec.md §3
     GEMINI_MODEL: str = "gemini-2.5-flash-lite"

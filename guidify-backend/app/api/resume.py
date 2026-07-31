@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from app.core.auth import get_current_learner_id
 from app.core.exceptions import ResourceNotFoundError, AIServiceError
 from app.db import queries
+from app.ai_gateway.gateway import gateway
 from app.models.schemas import (
     ResumeUploadResponse,
     ResumeResponse,
@@ -72,9 +73,6 @@ async def upload_resume(
         current_skills = profile.get("skills", []) if profile else []
         
         # 4. Parse resume via AI Gateway
-        from app.ai_gateway import AIGateway
-        gateway = AIGateway()
-        
         parsed_data = None
         try:
             parse_result = await gateway.generate(

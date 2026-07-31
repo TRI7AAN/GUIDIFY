@@ -51,87 +51,89 @@ function App() {
     <HelmetProvider>
       <ErrorBoundary>
         <AuthProvider>
-          <OnboardingProvider>
-            <BrowserRouter>
-              <Suspense fallback={<Loading message="Initializing GUIDIFY..." />}>
-                <Routes>
-                  {/* Public Routes - Wrapped in PublicLayout (Has Navbar) */}
-                  {publicRoutes.map(route => (
-                    <Route
-                      key={route.path}
-                      path={route.path}
-                      element={
-                        <PublicLayout>
-                          {React.createElement(componentMap[route.path])}
-                        </PublicLayout>
-                      }
-                    />
-                  ))}
-
-                  {/* Auth Callback Route - Public Layout */}
+          <BrowserRouter>
+            <Suspense fallback={<Loading message="Initializing GUIDIFY..." />}>
+              <Routes>
+                {/* Public Routes - Wrapped in PublicLayout (Has Navbar) */}
+                {publicRoutes.map(route => (
                   <Route
-                    path="/auth/callback"
+                    key={route.path}
+                    path={route.path}
                     element={
                       <PublicLayout>
-                        <AuthCallback />
+                        {React.createElement(componentMap[route.path])}
                       </PublicLayout>
                     }
                   />
+                ))}
 
-                  {/* Protected Routes - require authentication */}
-                  <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
+                {/* Auth Callback Route - Public Layout */}
+                <Route
+                  path="/auth/callback"
+                  element={
+                    <PublicLayout>
+                      <AuthCallback />
+                    </PublicLayout>
+                  }
+                />
 
-                    {/* Onboarding — no sidebar shell */}
-                    <Route
-                      path="/onboarding"
-                      element={<Onboarding />}
-                    />
+                {/* Protected Routes - require authentication */}
+                <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
 
-                    {/* Dashboard & others — with AppShell (sidebar + topbar) */}
-                    <Route
-                      path="/dashboard"
-                      element={
-                        <AppShell>
-                          <Dashboard />
-                        </AppShell>
-                      }
-                    />
+                  {/* Onboarding — wrapped in OnboardingProvider (no sidebar shell) */}
+                  <Route
+                    path="/onboarding"
+                    element={
+                      <OnboardingProvider>
+                        <Onboarding />
+                      </OnboardingProvider>
+                    }
+                  />
 
-                    {protectedRoutes.filter(route =>
-                      route.path !== "/dashboard" &&
-                      route.path !== "/onboarding"
-                    ).map(route => (
-                      <Route
-                        key={route.path}
-                        path={route.path}
-                        element={
-                          <AppShell>
-                            {React.createElement(componentMap[route.path])}
-                          </AppShell>
-                        }
-                      />
-                    ))}
-                  </Route>
+                  {/* Dashboard & others — with AppShell (sidebar + topbar) */}
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <AppShell>
+                        <Dashboard />
+                      </AppShell>
+                    }
+                  />
 
-                  {/* Error routes - Public Layout */}
-                  {errorRoutes.map(route => (
+                  {protectedRoutes.filter(route =>
+                    route.path !== "/dashboard" &&
+                    route.path !== "/onboarding"
+                  ).map(route => (
                     <Route
                       key={route.path}
                       path={route.path}
                       element={
-                        <PublicLayout>
+                        <AppShell>
                           {React.createElement(componentMap[route.path])}
-                        </PublicLayout>
+                        </AppShell>
                       }
                     />
                   ))}
+                </Route>
 
-                  {/* Catch-all route */}
-                  <Route path="*" element={<Navigate to="/404" replace />} />
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
-          </OnboardingProvider>
+                {/* Error routes - Public Layout */}
+                {errorRoutes.map(route => (
+                  <Route
+                    key={route.path}
+                    path={route.path}
+                    element={
+                      <PublicLayout>
+                        {React.createElement(componentMap[route.path])}
+                      </PublicLayout>
+                    }
+                  />
+                ))}
+
+                {/* Catch-all route */}
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
         </AuthProvider>
       </ErrorBoundary>
     </HelmetProvider>

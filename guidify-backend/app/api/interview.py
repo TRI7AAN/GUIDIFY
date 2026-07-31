@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_learner_id
 from app.core.exceptions import ResourceNotFoundError, AIServiceError
 from app.db import queries
+from app.ai_gateway.gateway import gateway
 from app.models.schemas import (
     InterviewSessionRequest,
     InterviewAnswerRequest,
@@ -61,9 +62,6 @@ async def start_interview_session(
     target_role = learner.get("target_role", "Software Developer") if learner else "Software Developer"
 
     # Generate first question via AI Gateway
-    from app.ai_gateway import AIGateway
-    gateway = AIGateway()
-
     try:
         result = await gateway.generate(
             task_type="interview.question",
@@ -125,9 +123,6 @@ async def submit_answer(
         return await _end_session(session, transcript, learner_id)
 
     # Generate next question
-    from app.ai_gateway import AIGateway
-    gateway = AIGateway()
-
     learner = await queries.get_learner(learner_id)
     profile = await queries.get_learner_profile(learner_id)
     profile_summary = _build_profile_summary(profile, learner)
@@ -239,9 +234,6 @@ async def _end_session(
     learner_id: str,
 ) -> InterviewAnswerResponse:
     """Generate feedback report and mark session as completed."""
-    from app.ai_gateway import AIGateway
-    gateway = AIGateway()
-
     learner = await queries.get_learner(learner_id)
     profile = await queries.get_learner_profile(learner_id)
     profile_summary = _build_profile_summary(profile, learner)

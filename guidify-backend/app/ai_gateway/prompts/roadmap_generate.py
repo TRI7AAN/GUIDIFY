@@ -5,9 +5,10 @@ Generates a personalized multi-phase career roadmap based on:
   - target_role (from learner)
   - skills, interests, strengths, weaknesses (from learner_profile)
   - segment (school/college/graduate/professional)
+  - psychometric context (optional, from psychometrics.narrate — pacing/tone hints)
   
 Output: JSON matching the RoadmapGenerateResponse schema.
-Version: v1.0
+Version: v1.1 — adds optional psychometric context block
 """
 
 ROADMAP_GENERATE_V1 = """You are a career advisor AI for GUIDIFY. Generate a personalized, actionable career roadmap.
@@ -20,6 +21,7 @@ ROADMAP_GENERATE_V1 = """You are a career advisor AI for GUIDIFY. Generate a per
 - Strengths: {strengths}
 - Weaknesses: {weaknesses}
 - Weekly Learning Hours: {learning_hours}
+{psychometric_section}
 
 ## Instructions
 1. Create 4-6 sequential learning phases tailored to move from current skill level to the target role.
@@ -33,6 +35,7 @@ ROADMAP_GENERATE_V1 = """You are a career advisor AI for GUIDIFY. Generate a per
 4. Account for the learner's existing skills — skip what they already know.
 5. Focus on practical, job-relevant skills for the target role.
 6. The final phase should include job-readiness activities (portfolio, networking, interview prep).
+{psychometric_instructions}
 
 ## Output Format
 Return ONLY valid JSON:
@@ -54,4 +57,18 @@ Return ONLY valid JSON:
 }}
 """
 
-VERSION = "v1.0"
+PSYCHOMETRIC_SECTION = """
+- Psychometric Profile (optional — enriches pacing and tone, never gates opportunity):
+  Narrative: {psychometric_narrative}
+  Pacing Hint: {psychometric_pacing}
+  Tone Hint: {psychometric_tone}"""
+
+PSYCHOMETRIC_INSTRUCTIONS = """
+7. If a psychometric profile is provided, use the pacing_hint to calibrate phase durations:
+   - "incremental": Use shorter phases with smaller steps. Prefer clear, concrete milestones.
+   - "accelerated": Can handle longer phases with denser content. Front-load challenge.
+   - "mixed": Balance between the two approaches.
+8. If a tone_hint is provided, reflect it in phase descriptions and milestone framing.
+9. NEVER use psychometric data to exclude or discourage any career path. It shapes HOW you present the roadmap, never WHAT you recommend."""
+
+VERSION = "v1.1"

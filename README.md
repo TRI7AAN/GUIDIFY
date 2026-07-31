@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 # GUIDIFY
 
@@ -38,10 +38,11 @@ Sign Up → Take Assessment → Upload Resume → Get Your Roadmap → Daily Mis
 
 ## Features
 
-- **Smart Onboarding** — Profile + Career Goals + Personality assessment
+- **Smart Onboarding** — Profile + Career Goals + Psychometric Profiling (Big Five & RIASEC)
 - **Resume Intelligence** — Upload, AI parse, score, and gap analysis
 - **Adaptive Roadmaps** — AI-generated, versioned, regenerates when you fail or accelerate
 - **Daily Missions** — Bite-sized tasks (30-45 min) that build toward your goal
+- **AI Mock Interviews** — Technical & HR tracks with Delivery Analytics (client-side eye contact, posture, vocal pacing)
 - **Progress Tracking** — Streaks, skill graphs, phase completion
 - **Adaptation Engine** — Detects patterns and adjusts your path automatically
 
@@ -51,10 +52,10 @@ Sign Up → Take Assessment → Upload Resume → Get Your Roadmap → Daily Mis
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React, TailwindCSS, Vite |
+| Frontend | React, TailwindCSS, Vite, MediaPipe |
 | Backend | FastAPI, Python 3.11+ |
 | Database | Supabase (PostgreSQL) |
-| AI | Google Gemini |
+| AI | Google Gemini (2.5 Flash / Lite) |
 | Auth | Supabase Auth (Email + OAuth) |
 
 ---
@@ -89,15 +90,17 @@ guidify/
 ├── guidify-backend/
 │   ├── app/
 │   │   ├── api/          # REST endpoints
-│   │   ├── ai_gateway/   # Central AI routing
-│   │   ├── services/     # Business logic
+│   │   ├── ai_gateway/   # Central AI routing (Gemini 2.5 Flash / Lite)
+│   │   ├── services/     # Business logic & Rules Engine
+│   │   ├── psychometrics/# Psychometric instrument configs
 │   │   ├── db/           # Database queries
 │   │   └── models/       # Pydantic schemas
 │   └── migrations/       # SQL migrations
 ├── guidify-frontend/
 │   └── src/
 │       ├── pages/        # Main screens
-│       └── components/   # Reusable UI
+│       ├── components/   # Reusable UI
+│       └── delivery-analytics/ # MediaPipe tracking & Web Audio
 └── wiki/                 # Documentation
 ```
 

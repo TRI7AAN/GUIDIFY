@@ -268,3 +268,42 @@ Applied full dark theme across all three pages to match the existing dark design
 - Progress bar shows true percentage: 0-50% static phase, 50-100% AI phase
 - Removed artificial 2-second setTimeout delay in finishTest
 - Wrapped handleAnswer in useCallback for performance
+
+---
+
+### 16. Psychometric Profiling — Phase 2 Implementation
+
+**Summary:** Full implementation of validated psychometric profiling layer — Big Five (IPIP-20) personality traits + RIASEC-18 career interest codes. Deterministic scoring (no AI), with one AI narration touchpoint. Enriches roadmap pacing/tone without gating opportunity.
+
+**Backend files created:**
+- `app/psychometrics/instruments/ipip.json` — IPIP-20 Big Five instrument config (20 items, 4 per trait, reverse-coding keys)
+- `app/psychometrics/instruments/riasec.json` — RIASEC-18 Holland Codes instrument config (18 items, 3 per dimension)
+- `app/services/psychometrics_scoring.py` — Deterministic scoring service (pure functions, no AI)
+- `app/api/profile_psychometrics.py` — `POST /profile/psychometrics` + `GET /profile/psychometrics/status` endpoints
+- `app/ai_gateway/prompts/psychometrics_narrate.py` — `psychometrics.narrate` prompt template v1
+- `migrations/007_psychometric_profiles.sql` — DB migration for `psychometric_profiles` table
+
+**Backend files updated:**
+- `app/ai_gateway/gateway.py` — Added `psychometrics.narrate` task to TASK_MODEL_MAP and prompt builder
+- `app/ai_gateway/prompts/roadmap_generate.py` — Extended to v1.1 with optional psychometric context (pacing_hint, tone_hint)
+- `app/main.py` — Registered new `profile_psychometrics` router
+
+**Frontend files created:**
+- `src/components/onboarding/PsychometricFitCheck.jsx` — "Quick Fit Check" onboarding step
+
+**Frontend files updated:**
+- `src/pages/Onboarding.jsx` — Added PsychometricFitCheck as Step 3
+
+**Wiki docs updated:**
+- `prd.md` — FR16 added, success metrics, risk notes, non-goal on opportunity-gating
+- `techspec.md` — §11 Psychometrics Module (scoring architecture, narration, constraints)
+- `schema.md` — §8.2 `psychometric_profiles` table
+- `skills.md` — §9 Psychometric Context cross-reference
+- `api.md` — §7 Psychometric Profiling endpoints
+- `dataflow.md` — §7 Psychometric Profiling data flow
+- `rules.md` — §9 Psychometric Profiling Rules (retake cooldown, non-gating, consent, raw scores)
+- `design.md` — §6 Psychometric Assessment UX
+- `prompts.md` — §9 `psychometrics.narrate` task
+- `architecture.md` — Repo layout + AI Gateway task map updated
+- `implementationplan.md` — Phase 2.5 added
+- `roadmap.md` — Psychometric Profiling in Horizon 2

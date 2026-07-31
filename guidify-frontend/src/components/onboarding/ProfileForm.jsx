@@ -3,7 +3,7 @@ import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../contexts/AuthContext';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { FaUser, FaEnvelope, FaBirthdayCake, FaTransgender, FaGraduationCap, FaMapMarkerAlt, FaLocationArrow } from 'react-icons/fa';
+import { User, Mail, Cake, Users, GraduationCap, MapPin, Navigation } from 'lucide-react';
 
 const FormContainer = styled(motion.div)`
   background: rgba(30, 30, 60, 0.4);
@@ -270,7 +270,7 @@ const ProfileForm = () => {
 
       <form onSubmit={handleSubmit}>
         <FormGroup>
-          <Label><FaUser /> Full Name</Label>
+          <Label><User size={16} /> Full Name</Label>
           <InputWrapper>
             <Input
               type="text"
@@ -285,7 +285,7 @@ const ProfileForm = () => {
         </FormGroup>
 
         <FormGroup>
-          <Label><FaEnvelope /> Email</Label>
+          <Label><Mail size={16} /> Email</Label>
           <InputWrapper>
             <Input
               type="email"
@@ -301,7 +301,7 @@ const ProfileForm = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <FormGroup>
-            <Label><FaBirthdayCake /> Age</Label>
+            <Label><Cake size={16} /> Age</Label>
             <InputWrapper>
               <Input
                 type="number"
@@ -316,7 +316,7 @@ const ProfileForm = () => {
           </FormGroup>
 
           <FormGroup>
-            <Label><FaTransgender /> Gender</Label>
+            <Label><Users size={16} /> Gender</Label>
             <InputWrapper>
               <Select name="gender" value={profileData.gender || ''} onChange={handleChange} style={{ paddingLeft: '1rem' }}>
                 <option value="" disabled>Select</option>
@@ -331,7 +331,7 @@ const ProfileForm = () => {
         </div>
 
         <FormGroup>
-          <Label><FaGraduationCap /> Current Status</Label>
+          <Label><GraduationCap size={16} /> Current Status</Label>
           <InputWrapper>
             <Select name="currentClass" value={profileData.currentClass || ''} onChange={handleChange} style={{ paddingLeft: '1rem' }}>
               <option value="" disabled>Select your status</option>
@@ -349,7 +349,7 @@ const ProfileForm = () => {
         </FormGroup>
 
         <FormGroup>
-          <Label><FaMapMarkerAlt /> Location</Label>
+          <Label><MapPin size={16} /> Location</Label>
           <InputWrapper>
             <Input
               type="text"
@@ -360,7 +360,7 @@ const ProfileForm = () => {
               style={{ paddingLeft: '1rem', paddingRight: '3rem' }}
             />
             <LocationButton type="button" onClick={detectLocation} disabled={locationLoading} title="Auto-detect location">
-              {locationLoading ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}><FaLocationArrow /></motion.div> : <FaLocationArrow />}
+              {locationLoading ? <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }}><Navigation size={16} /></motion.div> : <Navigation size={16} />}
             </LocationButton>
           </InputWrapper>
           {errors.location && <ErrorMsg>{errors.location}</ErrorMsg>}

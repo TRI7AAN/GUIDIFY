@@ -8,6 +8,7 @@ Endpoints:
 Phase 2 implementation: aggregates real streak, roadmap progress, and skill data.
 """
 
+import asyncio
 import logging
 from typing import List, Dict, Any
 from fastapi import APIRouter, Depends
@@ -29,8 +30,25 @@ async def get_dashboard(
 
     Phase 2: Aggregates real data from roadmap, missions, and profile.
     """
-    # Fetch roadmap for phase progress
-    roadmap = await queries.get_active_roadmap(learner_id)
+    async def _fetch_category_scores(lid: str):
+        try:
+            from app.services.supabase_client import supabase
+            result = await asyncio.to_thread(
+                supabase.table("learners").select("category_scores").eq("id", lid).single().execute
+            )
+            if result.data:
+                return result.data.get("category_scores")
+        except Exception as e:
+            logger.warning(f"Failed to fetch category_scores: {e}")
+        return None
+
+    # Fetch roadmap, streak, and category_scores in parallel
+    roadmap, streak_days, category_scores = await asyncio.gather(
+        queries.get_active_roadmap(learner_id),
+        queries.calculate_streak(learner_id),
+        _fetch_category_scores(learner_id),
+    )
+
     current_phase = None
     progress_pct = 0
     skill_graph = []
@@ -68,19 +86,6 @@ async def get_dashboard(
                     level=current_level,
                     target_level=target_level,
                 ))
-
-    # Calculate streak from missions
-    streak_days = await queries.calculate_streak(learner_id)
-
-    # Fetch personality category_scores from learners table
-    category_scores = None
-    try:
-        from app.services.supabase_client import supabase
-        result = supabase.table("learners").select("category_scores").eq("id", learner_id).single().execute()
-        if result.data:
-            category_scores = result.data.get("category_scores")
-    except Exception as e:
-        logger.warning(f"Failed to fetch category_scores: {e}")
 
     return DashboardResponse(
         streak_days=streak_days,

@@ -8,16 +8,19 @@ Endpoints:
 """
 
 import logging
-from fastapi import APIRouter, Depends
+from datetime import datetime, timedelta, timezone
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_learner_id
 from app.core.exceptions import ResourceNotFoundError
 from app.db import queries
-from app.ai_gateway import AIGateway
+from app.ai_gateway.gateway import gateway
 from app.models.schemas import RoadmapGenerateResponse
 
 router = APIRouter(tags=["Roadmap"])
 logger = logging.getLogger("guidify.api.roadmap")
+
+DEBOUNCE_WINDOW_HOURS = 24
 
 
 @router.get("/roadmap/current")
@@ -68,6 +71,16 @@ async def regenerate_roadmap(
     if not learner:
         raise ResourceNotFoundError("Learner")
 
+    # Debounce check (rules.md §2): 24h minimum between regenerations
+    last_regeneration = await queries.get_last_regeneration(learner_id)
+    if last_regeneration:
+        last_time = datetime.fromisoformat(last_regeneration.replace("Z", "+00:00"))
+        if (datetime.now(timezone.utc) - last_time) < timedelta(hours=DEBOUNCE_WINDOW_HOURS):
+            raise HTTPException(
+                status_code=409,
+                detail="Roadmap regeneration is rate-limited to once per 24 hours. Try again later.",
+            )
+
     profile = await queries.get_learner_profile(learner_id)
 
     # Build AI Gateway context from assembled profile data
@@ -82,7 +95,6 @@ async def regenerate_roadmap(
     }
 
     # 2. Call AI Gateway with schema validation
-    gateway = AIGateway()
     try:
         result = await gateway.generate(
             task_type="roadmap.generate",
