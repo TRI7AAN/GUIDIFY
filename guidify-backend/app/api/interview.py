@@ -202,11 +202,14 @@ async def submit_delivery_metrics(
 ):
     """
     Submit client-side delivery analytics metrics for a completed session.
-    Called once by the client after session ends — no media, only derived numbers.
+    Called once by the client after session ends - no media, only derived numbers.
     """
     session = await queries.get_interview_session(session_id, learner_id)
     if not session:
         raise ResourceNotFoundError("Interview session")
+    # Check delivery consent
+    if not session.get("delivery_consent_id"):
+        raise HTTPException(status_code=403, detail="Delivery consent not given")
 
     # Store delivery metrics
     delivery_data = {

@@ -1,0 +1,29 @@
+# Keep the Render/docker build context to the backend only.
+
+# VCS
+.git
+.gitignore
+
+# Frontend / other monorepo dirs
+guidify-frontend/
+wiki/
+
+# Environment files (never bake secrets into an image)
+.env
+.env.*
+!.env.example
+
+# Node / Python artifacts
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Local tooling
+opencode.json
+docker-compose.yml
+prometheus.yml
+package-lock.json

@@ -35,10 +35,9 @@ async function apiGet(path) {
 }
 
 async function apiPost(path, body) {
-    // Attach auth token if available (Supabase session in localStorage)
-    const headers = { 'Content-Type': 'application/json' };
+    // Attach auth token if available (Supabase session in sessionStorage)
     try {
-        const raw = localStorage.getItem('sb-localhost-auth-token');
+        const raw = sessionStorage.getItem('sb-localhost-auth-token');
         if (raw) {
             const parsed = JSON.parse(raw);
             if (parsed.access_token) {
@@ -46,8 +45,6 @@ async function apiPost(path, body) {
             }
         }
     } catch (_) { /* no auth token, proceed unauthenticated */ }
-
-    const res = await fetch(`${API_BASE}${path}`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
@@ -196,7 +193,7 @@ async function submitTest() {
 
 function getUserId() {
     try {
-        const raw = localStorage.getItem('sb-localhost-auth-token');
+        const raw = sessionStorage.getItem('sb-localhost-auth-token');
         if (raw) {
             const parsed = JSON.parse(raw);
             return parsed.user?.id || null;

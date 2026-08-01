@@ -70,23 +70,25 @@ async def submit_psychometrics(
     from app.services.psychometrics_scoring import score_all, get_ipip_version, get_riasec_version
     from app.services.supabase_client import supabase_admin as supabase
 
-    # Validate consent if provided
-    if request.consent_id:
-        try:
-            consent_check = (
-                supabase.table("consents")
-                .select("id")
-                .eq("id", request.consent_id)
-                .eq("learner_id", learner_id)
-                .single()
-                .execute()
-            )
-            if not consent_check.data:
-                raise HTTPException(status_code=400, detail="Invalid consent record")
-        except HTTPException:
-            raise
-        except Exception:
-            logger.warning(f"Consent validation failed for learner {learner_id}, proceeding without consent_id")
+    # Validate consent - required
+    if not request.consent_id:
+        raise HTTPException(status_code=400, detail="Consent required")
+    try:
+        consent_check = (
+            supabase.table("consents")
+            .select("id")
+            .eq("id", request.consent_id)
+            .eq("learner_id", learner_id)
+            .single()
+            .execute()
+        )
+        if not consent_check.data:
+            raise HTTPException(status_code=400, detail="Invalid consent record")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Consent validation failed for learner {learner_id}: {e}")
+        raise HTTPException(status_code=500, detail="Consent validation failed")
 
     # Check retake cooldown
     try:

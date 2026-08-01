@@ -22,8 +22,8 @@ try:
     print("Attempting to connect...")
     supabase: Client = create_client(URL, KEY)
     # Simple query
-    response = supabase.table("profiles").select("count", count="exact").limit(1).execute()
+    response = supabase.table("learners").select("count", count="exact").limit(1).execute()
     print("Connection Successful!")
-    print(f"Profiles count data: {response.count}")
+    print(f"Learners count data: {response.count}")
 except Exception as e:
     print(f"Connection Failed: {e}")

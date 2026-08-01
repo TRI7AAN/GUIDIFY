@@ -13,6 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
+    storage: sessionStorage, // Use sessionStorage to avoid tracking prevention issues with localStorage
     detectSessionInUrl: true,
     // Add clock skew tolerance to prevent future-dated session errors
     allowedClockSkewSeconds: 300

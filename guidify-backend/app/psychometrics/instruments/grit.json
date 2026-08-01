@@ -1,0 +1,18 @@
+{
+  "instrument": "Grit-S",
+  "version": "1.0",
+  "description": "Short Grit Scale (Grit-S, Duckworth & Quinn 2009), 8-item follow-through / perseverance instrument. Items 1, 3, 5, 6 are reverse-scored.",
+  "scoring_method": "likert_sum_normalized",
+  "scale_range": [1, 5],
+  "normalize_to": [0, 100],
+  "items": [
+    {"id": "grit_1", "text": "New ideas and projects sometimes distract me from previous ones.", "scale": "grit", "reverse_scored": true},
+    {"id": "grit_2", "text": "Setbacks don't discourage me. I don't give up easily.", "scale": "grit", "reverse_scored": false},
+    {"id": "grit_3", "text": "I have been obsessed with a certain idea or project for a short time but later lost interest.", "scale": "grit", "reverse_scored": true},
+    {"id": "grit_4", "text": "I am a hard worker.", "scale": "grit", "reverse_scored": false},
+    {"id": "grit_5", "text": "I often set a goal but later choose to pursue a different one.", "scale": "grit", "reverse_scored": true},
+    {"id": "grit_6", "text": "I have difficulty maintaining my focus on projects that take more than a few months to complete.", "scale": "grit", "reverse_scored": true},
+    {"id": "grit_7", "text": "I finish whatever I begin.", "scale": "grit", "reverse_scored": false},
+    {"id": "grit_8", "text": "I am diligent. I never give up.", "scale": "grit", "reverse_scored": false}
+  ]
+}

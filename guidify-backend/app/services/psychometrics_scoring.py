@@ -5,7 +5,7 @@ Implements scoring for IPIP (Big Five) and RIASEC (Holland Codes) instruments.
 Pure functions — no AI Gateway involvement. Unit-testable against known scoring examples.
 
 Per techspec.md §11.1: Instrument definitions (item bank + scoring keys) live as
-versioned config files (ipip.json, riasec.json), not hardcoded logic.
+versioned config files (ipip_bigfive.json, riasec.json, grit.json), not hardcoded logic.
 """
 
 import json
@@ -17,6 +17,7 @@ _INSTRUMENTS_DIR = os.path.join(os.path.dirname(__file__), "..", "psychometrics"
 # Cache loaded configs at module level
 _ipip_config: Optional[Dict[str, Any]] = None
 _riasec_config: Optional[Dict[str, Any]] = None
+_grit_config: Optional[Dict[str, Any]] = None
 
 
 def _load_config(filename: str) -> Dict[str, Any]:
@@ -29,7 +30,7 @@ def _load_config(filename: str) -> Dict[str, Any]:
 def get_ipip_config() -> Dict[str, Any]:
     global _ipip_config
     if _ipip_config is None:
-        _ipip_config = _load_config("ipip.json")
+        _ipip_config = _load_config("ipip_bigfive.json")
     return _ipip_config
 
 
@@ -40,12 +41,23 @@ def get_riasec_config() -> Dict[str, Any]:
     return _riasec_config
 
 
+def get_grit_config() -> Dict[str, Any]:
+    global _grit_config
+    if _grit_config is None:
+        _grit_config = _load_config("grit.json")
+    return _grit_config
+
+
 def get_ipip_version() -> str:
     return get_ipip_config()["version"]
 
 
 def get_riasec_version() -> str:
     return get_riasec_config()["version"]
+
+
+def get_grit_version() -> str:
+    return get_grit_config()["version"]
 
 
 def _normalize_score(raw_sum: int, item_count: int, scale_min: int, scale_max: int,
@@ -98,7 +110,7 @@ def score_ipip(answers: Dict[str, int]) -> Dict[str, int]:
                 # Clamp to valid range
                 value = max(scale_min, min(scale_max, value))
                 # Reverse-code if needed
-                if item.get("reverse", False):
+                if item.get("reverse_scored", False):
                     value = scale_max + scale_min - value
                 raw_sum += value
                 count += 1
@@ -152,6 +164,35 @@ def score_riasec(answers: Dict[str, int]) -> Dict[str, int]:
             scores[dim] = _normalize_score(raw_sum, count, scale_min, scale_max, out_min, out_max)
 
     return scores
+
+
+def score_grit(answers: Dict[str, int]) -> Optional[int]:
+    """
+    Score Grit-S answers into a single 0-100 follow-through score.
+
+    Args:
+        answers: dict mapping item_id (e.g., "grit_1") to Likert value (1-5).
+
+    Returns:
+        int 0-100, or None if no grit answers were provided (instrument is optional).
+    """
+    config = get_grit_config()
+    scale_min, scale_max = config["scale_range"]
+    out_min, out_max = config["normalize_to"]
+
+    items = [item for item in config["items"] if item["id"] in answers]
+    if not items:
+        return None
+
+    raw_sum = 0
+    for item in items:
+        value = answers[item["id"]]
+        value = max(scale_min, min(scale_max, value))
+        if item.get("reverse_scored", False):
+            value = scale_max + scale_min - value
+        raw_sum += value
+
+    return _normalize_score(raw_sum, len(items), scale_min, scale_max, out_min, out_max)
 
 
 def get_top_riasec_codes(scores: Dict[str, int], top_n: int = 3) -> str:

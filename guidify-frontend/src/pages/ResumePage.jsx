@@ -8,9 +8,8 @@
  * Uses TailwindCSS design system.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { resumeAPI } from '../lib/api';
 import ResumeFeedback from '../components/resume/ResumeFeedback';
 import {
@@ -18,8 +17,10 @@ import {
   AlertCircle, Sparkles, FileUp, X, RotateCcw
 } from 'lucide-react';
 
+const POLL_INTERVAL = 4000;
+const POLL_MAX_ATTEMPTS = 40; // ~160s cap on background AI analysis
+
 export default function ResumePage() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -27,13 +28,19 @@ export default function ResumePage() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const data = await resumeAPI.getCurrent();
-        if (!cancelled && data && !data.error) setResult(data);
+        if (!cancelled && data && data.parsed_data) setResult(data);
       } catch {
         // No existing resume — show upload form
       } finally {
@@ -87,17 +94,35 @@ export default function ResumePage() {
     }
   };
 
+  const pollForResult = async (resumeId, attempts = 0) => {
+    if (!mountedRef.current) return null;
+    await new Promise(r => setTimeout(r, POLL_INTERVAL));
+    if (attempts >= POLL_MAX_ATTEMPTS) return null;
+    try {
+      const data = await resumeAPI.get(resumeId);
+      if (data?.parsed_data) return data;
+    } catch {
+      // Transient error — keep polling
+    }
+    return pollForResult(resumeId, attempts + 1);
+  };
+
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
     setError(null);
+    const formData = new FormData();
+    formData.append('file', file);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
       const res = await resumeAPI.upload(formData);
-      setResult(res);
+      const analyzed = await pollForResult(res?.id);
+      if (analyzed) {
+        setResult(analyzed);
+      } else {
+        setError('AI analysis is still running. Your resume was uploaded — refresh this page in a few minutes to see results.');
+      }
     } catch (e) {
-      const msg = e.response?.data?.error?.message || 'Upload failed. The resume parsing feature is coming soon.';
+      const msg = e.response?.data?.error?.message || 'Upload failed. Please try again.';
       setError(msg);
     } finally {
       setUploading(false);

@@ -46,9 +46,9 @@ if settings.ENABLE_SENTRY and getattr(settings, 'SENTRY_DSN', None):
     except Exception as sentry_err:
         logger.warning(f"Sentry initialization failed: {sentry_err}")
 
-# Import rate limiting
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+# Import rate limiting (shared instance defined in core to avoid circular imports)
+from app.core.rate_limit import limiter
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 # Import new API route modules (per architecture.md §2, api.md)
@@ -75,7 +75,6 @@ logger.info(
 )
 
 # Rate Limiting
-limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

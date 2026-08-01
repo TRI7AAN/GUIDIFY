@@ -54,7 +54,7 @@ apiClient.interceptors.request.use(
     }
 
     // Auth Token
-    const token = memoryToken || localStorage.getItem('guidify_token');
+    const token = memoryToken || sessionStorage.getItem('guidify_token');
     if (token && !config.skipAuth) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -80,8 +80,8 @@ apiClient.interceptors.response.use(
 
     // Handle 401/403 Unauthorized
     if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      localStorage.removeItem('guidify_token');
-      localStorage.removeItem('guidify_user');
+      sessionStorage.removeItem('guidify_token');
+      sessionStorage.removeItem('guidify_user');
       window.dispatchEvent(new CustomEvent('auth:unauthorized'));
       return Promise.reject(error);
     }

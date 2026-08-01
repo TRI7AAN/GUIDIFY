@@ -66,6 +66,7 @@ class OpenRouterProvider(AIProvider):
                     model=target_model,
                     messages=messages,
                     temperature=0.4,
+                    timeout=settings.AI_TIMEOUT_SECONDS,
                 )
                 return response.choices[0].message.content or ""
             except Exception as e:

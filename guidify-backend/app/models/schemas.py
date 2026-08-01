@@ -193,10 +193,10 @@ class DashboardResponse(BaseModel):
 
 class ResumeContact(BaseModel):
     """Extracted contact information from resume"""
-    name: str = ""
-    email: str = ""
-    phone: str = ""
-    location: str = ""
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    location: Optional[str] = None
     linkedin: Optional[str] = None
     github: Optional[str] = None
     portfolio: Optional[str] = None
@@ -204,22 +204,22 @@ class ResumeContact(BaseModel):
 
 class ResumeExperience(BaseModel):
     """Work experience entry from resume"""
-    company: str
-    title: str
-    start_date: str = ""
-    end_date: str = ""
+    company: Optional[str] = None
+    title: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     location: Optional[str] = None
-    description: str = ""
+    description: Optional[str] = None
     responsibilities: List[str] = []
 
 
 class ResumeEducation(BaseModel):
     """Education entry from resume"""
-    institution: str
-    degree: str = ""
-    field_of_study: str = ""
-    start_date: str = ""
-    end_date: str = ""
+    institution: Optional[str] = None
+    degree: Optional[str] = None
+    field_of_study: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
     gpa: Optional[str] = None
     percentage: Optional[float] = None
     honors: Optional[str] = None
@@ -227,47 +227,47 @@ class ResumeEducation(BaseModel):
 
 class ResumeProject(BaseModel):
     """Project entry from resume"""
-    name: str
-    description: str = ""
+    name: Optional[str] = None
+    description: Optional[str] = None
     technologies: List[str] = []
     url: Optional[str] = None
 
 
 class ResumeCertification(BaseModel):
     """Certification entry from resume"""
-    name: str
-    issuer: str = ""
-    date: str = ""
+    name: Optional[str] = None
+    issuer: Optional[str] = None
+    date: Optional[str] = None
     url: Optional[str] = None
 
 
 class ResumeParseResponse(BaseModel):
     """AI Gateway output schema for resume.parse — validates AI response"""
-    contact: ResumeContact = ResumeContact()
-    summary: str = ""
-    experience: List[ResumeExperience] = []
-    education: List[ResumeEducation] = []
-    technical_skills: List[str] = []
-    soft_skills: List[str] = []
-    projects: List[ResumeProject] = []
-    certifications: List[ResumeCertification] = []
-    languages: List[str] = []
-    total_years_experience: int = 0
+    contact: Optional[ResumeContact] = None
+    summary: Optional[str] = None
+    experience: Optional[List[ResumeExperience]] = None
+    education: Optional[List[ResumeEducation]] = None
+    technical_skills: Optional[List[str]] = None
+    soft_skills: Optional[List[str]] = None
+    projects: Optional[List[ResumeProject]] = None
+    certifications: Optional[List[ResumeCertification]] = None
+    languages: Optional[List[str]] = None
+    total_years_experience: Optional[int] = None
 
 
 class ResumeGapItem(BaseModel):
     """A single gap identified in resume analysis"""
-    area: str
-    description: str
+    area: Optional[str] = None
+    description: Optional[str] = None
     impact: str = "medium"  # low, medium, high
-    suggestion: str = ""
+    suggestion: Optional[str] = None
 
 
 class ResumeImprovement(BaseModel):
     """A specific actionable improvement suggestion"""
-    priority: int
-    action: str
-    example: str = ""
+    priority: Optional[int] = None
+    action: Optional[str] = None
+    example: Optional[str] = None
 
 
 class ResumeAtsCompatibility(BaseModel):
@@ -279,12 +279,12 @@ class ResumeAtsCompatibility(BaseModel):
 
 class ResumeScoreResponse(BaseModel):
     """AI Gateway output schema for resume.score — validates AI response"""
-    overall_score: int = Field(..., ge=0, le=100)
-    section_scores: Dict[str, int] = {}
-    strengths: List[str] = []
-    gaps: List[ResumeGapItem] = []
-    top_improvements: List[ResumeImprovement] = []
-    ats_compatibility: ResumeAtsCompatibility = ResumeAtsCompatibility()
+    overall_score: Optional[int] = Field(default=None, ge=0, le=100)
+    section_scores: Optional[Dict[str, int]] = None
+    strengths: Optional[List[str]] = None
+    gaps: Optional[List[ResumeGapItem]] = None
+    top_improvements: Optional[List[ResumeImprovement]] = None
+    ats_compatibility: Optional[ResumeAtsCompatibility] = None
 
 
 class ResumeUploadResponse(BaseModel):
@@ -306,6 +306,7 @@ class ResumeResponse(BaseModel):
     score: Optional[int] = None
     gap_analysis: Optional[ResumeScoreResponse] = None
     is_current: bool = True
+    status: str = "completed"
     created_at: Optional[datetime] = None
 
 

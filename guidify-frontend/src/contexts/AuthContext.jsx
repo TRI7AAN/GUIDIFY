@@ -22,19 +22,27 @@ export const AuthProvider = ({ children }) => {
     if (!userId) return null;
 
     for (let i = 0; i < retries; i++) {
+      const controller = new AbortController();
+      let timeoutId;
       try {
-        // Timeout wrapper (8 seconds — fast fail, retry handles transient issues)
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Profile fetch timeout")), 8000)
-        );
-
         const fetchPromise = supabase
           .from('learners')
           .select('onboarding_completed')
           .eq('id', userId)
-          .single();
+          .single()
+          .abortSignal(controller.signal);
+
+        // Timeout wrapper (15s — aborts the underlying request so a hung query
+        // can't linger in the background while we retry)
+        const timeoutPromise = new Promise((_, reject) => {
+          timeoutId = setTimeout(() => {
+            controller.abort();
+            reject(new Error("Profile fetch timeout"));
+          }, 15000);
+        });
 
         const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+        clearTimeout(timeoutId);
 
         if (error) {
           if (error.code === 'PGRST116') {
@@ -52,6 +60,7 @@ export const AuthProvider = ({ children }) => {
         await new Promise(r => setTimeout(r, delayMs * Math.pow(1.5, i)));
 
       } catch (err) {
+        clearTimeout(timeoutId);
         console.error(`Fetch profile error (attempt ${i + 1}):`, err);
         if (i === retries - 1) return null;
         await new Promise(r => setTimeout(r, delayMs * Math.pow(1.5, i)));
@@ -68,7 +77,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       userIdRef.current = null;
       setAuthToken(null);
-      localStorage.removeItem('guidify_token');
+      sessionStorage.removeItem('guidify_token');
       setOnboardingComplete(false);
       setLoading(false);
       syncingRef.current = false;
@@ -83,12 +92,6 @@ export const AuthProvider = ({ children }) => {
     setUser(currentUser);
     userIdRef.current = currentUser.id;
     setAuthToken(session?.access_token);
-    // Persist token to localStorage so it survives page refresh
-    if (session?.access_token) {
-      localStorage.setItem('guidify_token', session.access_token);
-    } else {
-      localStorage.removeItem('guidify_token');
-    }
 
     try {
       // BUG-07: Profile is created by the DB trigger `on_auth_user_created` on signup.
@@ -113,12 +116,13 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
-    // MED-07 FIX: Safety valve — if auth takes >30 seconds, explicitly sign out to ensure
-    // the app doesn't reach a partially-initialized state where user=null but isLoading=false
-    // without protected routes knowing to redirect to login.
-    // 30s allows 3 retries at 8s each (24s max) with buffer for cold starts.
+    // MED-07 FIX: Safety valve — if auth recovery (getSession) hangs >30 seconds, explicitly
+    // sign out to ensure the app doesn't reach a partially-initialized state where user=null
+    // but isLoading=false without protected routes knowing to redirect to login.
+    // Only fires when no sync is in progress, so a slow-but-progressing profile fetch
+    // (bounded at 15s per attempt) is never killed mid-retry.
     const safetyTimer = setTimeout(() => {
-      if (mounted) {
+      if (mounted && !syncingRef.current) {
         console.warn("⚠️ Auth initialization timed out (30s). Clearing session state and redirecting.");
         setUser(null);
         setOnboardingComplete(false);
@@ -184,9 +188,8 @@ export const AuthProvider = ({ children }) => {
         await supabase.auth.signOut();
         // CQ-05 FIX: Only clear GUIDIFY-specific keys, not ALL localStorage
         // (clearing all would wipe third-party SDK state and user preferences)
-        localStorage.removeItem('guidify_token');
-        localStorage.removeItem('guidify_user');
-        localStorage.removeItem('guidify_session');
+        sessionStorage.removeItem('guidify_user');
+        sessionStorage.removeItem('guidify_session');
       } catch (e) {
         console.error("Logout error", e);
       }

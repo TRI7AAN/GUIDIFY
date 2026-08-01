@@ -18,8 +18,8 @@ const authService = {
   register: async (userData) => {
     const response = await apiClient.post('/auth/signup', userData);
     if (response.user?.session?.access_token) {
-      localStorage.setItem('guidify_token', response.user.session.access_token);
-      localStorage.setItem('guidify_user', JSON.stringify(response.user));
+      sessionStorage.setItem('guidify_token', response.user.session.access_token);
+      sessionStorage.setItem('guidify_user', JSON.stringify(response.user));
     }
     return response;
   },
@@ -34,8 +34,8 @@ const authService = {
   login: async (credentials) => {
     const response = await apiClient.post('/auth/login', credentials);
     if (response.session?.access_token) {
-      localStorage.setItem('guidify_token', response.session.access_token);
-      localStorage.setItem('guidify_user', JSON.stringify(response.user));
+      sessionStorage.setItem('guidify_token', response.session.access_token);
+      sessionStorage.setItem('guidify_user', JSON.stringify(response.user));
     }
     return response;
   },
@@ -65,9 +65,9 @@ const authService = {
    */
   logout: async () => {
     const response = await apiClient.post('/auth/logout');
-    // Always clear local storage on logout attempt
-    localStorage.removeItem('guidify_token');
-    localStorage.removeItem('guidify_user');
+    // Always clear session storage on logout attempt
+    sessionStorage.removeItem('guidify_token');
+    sessionStorage.removeItem('guidify_user');
     return response;
   }
 };

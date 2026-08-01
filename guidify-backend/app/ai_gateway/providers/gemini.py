@@ -60,6 +60,7 @@ class GeminiProvider(AIProvider):
                     model=target_model,
                     contents=prompt,
                     config=config,
+                    timeout=settings.AI_TIMEOUT_SECONDS,
                 )
                 return response.text or ""
             except Exception as e:
