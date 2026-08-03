@@ -111,6 +111,7 @@ export const resumeAPI = {
   }),
   get: (resumeId) => api.get(`/api/v1/resume/${resumeId}`),
   getCurrent: () => api.get('/api/v1/resume/current'),
+  matchJD: (data) => api.post('/api/v1/resume/match-jd', data),
 };
 
 /** Roadmap — api.md §3 */
@@ -145,6 +146,15 @@ export const dashboardAPI = {
 export const adaptationAPI = {
   getStatus: () => api.get('/api/v1/adaptation/status'),
   getSkillGap: () => api.get('/api/v1/adaptation/skill-gap'),
+};
+
+/** Psychometric Test — yes/maybe/no assessment */
+export const psychometricTestAPI = {
+  getQuestions: () => api.get('/api/v1/psychometric-test/questions'),
+  startTest: () => api.post('/api/v1/psychometric-test/start', {}),
+  submitTest: (data) => api.post('/api/v1/psychometric-test/submit', data),
+  getResult: (sessionId) => api.get(`/api/v1/psychometric-test/result/${sessionId}`),
+  getLatest: () => api.get('/api/v1/psychometric-test/latest'),
 };
 
 export default api;

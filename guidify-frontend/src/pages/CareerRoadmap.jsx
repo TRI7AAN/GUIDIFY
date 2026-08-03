@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useCurrentRoadmap } from '../hooks/query';
+import { useCurrentRoadmap, useRegenerateRoadmap } from '../hooks/query';
 import {
   Map, ChevronDown, ChevronRight, ChevronLeft, Clock,
   Target, Sparkles, CheckCircle2, Circle, Lock,
@@ -12,34 +12,20 @@ export default function RoadmapView() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [expandedPhase, setExpandedPhase] = useState(null);
-  const [regenerating, setRegenerating] = useState(false);
   
-  const { data: roadmap, isLoading: loading, isError } = useCurrentRoadmap({
+  const { data: roadmapData, isLoading: loading, isError } = useCurrentRoadmap({
     enabled: !!user,
   });
 
-  const handleRegenerate = async () => {
-    setRegenerating(true);
-    try {
-      const res = await window.fetch('/api/v1/roadmap/regenerate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Auth token will be added by the API interceptor
-        },
-      });
-      
-      if (res.ok) {
-        // In a full implementation, we would invalidate the query here
-        // For now, we'll rely on the refetch mechanism or manual update
-        // This is a simplified version - in practice we'd use react-query's mutation
-      }
-    } catch (e) {
-      console.error('Regenerate failed:', e);
-    } finally {
-      setRegenerating(false);
-    }
+  const regenerateMutation = useRegenerateRoadmap();
+  const regenerating = regenerateMutation.isPending;
+
+  const handleRegenerate = () => {
+    regenerateMutation.mutate();
   };
+
+  // Handle the no_roadmap status from backend
+  const roadmap = roadmapData?.status === 'no_roadmap' ? null : roadmapData;
 
   if (loading) {
     return (
@@ -93,6 +79,15 @@ export default function RoadmapView() {
             Complete your profile to get a personalized career roadmap powered by AI.
             Your roadmap will break down the journey into clear, actionable phases.
           </p>
+
+          {regenerateMutation.isError && (
+            <div className="flex items-start gap-2 p-4 rounded-xl bg-red-900/20 border border-red-500/30 mb-6 text-left">
+              <p className="text-sm text-red-300">
+                {regenerateMutation.error?.response?.data?.detail || 'Roadmap generation failed. Please try again.'}
+              </p>
+            </div>
+          )}
+
           <div className="flex justify-center gap-4">
             <button
               onClick={() => navigate('/onboarding')}
@@ -113,6 +108,7 @@ export default function RoadmapView() {
       </div>
     );
   }
+
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {

@@ -81,6 +81,12 @@ export const protectedRoutes = [
     description: "AI mock interview practice with feedback",
     category: "career",
   },
+  {
+    path: "/psychometric-test",
+    name: "Psychometric Test",
+    description: "Discover your strengths across 5 career dimensions",
+    category: "career",
+  },
 
   // Tools
   {

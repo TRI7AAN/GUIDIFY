@@ -21,6 +21,7 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const CareerRoadmap = lazy(() => import("./pages/CareerRoadmap"));
 const ResumePage = lazy(() => import("./pages/ResumePage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
+const PsychometricTestPage = lazy(() => import("./pages/PsychometricTestPage"));
 
 
 
@@ -39,6 +40,7 @@ const componentMap = {
   "/roadmap": CareerRoadmap,
   "/resume": ResumePage,
   "/interview": InterviewPage,
+  "/psychometric-test": PsychometricTestPage,
 
 
   // Error routes

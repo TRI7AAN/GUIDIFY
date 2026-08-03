@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Home, LayoutDashboard, Route, User, BookOpen,
-  Briefcase, GraduationCap, Settings, LogOut
+  Briefcase, GraduationCap, Settings, LogOut, Brain
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/roadmap', label: 'Learning Path', icon: Route },
   { to: '/resume', label: 'Resume', icon: BookOpen },
   { to: '/interview', label: 'Interview', icon: Briefcase },
+  { to: '/psychometric-test', label: 'Psychometric', icon: Brain },
 ];
 
 export default function Sidebar() {

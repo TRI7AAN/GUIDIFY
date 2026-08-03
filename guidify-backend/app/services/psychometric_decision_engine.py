@@ -124,7 +124,7 @@ SCORE_LABELS = [
 
 # Career mapping: top category combinations -> recommendations
 CAREER_MAP = {
-    ("Technical Aptitude", "Analytical Reasonation"): ("Software Engineer", "Data Scientist"),
+    ("Technical Aptitude", "Analytical Reasoning"): ("Software Engineer", "Data Scientist"),
     ("Technical Aptitude", "Creative Thinking"): ("Full-Stack Developer", "UX Engineer"),
     ("Technical Aptitude", "Leadership"): ("Engineering Manager", "Technical Lead"),
     ("Creative Thinking", "Interpersonal Skills"): ("Product Manager", "Marketing Strategist"),

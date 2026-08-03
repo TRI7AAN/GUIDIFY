@@ -54,6 +54,7 @@ class AIGateway:
         "interview.question": "nvidia/nemotron-3-super-120b-a12b:free",
         "interview.feedback": "nvidia/nemotron-3-super-120b-a12b:free",
         "psychometrics.narrate": "nvidia/nemotron-3-super-120b-a12b:free",
+        "resume.jd_match": "nvidia/nemotron-3-super-120b-a12b:free",
         "test.hello": "nvidia/nemotron-3-super-120b-a12b:free",
     }
 
@@ -362,6 +363,24 @@ class AIGateway:
                 ipip_scores=context.get("ipip_scores", {}),
                 riasec_scores=context.get("riasec_scores", {}),
                 grit_score=context.get("grit_score"),
+            )
+            if schema_hint:
+                prompt += (
+                    "\n\nIMPORTANT: Your previous response did not match the required JSON schema. "
+                    "Please return ONLY valid JSON with no extra text."
+                )
+            return prompt
+
+        # Resume JD matching — uses versioned prompt template
+        if task_type == "resume.jd_match":
+            from app.ai_gateway.prompts.resume_jd_match import RESUME_JD_MATCH_V1
+            prompt = RESUME_JD_MATCH_V1.format(
+                parsed_resume_json=json.dumps(context.get("parsed_resume", {}), default=str),
+                job_title=context.get("job_title", "Software Developer"),
+                company=context.get("company", "Not specified"),
+                job_description=context.get("job_description", ""),
+                target_role=context.get("target_role", "Software Developer"),
+                segment=context.get("segment", "college"),
             )
             if schema_hint:
                 prompt += (

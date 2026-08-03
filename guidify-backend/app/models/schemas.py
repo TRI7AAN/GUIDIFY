@@ -310,6 +310,52 @@ class ResumeResponse(BaseModel):
     created_at: Optional[datetime] = None
 
 
+# --- Resume + JD Matching Models ---
+
+class JDMatchRequest(BaseModel):
+    """POST /resume/match-jd request body"""
+    job_title: str = Field(..., min_length=1, max_length=200)
+    company: Optional[str] = Field(None, max_length=200)
+    job_description: str = Field(..., min_length=50)
+
+
+class ResumeChangeItem(BaseModel):
+    """A suggested change to the resume for better JD alignment"""
+    section: str = ""
+    current_text: Optional[str] = None
+    suggested_text: Optional[str] = None
+    reason: str = ""
+
+
+class CourseRecommendation(BaseModel):
+    """A course recommendation to bridge a skill gap"""
+    title: str = ""
+    provider: Optional[str] = None
+    url: Optional[str] = None
+    skill_targeted: str = ""
+    relevance: str = ""
+
+
+class JobSuggestion(BaseModel):
+    """A suggested job the candidate should apply to"""
+    title: str = ""
+    company_type: Optional[str] = None
+    match_reason: str = ""
+    estimated_fit_pct: Optional[int] = Field(None, ge=0, le=100)
+    search_query: Optional[str] = None
+
+
+class JDMatchResponse(BaseModel):
+    """AI Gateway output schema for resume.jd_match"""
+    match_score: int = Field(0, ge=0, le=100)
+    match_summary: str = ""
+    missing_skills: List[str] = []
+    matching_skills: List[str] = []
+    resume_changes: List[ResumeChangeItem] = []
+    courses: List[CourseRecommendation] = []
+    job_suggestions: List[JobSuggestion] = []
+
+
 # --- Adaptation Engine Models (rules.md, schema.md §7) ---
 
 class EventType(str, Enum):

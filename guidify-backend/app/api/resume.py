@@ -27,6 +27,8 @@ from app.models.schemas import (
     ResumeResponse,
     ResumeParseResponse,
     ResumeScoreResponse,
+    JDMatchRequest,
+    JDMatchResponse,
 )
 from app.utils.file_parser import extract_text_from_file
 from app.utils.helpers import save_uploaded_file, cleanup_temp_file
@@ -234,3 +236,47 @@ def _build_resume_response(resume: dict) -> ResumeResponse:
         status="completed" if parsed_data else "processing",
         created_at=resume.get("created_at"),
     )
+
+
+@router.post("/resume/match-jd", response_model=JDMatchResponse)
+async def match_resume_to_jd(
+    request: JDMatchRequest,
+    learner_id: str = Depends(get_current_learner_id),
+):
+    """
+    Compare the user's current resume against a job description.
+
+    Returns match score, resume change suggestions, course recommendations,
+    and alternative job suggestions.
+    """
+    # Load current resume
+    resume = await queries.get_current_resume(learner_id)
+    if not resume or not resume.get("parsed_data"):
+        raise HTTPException(
+            status_code=400,
+            detail="No analyzed resume found. Please upload and analyze a resume first.",
+        )
+
+    # Get learner context
+    learner = await queries.get_learner(learner_id)
+    target_role = learner.get("target_role", "Software Developer") if learner else "Software Developer"
+    segment = learner.get("segment", "college") if learner else "college"
+
+    # Call AI Gateway
+    try:
+        result = await gateway.generate(
+            task_type="resume.jd_match",
+            context={
+                "parsed_resume": resume["parsed_data"],
+                "job_title": request.job_title,
+                "company": request.company or "Not specified",
+                "job_description": request.job_description,
+                "target_role": target_role,
+                "segment": segment,
+            },
+            response_model=JDMatchResponse,
+        )
+        return JDMatchResponse(**result)
+    except Exception as e:
+        logger.error(f"JD match failed for learner {learner_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"AI analysis failed: {str(e)}")
