@@ -84,7 +84,7 @@ Google Gemini (2.5 Flash / Lite)
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/guidify.git
+git clone https://github.com/tri7aan/guidify.git
 cd guidify
 ```
 
