@@ -157,7 +157,7 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 # ── Health Endpoints (no auth required) ────────────────────────────────
 
-@app.get("/", tags=["Health"])
+@app.api_route("/", methods=["GET", "HEAD"], tags=["Health"])
 async def root():
     return {"status": "ok", "message": f"GUIDIFY API {settings.APP_VERSION}"}
 
