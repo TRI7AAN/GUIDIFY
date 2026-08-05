@@ -161,11 +161,11 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 async def root():
     return {"status": "ok", "message": f"GUIDIFY API {settings.APP_VERSION}"}
 
-@app.get("/health", tags=["Health"])
+@app.api_route("/health", methods=["GET", "HEAD"], tags=["Health"])
 async def health_check():
     return {"status": "ok"}
 
-@app.get("/api/v1/health", tags=["Health"])
+@app.api_route("/api/v1/health", methods=["GET", "HEAD"], tags=["Health"])
 async def health_check_v1():
     """Versioned health endpoint"""
     return {"status": "ok", "version": settings.APP_VERSION}

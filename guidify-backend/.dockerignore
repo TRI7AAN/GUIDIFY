@@ -1,0 +1,17 @@
+# Keep the docker build context lean
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Environment files (never bake secrets into an image)
+.env
+.env.*
+
+# Not needed at runtime
+temp/
+tests/
