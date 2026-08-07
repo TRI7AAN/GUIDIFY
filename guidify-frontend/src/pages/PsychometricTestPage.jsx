@@ -119,7 +119,7 @@ function QuestionStepper({ questions, onComplete }) {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const question = questions[currentIndex];
-  const progress = ((currentIndex) / questions.length) * 100;
+  const progress = ((currentIndex + 1) / questions.length) * 100;
   const category = question?.category || '';
   const colors = CATEGORY_COLORS[category] || CATEGORY_COLORS['Technical Aptitude'];
   const Icon = CATEGORY_ICONS[category] || Brain;
@@ -364,23 +364,7 @@ export default function PsychometricTestPage() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-
-  // Check for existing results on mount
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await psychometricTestAPI.getLatest();
-        if (!cancelled && data?.result) {
-          setResult(data.result);
-          setPhase('results');
-        }
-      } catch {
-        // No existing result — show intro
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  const [notSavedWarning, setNotSavedWarning] = useState(false);
 
   const handleStart = async () => {
     setLoading(true);
@@ -401,12 +385,14 @@ export default function PsychometricTestPage() {
   const handleComplete = async (answers) => {
     setPhase('submitting');
     setError(null);
+    setNotSavedWarning(false);
     try {
       const data = await psychometricTestAPI.submitTest({
         session_id: sessionId,
         answers,
       });
       setResult(data.result);
+      setNotSavedWarning(data.saved === false);
       setPhase('results');
     } catch (e) {
       setError('Failed to submit assessment. Please try again.');
@@ -421,6 +407,7 @@ export default function PsychometricTestPage() {
     setSessionId(null);
     setResult(null);
     setError(null);
+    setNotSavedWarning(false);
   };
 
   return (
@@ -463,6 +450,16 @@ export default function PsychometricTestPage() {
             <div className="w-16 h-16 rounded-full border-2 border-[#3cff14] border-t-transparent animate-spin mx-auto mb-6" />
             <h3 className="text-xl font-display font-bold text-white mb-2">Analyzing your responses</h3>
             <p className="text-[#A4ACBC]">Running the decision engine...</p>
+          </div>
+        )}
+
+        {phase === 'results' && notSavedWarning && (
+          <div className="flex items-start gap-2 p-4 rounded-xl bg-amber-900/20 border border-amber-500/30 mb-6 animate-fade-in-up">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-300">
+              <p className="font-semibold mb-0.5">Results not saved to your account</p>
+              <p>You can still review them below, but they won't appear in your test history or profile. Sign in and retake to save them.</p>
+            </div>
           </div>
         )}
 

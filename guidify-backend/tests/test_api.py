@@ -23,7 +23,7 @@ def test_ml_profile_generate():
             "career_goal": "Backend Developer"
         }
     }
-    response = client.post("/api/ml/profile/generate", json=payload)
+    response = client.post("/api/v1/ml/profile/generate", json=payload)
     assert response.status_code == 200
     data = response.json()
     assert data["user_id"] == "test_user_123"
@@ -31,7 +31,7 @@ def test_ml_profile_generate():
     # assert "predicted_cluster" in data.get("features", {})
 
 def test_lmi_skills_trend():
-    response = client.get("/api/lmi/skills-trend?skill=Python")
+    response = client.get("/api/v1/lmi/skills-trend?skill=Python")
     assert response.status_code == 200
     data = response.json()
     assert data["skill"] == "Python"

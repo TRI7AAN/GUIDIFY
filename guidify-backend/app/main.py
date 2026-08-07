@@ -52,7 +52,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 # Import new API route modules (per architecture.md §2, api.md)
-from app.api import auth, dashboard, resume, roadmap, missions, interview, adaptation, psychometric_test, psychometric, profile_psychometrics
+from app.api import auth, dashboard, resume, roadmap, missions, interview, adaptation, psychometric_test, psychometric, profile_psychometrics, ml, lmi
 
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -151,6 +151,12 @@ app.include_router(psychometric.router, prefix=API_V1, tags=["Psychometric"])
 
 # Profile Psychometrics (validated instrument scoring — api.md §7)
 app.include_router(profile_psychometrics.router, prefix=API_V1, tags=["Profile Psychometrics"])
+
+# ML Profiling (restored legacy endpoints — profile generation)
+app.include_router(ml.router, prefix=API_V1, tags=["ML Profiling"])
+
+# LMI (labour market intelligence — skills demand trends)
+app.include_router(lmi.router, prefix=API_V1, tags=["LMI"])
 
 # Prometheus metrics — secured endpoint for internal scraping
 Instrumentator().instrument(app).expose(app, endpoint="/metrics")

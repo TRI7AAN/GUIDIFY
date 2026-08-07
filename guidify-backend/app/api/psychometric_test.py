@@ -38,15 +38,17 @@ async def get_questions():
     questions = PsychometricDecisionEngine.get_questions()
     session_id = PsychometricDecisionEngine.generate_session_id()
 
-    # Persist session to DB
+    # Persist anonymous session so a submit against this session_id can claim it.
+    # Fail loudly: a returned session_id that was never persisted would 404 on submit.
+    from app.services.supabase_client import supabase_admin as supabase
     try:
-        from app.services.supabase_client import supabase_admin as supabase
         supabase.table("psychometric_sessions").insert({
             "session_id": session_id,
             "status": "in_progress",
         }).execute()
     except Exception as e:
-        logger.warning(f"Failed to persist session to DB: {e}")
+        logger.error(f"Failed to persist session to DB: {e}")
+        raise HTTPException(status_code=503, detail="Could not start a test session. Please try again.")
 
     return StartTestResponse(
         session_id=session_id,
@@ -66,16 +68,18 @@ async def start_test(
     questions = PsychometricDecisionEngine.get_questions()
     session_id = PsychometricDecisionEngine.generate_session_id()
 
-    # Persist session to DB with user association
+    # Persist session to DB with user association. Fail loudly: a returned
+    # session_id that was never persisted would 404 on submit.
+    from app.services.supabase_client import supabase_admin as supabase
     try:
-        from app.services.supabase_client import supabase_admin as supabase
         supabase.table("psychometric_sessions").insert({
             "session_id": session_id,
             "user_id": learner_id,
             "status": "in_progress",
         }).execute()
     except Exception as e:
-        logger.warning(f"Failed to persist session to DB: {e}")
+        logger.error(f"Failed to persist session to DB: {e}")
+        raise HTTPException(status_code=503, detail="Could not start a test session. Please try again.")
 
     return StartTestResponse(
         session_id=session_id,
@@ -93,13 +97,14 @@ async def submit_test(
     Submit all answers and receive the decision engine result.
 
     The engine:
-    1. Validates all question IDs exist
-    2. Computes per-category scores (0-100) with response-time adjustments
+    1. Validates every question ID is answered exactly once
+    2. Computes per-category scores (0-100)
     3. Derives overall weighted score and confidence
     4. Maps top-2 categories to career recommendations
     5. Generates personality profile, strengths, and growth areas
     """
     from app.services.supabase_client import supabase_admin as supabase
+    from app.services.psychometric_decision_engine import QUESTION_BANK
 
     # Validate session exists in DB
     try:
@@ -119,33 +124,35 @@ async def submit_test(
     if session.get("status") == "completed":
         raise HTTPException(status_code=400, detail="Session already completed")
 
-    # Validate answer count matches question count
-    from app.services.psychometric_decision_engine import QUESTION_BANK
-    expected = len(QUESTION_BANK)
-    if len(request.answers) != expected:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Expected {expected} answers, got {len(request.answers)}",
-        )
+    # Ownership: reject other users' sessions, claim anonymous (preview) ones
+    session_user_id = session.get("user_id")
+    if session_user_id and session_user_id != learner_id:
+        raise HTTPException(status_code=403, detail="Session does not belong to this user")
+
+    # Validate answers: every question answered exactly once with a valid value
+    expected_ids = [q["id"] for q in QUESTION_BANK]
+    submitted_ids = [a.question_id for a in request.answers]
+    unknown = sorted({qid for qid in submitted_ids if qid not in expected_ids})
+    missing = sorted(qid for qid in expected_ids if qid not in submitted_ids)
+    duplicates = sorted({qid for qid in submitted_ids if submitted_ids.count(qid) > 1})
+    if unknown or missing or duplicates:
+        problems = []
+        if unknown:
+            problems.append(f"unknown question_ids: {unknown}")
+        if missing:
+            problems.append(f"missing question_ids: {missing}")
+        if duplicates:
+            problems.append(f"duplicate question_ids: {duplicates}")
+        raise HTTPException(status_code=400, detail="Answer validation failed; " + "; ".join(problems))
+    if any(a.answer not in ("yes", "maybe", "no") for a in request.answers):
+        raise HTTPException(status_code=400, detail="Answers must be 'yes', 'maybe', or 'no'")
+    if any(a.response_time_ms is not None and a.response_time_ms < 0 for a in request.answers):
+        raise HTTPException(status_code=400, detail="response_time_ms must be a non-negative integer")
 
     # Run decision engine
     result = PsychometricDecisionEngine.evaluate(request.answers)
 
-    # Mark session complete in DB
-    try:
-        supabase.table("psychometric_sessions").update({
-            "status": "completed",
-            "user_id": learner_id,
-        }).eq("session_id", request.session_id).execute()
-    except Exception as e:
-        logger.warning(f"Failed to update session status: {e}")
-
-    logger.info(
-        f"Psychometric test completed: session={request.session_id} "
-        f"overall={result.overall_score} recommendation={result.primary_recommendation}"
-    )
-
-    # Save result to psychometric_results table
+    # Save result BEFORE marking the session complete so a failed save stays retryable
     saved = False
     try:
         supabase.table("psychometric_results").upsert({
@@ -164,6 +171,21 @@ async def submit_test(
         saved = True
     except Exception as e:
         logger.warning(f"Failed to save psychometric result to DB: {e}")
+
+    # Mark session complete only when the result was persisted
+    if saved:
+        try:
+            supabase.table("psychometric_sessions").update({
+                "status": "completed",
+                "user_id": learner_id,
+            }).eq("session_id", request.session_id).execute()
+        except Exception as e:
+            logger.warning(f"Failed to update session status: {e}")
+
+    logger.info(
+        f"Psychometric test completed: session={request.session_id} "
+        f"overall={result.overall_score} recommendation={result.primary_recommendation}"
+    )
 
     return SubmitTestResponse(
         success=True,

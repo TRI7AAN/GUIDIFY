@@ -28,6 +28,23 @@ function showScreen(id) {
 }
 
 // ── API Calls ──────────────────────────────────────────────────────
+// Supabase stores the session under a host-specific key
+// (e.g. 'sb-localhost-auth-token' locally, 'sb-<ref>-auth-token' in prod).
+function getStoredSession() {
+    try {
+        for (const storage of [sessionStorage, localStorage]) {
+            for (let i = 0; i < storage.length; i++) {
+                const key = storage.key(i);
+                if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                    const parsed = JSON.parse(storage.getItem(key));
+                    if (parsed && parsed.access_token) return parsed;
+                }
+            }
+        }
+    } catch (_) { /* no stored session */ }
+    return null;
+}
+
 async function apiGet(path) {
     const res = await fetch(`${API_BASE}${path}`);
     if (!res.ok) throw new Error(`API error: ${res.status}`);
@@ -35,16 +52,15 @@ async function apiGet(path) {
 }
 
 async function apiPost(path, body) {
-    // Attach auth token if available (Supabase session in sessionStorage)
-    try {
-        const raw = sessionStorage.getItem('sb-localhost-auth-token');
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (parsed.access_token) {
-                headers['Authorization'] = `Bearer ${parsed.access_token}`;
-            }
-        }
-    } catch (_) { /* no auth token, proceed unauthenticated */ }
+    const headers = { 'Content-Type': 'application/json' };
+
+    // Attach auth token if a Supabase session is available
+    const session = getStoredSession();
+    if (session && session.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
+    const res = await fetch(`${API_BASE}${path}`, {
         method: 'POST',
         headers,
         body: JSON.stringify(body),
@@ -89,7 +105,7 @@ function renderQuestion() {
     const idx = state.currentIndex + 1;
 
     // Update progress
-    $('#progress-fill').style.width = `${(state.currentIndex / total) * 100}%`;
+    $('#progress-fill').style.width = `${((state.currentIndex + 1) / total) * 100}%`;
     $('#progress-label').textContent = `${idx} / ${total}`;
 
     // Record question start time for response-time tracking
@@ -192,14 +208,8 @@ async function submitTest() {
 }
 
 function getUserId() {
-    try {
-        const raw = sessionStorage.getItem('sb-localhost-auth-token');
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            return parsed.user?.id || null;
-        }
-    } catch (_) {}
-    return null;
+    const session = getStoredSession();
+    return (session && session.user && session.user.id) || null;
 }
 
 // ── Render Results ─────────────────────────────────────────────────

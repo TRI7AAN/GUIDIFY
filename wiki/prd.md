@@ -7,7 +7,7 @@
 ---
 
 ## 1. Summary
-gh repo edit --description " GUIDIFY is an AI-powered personalized learning and career navigation platform. It replaces static, one-size-fits-all roadmaps with a continuously adapting, individual roadmap built from a learner's real academic history, skills, projects, resume, and goals — broken down into daily, executable missions."
+GUIDIFY is an AI-powered personalized learning and career navigation platform. It replaces static, one-size-fits-all roadmaps with a continuously adapting, individual roadmap built from a learner's real academic history, skills, projects, resume, and goals — broken down into daily, executable missions.
 
 This PRD defines what we are building for v1 (MVP), why, for whom, and how we will know it worked.
 

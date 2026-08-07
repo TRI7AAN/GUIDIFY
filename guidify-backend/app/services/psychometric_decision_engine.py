@@ -123,17 +123,16 @@ SCORE_LABELS = [
 ]
 
 # Career mapping: top category combinations -> recommendations
+# Keys are canonicalized (sorted) pairs so recommendation is order-independent.
 CAREER_MAP = {
-    ("Technical Aptitude", "Analytical Reasoning"): ("Software Engineer", "Data Scientist"),
-    ("Technical Aptitude", "Creative Thinking"): ("Full-Stack Developer", "UX Engineer"),
-    ("Technical Aptitude", "Leadership"): ("Engineering Manager", "Technical Lead"),
+    ("Analytical Reasoning", "Technical Aptitude"): ("Software Engineer", "Data Scientist"),
+    ("Creative Thinking", "Technical Aptitude"): ("Full-Stack Developer", "UX Engineer"),
+    ("Leadership", "Technical Aptitude"): ("Engineering Manager", "Technical Lead"),
+    ("Analytical Reasoning", "Creative Thinking"): ("Data Analyst", "Research Scientist"),
     ("Creative Thinking", "Interpersonal Skills"): ("Product Manager", "Marketing Strategist"),
-    ("Creative Thinking", "Analytical Reasoning"): ("Data Analyst", "Research Scientist"),
-    ("Leadership", "Interpersonal Skills"): ("Team Lead", "HR Business Partner"),
-    ("Leadership", "Analytical Reasoning"): ("Management Consultant", "Strategy Analyst"),
-    ("Analytical Reasoning", "Technical Aptitude"): ("Data Scientist", "ML Engineer"),
-    ("Interpersonal Skills", "Creative Thinking"): ("Content Strategist", "Community Manager"),
-    ("Interpersonal Skills", "Analytical Reasoning"): ("Organizational Psychologist", "Training Specialist"),
+    ("Analytical Reasoning", "Leadership"): ("Management Consultant", "Strategy Analyst"),
+    ("Interpersonal Skills", "Leadership"): ("Team Lead", "HR Business Partner"),
+    ("Analytical Reasoning", "Interpersonal Skills"): ("Organizational Psychologist", "Training Specialist"),
 }
 
 # Default fallback careers
@@ -200,16 +199,7 @@ class PsychometricDecisionEngine:
                 continue
 
             weight = q["weights"][answer.answer]
-
-            # Response-time bonus: faster confident answers boost score slightly
-            time_bonus = 0.0
-            if answer.response_time_ms and answer.response_time_ms < 3000:
-                time_bonus = 0.05  # 5% bonus for quick confident answers
-            elif answer.response_time_ms and answer.response_time_ms > 15000:
-                time_bonus = -0.05  # 5% penalty for very slow answers (indecision)
-
-            adjusted = min(1.0, max(0.0, weight + time_bonus))
-            category_raw[q["category"]].append(adjusted)
+            category_raw[q["category"]].append(weight)
 
         scores = {}
         for cat, values in category_raw.items():
@@ -226,7 +216,7 @@ class PsychometricDecisionEngine:
         Confidence is higher when:
         - More questions answered (completion rate)
         - Fewer 'maybe' responses (decisiveness)
-        - Higher response consistency within categories
+        - Stronger differentiation across categories (clear peak)
         """
         total_questions = len(QUESTION_BANK)
         answered = len(answers)
@@ -235,16 +225,18 @@ class PsychometricDecisionEngine:
         maybe_count = sum(1 for a in answers if a.answer == "maybe")
         decisiveness = 1 - (maybe_count / answered) if answered > 0 else 0
 
-        # Consistency: low variance across categories = higher confidence
+        # Differentiation: a clear peak across categories strengthens the
+        # recommendation, so reward peaked profiles and flag flat ones.
+        # Max achievable peak-mean spread is 80 (100 vs four 0s) -> normalized.
         if category_scores:
             values = list(category_scores.values())
             mean = sum(values) / len(values)
-            variance = sum((v - mean) ** 2 for v in values) / len(values)
-            consistency = max(0, 1 - (variance / 2500))  # Normalize variance
+            peak = max(values)
+            differentiation = min(1.0, max(0.0, (peak - mean) / 80.0))
         else:
-            consistency = 0
+            differentiation = 0
 
-        confidence = (completion * 0.4) + (decisiveness * 0.3) + (consistency * 0.3)
+        confidence = (completion * 0.4) + (decisiveness * 0.3) + (differentiation * 0.3)
         return round(min(1.0, max(0.0, confidence)), 2)
 
     @staticmethod
@@ -258,7 +250,7 @@ class PsychometricDecisionEngine:
     def _get_recommendations(category_scores: Dict[str, float]) -> Tuple[str, str]:
         """Determine top 2 career recommendations based on strongest categories."""
         sorted_cats = sorted(category_scores.items(), key=lambda x: x[1], reverse=True)
-        top_two = tuple(cat for cat, _ in sorted_cats[:2])
+        top_two = tuple(sorted(cat for cat, _ in sorted_cats[:2]))
 
         if top_two in CAREER_MAP:
             return CAREER_MAP[top_two]
@@ -299,10 +291,9 @@ class PsychometricDecisionEngine:
 
         Scoring Algorithm:
         1. Map each answer to a weight (yes=1.0, maybe=0.5, no=0.0) per question
-        2. Apply response-time micro-bonuses/penalties
-        3. Average weights per category -> category score (0-100)
-        4. Weighted average across categories -> overall score
-        5. Derive recommendations from top-2 category vector
+        2. Average weights per category -> category score (0-100)
+        3. Weighted average across categories -> overall score
+        4. Derive recommendations from top-2 category vector
         """
         category_scores_raw = cls._compute_category_scores(answers)
         confidence = cls._compute_confidence(answers, category_scores_raw)
