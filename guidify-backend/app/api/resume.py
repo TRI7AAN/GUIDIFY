@@ -37,6 +37,38 @@ logger = logging.getLogger("guidify.api.resume")
 
 router = APIRouter(tags=["Resume"])
 
+
+def _save_recommended_courses(learner_id: str, courses: list) -> None:
+    """
+    Persist the JD-match course suggestions to the learner profile so they can be
+    surfaced on the dashboard's Personalized Learning Path section.
+    """
+    from app.services.supabase_client import supabase_admin as supabase
+
+    profile_resp = (
+        supabase.table("learner_profiles")
+        .select("id, questionnaire_data")
+        .eq("learner_id", learner_id)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if profile_resp.data:
+        row = profile_resp.data[0]
+        questionnaire_data = row.get("questionnaire_data") or {}
+        if not isinstance(questionnaire_data, dict):
+            questionnaire_data = {}
+        questionnaire_data["recommended_courses"] = courses
+        supabase.table("learner_profiles").update({
+            "questionnaire_data": questionnaire_data,
+        }).eq("id", row["id"]).execute()
+    else:
+        supabase.table("learner_profiles").insert({
+            "learner_id": learner_id,
+            "questionnaire_data": {"recommended_courses": courses},
+        }).execute()
+
 # Keep references to background AI tasks so they aren't garbage-collected mid-run
 _background_tasks: set = set()
 
@@ -276,6 +308,11 @@ async def match_resume_to_jd(
             },
             response_model=JDMatchResponse,
         )
+        # Surface the course suggestions on the dashboard's Personalized Learning Path
+        try:
+            _save_recommended_courses(learner_id, result.get("courses", []))
+        except Exception as e:
+            logger.warning(f"Failed to save recommended courses for learner {learner_id}: {e}")
         return JDMatchResponse(**result)
     except Exception as e:
         logger.error(f"JD match failed for learner {learner_id}: {e}")

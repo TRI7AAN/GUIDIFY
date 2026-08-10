@@ -1,5 +1,4 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useOnboarding } from '../../contexts/OnboardingContext';
 import { useAuth } from '../../contexts/AuthContext';
 import apiClient from '../../api/apiClient';
 import { supabase } from '../../utils/supabaseClient';
@@ -113,8 +112,7 @@ const SkipButton = styled.button`
 `;
 
 const AdaptivePersonalityTest = () => {
-    const { nextStep } = useOnboarding();
-    const { user } = useAuth();
+    const { user, updateOnboardingStatus } = useAuth();
     const [questions, setQuestions] = useState([]);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [responses, setResponses] = useState([]);
@@ -236,7 +234,7 @@ const AdaptivePersonalityTest = () => {
             if (error) throw error;
 
             // No artificial delay — proceed immediately
-            window.dispatchEvent(new CustomEvent('onboarding:complete'));
+            updateOnboardingStatus(true);
         } catch (error) {
             console.error("Analysis/Save failed:", error);
             setAnalyzing(false);

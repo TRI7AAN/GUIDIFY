@@ -9,7 +9,9 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { psychometricTestAPI } from '../lib/api';
+import { queryKeys } from '../hooks/query';
 import {
   ChevronLeft, Brain, Sparkles, CheckCircle2, AlertTriangle,
   ArrowRight, RotateCcw, Clock, Target, TrendingUp,
@@ -358,6 +360,7 @@ function ResultsView({ result, onRetake }) {
 
 export default function PsychometricTestPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [phase, setPhase] = useState('intro'); // intro | questions | submitting | results
   const [questions, setQuestions] = useState([]);
   const [sessionId, setSessionId] = useState(null);
@@ -394,6 +397,9 @@ export default function PsychometricTestPage() {
       setResult(data.result);
       setNotSavedWarning(data.saved === false);
       setPhase('results');
+      // The dashboard radar chart reads the latest scores from the learner
+      // profile, so refetch it to reflect this assessment's outcome.
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.data });
     } catch (e) {
       setError('Failed to submit assessment. Please try again.');
       setPhase('questions');

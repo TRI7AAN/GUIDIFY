@@ -20,12 +20,62 @@ from app.models.psychometric_test_schemas import (
     StartTestResponse,
     SubmitTestRequest,
     SubmitTestResponse,
+    CategoryScore,
 )
 from app.services.psychometric_decision_engine import PsychometricDecisionEngine
 
 logger = logging.getLogger("guidify.api.psychometric_test")
 
 router = APIRouter(tags=["Psychometric Test"])
+
+# Maps psychometric test categories to the radar chart axes on the dashboard.
+# The dashboard consumes category_scores from learner_profiles.questionnaire_data
+# and renders axes keyed by these short labels (see Dashboard.jsx TRAIT_LABELS).
+RADAR_CATEGORY_MAP = {
+    "Technical Aptitude": "Technical",
+    "Creative Thinking": "Creative",
+    "Interpersonal Skills": "Communication",
+    "Leadership": "Leadership",
+    "Analytical Reasoning": "Analytical",
+}
+
+
+def _sync_radar_scores(learner_id: str, category_scores: list[CategoryScore]) -> None:
+    """
+    Persist the latest assessment outcome to the learner profile so the dashboard
+    radar chart reflects the result of the most recently completed test.
+    """
+    from app.services.supabase_client import supabase_admin as supabase
+
+    radar_scores = {
+        RADAR_CATEGORY_MAP[cs.category]: round(cs.score)
+        for cs in category_scores
+        if cs.category in RADAR_CATEGORY_MAP
+    }
+
+    profile_resp = (
+        supabase.table("learner_profiles")
+        .select("id, questionnaire_data")
+        .eq("learner_id", learner_id)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if profile_resp.data:
+        row = profile_resp.data[0]
+        questionnaire_data = row.get("questionnaire_data") or {}
+        if not isinstance(questionnaire_data, dict):
+            questionnaire_data = {}
+        questionnaire_data["category_scores"] = radar_scores
+        supabase.table("learner_profiles").update({
+            "questionnaire_data": questionnaire_data,
+        }).eq("id", row["id"]).execute()
+    else:
+        supabase.table("learner_profiles").insert({
+            "learner_id": learner_id,
+            "questionnaire_data": {"category_scores": radar_scores},
+        }).execute()
 
 
 @router.get("/psychometric-test/questions", response_model=StartTestResponse)
@@ -181,6 +231,13 @@ async def submit_test(
             }).eq("session_id", request.session_id).execute()
         except Exception as e:
             logger.warning(f"Failed to update session status: {e}")
+
+        # Sync the outcome to the learner profile so the dashboard radar chart
+        # reflects the result of this assessment.
+        try:
+            _sync_radar_scores(learner_id, result.category_scores)
+        except Exception as e:
+            logger.warning(f"Failed to sync radar scores to learner profile: {e}")
 
     logger.info(
         f"Psychometric test completed: session={request.session_id} "

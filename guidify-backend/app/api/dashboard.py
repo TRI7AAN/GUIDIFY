@@ -30,7 +30,7 @@ async def get_dashboard(
 
     Phase 2: Aggregates real data from roadmap, missions, and profile.
     """
-    async def _fetch_category_scores(lid: str):
+    async def _fetch_profile_psychometrics(lid: str):
         try:
             from app.services.supabase_client import supabase_admin
             result = await asyncio.to_thread(
@@ -39,16 +39,16 @@ async def get_dashboard(
             if result.data:
                 qd = result.data.get("questionnaire_data", {})
                 if isinstance(qd, dict):
-                    return qd.get("category_scores")
+                    return qd.get("category_scores"), qd.get("recommended_courses")
         except Exception as e:
-            logger.warning(f"Failed to fetch category_scores: {e}")
-        return None
+            logger.warning(f"Failed to fetch questionnaire_data: {e}")
+        return None, None
 
-    # Fetch roadmap, streak, and category_scores in parallel
-    roadmap, streak_days, category_scores = await asyncio.gather(
+    # Fetch roadmap, streak, and profile psychometrics in parallel
+    roadmap, streak_days, (category_scores, recommended_courses) = await asyncio.gather(
         queries.get_active_roadmap(learner_id),
         queries.calculate_streak(learner_id),
-        _fetch_category_scores(learner_id),
+        _fetch_profile_psychometrics(learner_id),
     )
 
     current_phase = None
@@ -97,6 +97,7 @@ async def get_dashboard(
         placement_readiness=min(progress_pct, 100),  # Estimate from roadmap progress
         skill_graph=skill_graph[:8],  # Cap at 8 skills for clean radar display
         category_scores=category_scores,
+        recommended_courses=recommended_courses or [],
     )
 
 

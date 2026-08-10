@@ -33,7 +33,12 @@ class GeminiProvider(AIProvider):
         api_key = settings.GOOGLE_API_KEY
         if not api_key:
             logger.warning("GOOGLE_API_KEY not set — Gemini calls will fail")
-        self._client = genai.Client(api_key=api_key)
+        # NOTE: timeout is not a supported kwarg on generate_content(); it must be
+        # set at the client level via http_options, where it is expressed in ms.
+        self._client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=settings.AI_TIMEOUT_SECONDS * 1000),
+        )
         self._default_model = settings.GEMINI_MODEL
 
     async def generate(
@@ -60,7 +65,6 @@ class GeminiProvider(AIProvider):
                     model=target_model,
                     contents=prompt,
                     config=config,
-                    timeout=settings.AI_TIMEOUT_SECONDS,
                 )
                 return response.text or ""
             except Exception as e:

@@ -182,6 +182,9 @@ function RegisterPage() {
         } else if (err.response?.data?.detail) {
           // Use the backend's detail message
           setError(err.response.data.detail);
+        } else if (err.response?.data?.error?.message) {
+          // Backend format per api.md: { error: { code, message } }
+          setError(err.response.data.error.message);
         } else if (err.response?.data?.error) {
           // Use the backend's error message
           setError(err.response.data.error);

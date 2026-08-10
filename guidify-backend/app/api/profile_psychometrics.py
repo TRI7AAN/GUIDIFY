@@ -79,7 +79,7 @@ async def submit_psychometrics(
             .select("id")
             .eq("id", request.consent_id)
             .eq("learner_id", learner_id)
-            .single()
+            .eq("granted", True)
             .execute()
         )
         if not consent_check.data:

@@ -20,8 +20,21 @@ const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 const api = axios.create({
   baseURL,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 15000,
+  // AI-generated content (roadmap, missions, interview, resume) uses free models
+  // that routinely take 30-90s per call — 15s was far too short and made those
+  // features fail from the client side before the backend even finished.
+  timeout: 120000,
 });
+
+// Backend errors follow api.md: { "error": { "code", "message" } }.
+// Normalize the extraction so callers never have to guess the shape.
+export const getErrorMessage = (error, fallback = 'Something went wrong. Please try again.') =>
+  error?.response?.data?.error?.message ||
+  error?.response?.data?.detail?.message ||
+  error?.response?.data?.detail ||
+  error?.response?.data?.message ||
+  error?.message ||
+  fallback;
 
 // Circuit breaker state
 let failureCount = 0;
@@ -81,7 +94,10 @@ api.interceptors.response.use(
     }
 
     // Retry with backoff (network errors + 5xx)
+    // Skip retry when explicitly requested (e.g. roadmap regenerate — retrying an
+    // AI call that just spent 60s failing would multiply the wait without benefit).
     if (
+      !originalRequest.skipRetry &&
       (error.code === 'ERR_NETWORK' || error.response?.status >= 500) &&
       (originalRequest._retryCount || 0) < 3
     ) {
@@ -118,7 +134,7 @@ export const resumeAPI = {
 export const roadmapAPI = {
   getCurrent: () => api.get('/api/v1/roadmap/current'),
   getHistory: () => api.get('/api/v1/roadmap/history'),
-  regenerate: () => api.post('/api/v1/roadmap/regenerate'),
+  regenerate: () => api.post('/api/v1/roadmap/regenerate', null, { skipRetry: true }),
 };
 
 /** Missions — api.md §4 */

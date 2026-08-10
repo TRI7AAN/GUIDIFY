@@ -103,10 +103,10 @@ async def regenerate_roadmap(
         )
     except Exception as e:
         logger.error(f"Roadmap generation failed for learner {learner_id}: {e}")
-        return {
-            "status": "error",
-            "message": f"AI roadmap generation failed: {str(e)}",
-        }
+        raise HTTPException(
+            status_code=502,
+            detail="AI roadmap generation failed. Please try again in a few minutes.",
+        )
 
     # 3. Persist to DB
     roadmap_data = {
@@ -118,6 +118,27 @@ async def regenerate_roadmap(
     }
 
     saved = await queries.create_roadmap(learner_id, roadmap_data)
+    if not saved:
+        raise HTTPException(
+            status_code=500,
+            detail="Roadmap was generated but could not be saved. Please try again.",
+        )
+
+    # 4. Log event so the 24h regeneration debounce (rules.md §2) actually works
+    event_type = "roadmap_regenerated" if saved.get("version", 1) > 1 else "roadmap_generated"
+    try:
+        await queries.create_event(
+            learner_id=learner_id,
+            event_type=event_type,
+            payload={
+                "roadmap_id": saved.get("id"),
+                "title": result["title"],
+                "total_phases": result["total_phases"],
+            },
+            related_roadmap_id=saved.get("id"),
+        )
+    except Exception as e:
+        logger.warning(f"Failed to log {event_type} event for {learner_id}: {e}")
 
     return {
         "status": "ok",

@@ -10,7 +10,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
-import apiClient from '../../lib/api';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../utils/supabaseClient';
+import apiClient, { getErrorMessage } from '../../lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 
@@ -89,6 +91,7 @@ const SkipLink = styled.button`
 
 const PsychometricFitCheck = () => {
   const { nextStep } = useOnboarding();
+  const { user } = useAuth();
   const [allItems, setAllItems] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -97,6 +100,8 @@ const PsychometricFitCheck = () => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const timeoutRef = useRef(null);
+  const consentIdRef = useRef(null);
+  const autoSubmittedRef = useRef(false);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -154,16 +159,44 @@ const PsychometricFitCheck = () => {
     nextStep();
   }, [nextStep]);
 
+  // Dedicated, explicit psychometric consent (rules.md §9.3, design.md §6.4).
+  // Record created when the learner opts in by starting the fit check.
+  const startFitCheck = useCallback(async () => {
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from('consents')
+        .insert({
+          learner_id: user.id,
+          consent_type: 'psychometric',
+          granted: true,
+          source: 'onboarding_fit_check',
+          metadata: { instruments: 'ipip+riasec' },
+        })
+        .select('id')
+        .single();
+      if (error || !data?.id) throw error || new Error('Consent could not be saved');
+      consentIdRef.current = data.id;
+      setCurrentIndex(1);
+    } catch {
+      setError('Could not save your consent. Please try again.');
+    }
+  }, [user]);
+
   const handleSubmit = useCallback(async () => {
     setSubmitting(true);
     setError(null);
     try {
+      if (!consentIdRef.current) {
+        throw new Error('Consent is required before submitting your fit check.');
+      }
       const answerPayload = Object.entries(answers).map(([item_id, value]) => ({
         item_id,
         value,
       }));
 
       const res = await apiClient.post('/api/v1/profile/psychometrics', {
+        consent_id: consentIdRef.current,
         answers: answerPayload,
       });
 
@@ -171,19 +204,21 @@ const PsychometricFitCheck = () => {
       // Auto-advance after showing results (with cleanup)
       timeoutRef.current = setTimeout(() => nextStep(), 3000);
     } catch (e) {
-      const msg = e.response?.data?.detail?.message || e.response?.data?.detail || 'Submission failed';
+      const msg = getErrorMessage(e, 'Submission failed');
       setError(typeof msg === 'string' ? msg : 'Something went wrong');
       setSubmitting(false);
     }
   }, [answers, nextStep]);
 
-  // Auto-submit when all questions answered (moved from render body to useEffect)
+  // Auto-submit when all questions answered — guarded so a failure shows an
+  // error + retry instead of hammering the API in an infinite loop.
   const isComplete = currentIndex >= allItems.length && allItems.length > 0;
   useEffect(() => {
-    if (isComplete && !submitting && !result) {
+    if (isComplete && !autoSubmittedRef.current && !result) {
+      autoSubmittedRef.current = true;
       handleSubmit();
     }
-  }, [isComplete, submitting, result, handleSubmit]);
+  }, [isComplete, result, handleSubmit]);
 
   // ── Results Screen ────────────────────────────────────────
   if (result) {
@@ -246,6 +281,26 @@ const PsychometricFitCheck = () => {
     );
   }
 
+  // ── Submission Failure State ─────────────────────────────
+  if (isComplete && error && !result) {
+    return (
+      <Container>
+        <Card>
+          <div className="text-center py-6">
+            <h3 className="text-lg font-semibold text-white mb-2">We hit a snag</h3>
+            <p className="text-red-400 text-sm mb-4">{error}</p>
+            <button
+              onClick={handleSubmit}
+              className="gradient-primary text-white font-semibold px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+            >
+              Try Again
+            </button>
+          </div>
+        </Card>
+      </Container>
+    );
+  }
+
   // ── Intro Screen ──────────────────────────────────────────
   if (currentIndex === 0 && Object.keys(answers).length === 0) {
     return (
@@ -260,9 +315,12 @@ const PsychometricFitCheck = () => {
             <p className="text-gray-500 text-xs mb-6">
               Your answers shape how we present missions — never what careers we suggest.
             </p>
+            {error && (
+              <p className="text-red-400 text-xs mb-4">{error}</p>
+            )}
             <div className="flex justify-center gap-3">
               <button
-                onClick={() => setCurrentIndex(1)}
+                onClick={startFitCheck}
                 className="gradient-primary text-white font-semibold px-6 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
               >
                 Start Fit Check

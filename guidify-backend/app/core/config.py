@@ -60,7 +60,9 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = "json"  # json or text
 
     # AI Service Configuration
-    AI_TIMEOUT_SECONDS: int = 30
+    # Free OpenRouter models (nemotron-3-super) routinely take 30-90s per call,
+    # so a 30s timeout made every AI task (roadmap, missions, interview) fail.
+    AI_TIMEOUT_SECONDS: int = 90
     AI_MAX_RETRIES: int = 3
 
     # Feature Flags

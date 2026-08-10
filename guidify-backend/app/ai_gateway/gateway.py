@@ -174,18 +174,14 @@ class AIGateway:
                     )
 
             except Exception as e:
-                last_error = e
-                if attempt == 0:
-                    logger.warning(
-                        f"AI Gateway call failed for {task_type}, retrying (attempt {attempt + 1})",
-                        extra={"error": str(e)},
-                    )
-                    continue
-                else:
-                    raise AIServiceError(
-                        message=f"AI Gateway call failed for {task_type}: {str(e)}",
-                        details={"task_type": task_type, "error": str(e)},
-                    )
+                # Provider/transport errors (slow free models timing out, rate limits,
+                # network failures) are NOT retried: a retry would double an already
+                # long wait for an identical request. Fail fast so the caller can
+                # surface a clear error instead of hanging twice the timeout.
+                raise AIServiceError(
+                    message=f"AI Gateway call failed for {task_type}: {str(e)}",
+                    details={"task_type": task_type, "error": str(e)},
+                )
 
         # Should not reach here, but safety net
         raise AIServiceError(

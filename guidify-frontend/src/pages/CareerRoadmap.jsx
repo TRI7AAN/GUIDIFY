@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrentRoadmap, useRegenerateRoadmap } from '../hooks/query';
+import { getErrorMessage } from '../lib/api';
 import {
   Map, ChevronDown, ChevronRight, ChevronLeft, Clock,
   Target, Sparkles, CheckCircle2, Circle, Lock,
@@ -83,7 +84,7 @@ export default function RoadmapView() {
           {regenerateMutation.isError && (
             <div className="flex items-start gap-2 p-4 rounded-xl bg-red-900/20 border border-red-500/30 mb-6 text-left">
               <p className="text-sm text-red-300">
-                {regenerateMutation.error?.response?.data?.detail || 'Roadmap generation failed. Please try again.'}
+                {getErrorMessage(regenerateMutation.error, 'Roadmap generation failed. Please try again.')}
               </p>
             </div>
           )}
@@ -165,6 +166,14 @@ export default function RoadmapView() {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-8">
+        {regenerateMutation.isError && (
+          <div className="flex items-start gap-2 p-4 rounded-xl bg-red-900/20 border border-red-500/30 mb-6 text-left animate-fade-in-up">
+            <p className="text-sm text-red-300">
+              {getErrorMessage(regenerateMutation.error, 'Roadmap generation failed. Please try again.')}
+            </p>
+          </div>
+        )}
+
         {/* ── Roadmap Header ────────────────────────────── */}
         <div className="mb-8 animate-fade-in-up">
           <h2 className="text-3xl font-display font-bold text-white mb-2">

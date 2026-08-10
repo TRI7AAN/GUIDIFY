@@ -84,6 +84,28 @@ const AuthCallback = () => {
     const handleAuthCallback = async () => {
       try {
         const url = new URL(window.location.href);
+
+        // Auth providers redirect back with ?error=... (or #error=... in implicit
+        // flow) when the exchange failed server-side (e.g. an invalid Google
+        // client secret). Surface that instead of timing out silently.
+        const queryParams = url.searchParams;
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        const oauthError =
+          queryParams.get('error_description') ||
+          queryParams.get('error') ||
+          queryParams.get('error_code') ||
+          hashParams.get('error_description') ||
+          hashParams.get('error') ||
+          hashParams.get('error_code');
+
+        if (oauthError) {
+          processed = true;
+          clearTimeout(timeoutId);
+          setError(`Sign-in could not be completed: ${oauthError}`);
+          setLoading(false);
+          return;
+        }
+
         const code = url.searchParams.get('code');
 
         // 1) If there's a PKCE code, exchange it

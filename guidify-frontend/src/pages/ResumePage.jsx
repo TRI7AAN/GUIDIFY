@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { resumeAPI } from '../lib/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { resumeAPI, getErrorMessage } from '../lib/api';
+import { queryKeys } from '../hooks/query';
 import ResumeFeedback from '../components/resume/ResumeFeedback';
 import {
   FileText, Upload, ChevronLeft, CheckCircle2,
@@ -187,6 +189,7 @@ function JDMatchResults({ data }) {
 
 export default function ResumePage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -314,8 +317,11 @@ export default function ResumePage() {
         job_description: jdText,
       });
       setJdResult(data);
+      // The dashboard's Personalized Learning Path shows these course
+      // suggestions, so refetch it to reflect the fresh report.
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.data });
     } catch (e) {
-      const msg = e.response?.data?.detail || 'JD analysis failed. Please try again.';
+      const msg = getErrorMessage(e, 'JD analysis failed. Please try again.');
       setJdError(msg);
     } finally {
       setJdLoading(false);

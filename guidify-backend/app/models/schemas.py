@@ -187,6 +187,7 @@ class DashboardResponse(BaseModel):
     placement_readiness: int = 0
     skill_graph: List[SkillGraphEntry] = []
     category_scores: Optional[Dict[str, int]] = None
+    recommended_courses: List["CourseRecommendation"] = []
 
 
 # --- Resume Models (schema.md §3, api.md §2) ---

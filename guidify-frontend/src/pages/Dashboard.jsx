@@ -132,10 +132,19 @@ export default function Dashboard() {
     { title: 'Step 3: Neural Networks', desc: 'Dive deep into the architecture of neural networks.', icon: Target, status: 'locked' },
   ];
 
-  const courses = [
-    { title: 'Advanced Python for AI', level: 'NSQF Level 5', color: 'from-[#3cff14]/20 to-[#3cff14]/5' },
-    { title: 'Data Visualization with D3.js', level: 'NSQF Level 6', color: 'from-[#4AD8E6]/20 to-[#4AD8E6]/5' },
-  ];
+  // JD-match report course suggestions replace the placeholder steps when present
+  const recommendedCourses = dashboard?.recommended_courses || [];
+  const learningPathItems = recommendedCourses.length > 0
+    ? recommendedCourses.map(course => ({
+        title: course.title,
+        desc: course.relevance || course.skill_targeted || '',
+        icon: BookOpen,
+        status: 'active',
+        url: course.url,
+        provider: course.provider,
+        skill: course.skill_targeted,
+      }))
+    : learningPathSteps;
 
   return (
     <div className="flex flex-col gap-5">
@@ -246,7 +255,7 @@ export default function Dashboard() {
       <div>
         <h2 className="text-white text-lg font-bold tracking-tight mb-3 font-display">Personalized Learning Path</h2>
         <div className="flex gap-4 overflow-x-auto pb-3 -mx-6 px-6">
-          {learningPathSteps.map((step, i) => {
+          {learningPathItems.map((step, i) => {
             const Icon = step.icon;
             const isLocked = step.status === 'locked';
             return (
@@ -255,18 +264,32 @@ export default function Dashboard() {
                   <Icon className="w-5 h-5" />
                 </div>
                 <h3 className="font-bold text-white text-sm">{step.title}</h3>
+                {step.provider && (
+                  <span className="text-[10px] text-[#A4ACBC] bg-[#1F2330] px-2 py-0.5 rounded-full">{step.provider}</span>
+                )}
                 <p className="text-[#A4ACBC] text-xs">{step.desc}</p>
-                <button
-                  onClick={() => !isLocked && navigate('/roadmap')}
-                  disabled={isLocked}
-                  className={`mt-auto w-full text-center rounded-lg py-1.5 text-sm font-bold transition-colors ${
-                    isLocked
-                      ? 'bg-[#1F2330] text-[#A4ACBC] cursor-not-allowed'
-                      : 'bg-[#3cff14] text-[#0D0F18] hover:opacity-80'
-                  }`}
-                >
-                  {isLocked ? 'Locked' : 'Start Module'}
-                </button>
+                {step.url ? (
+                  <a
+                    href={step.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-auto w-full text-center rounded-lg py-1.5 text-sm font-bold transition-colors bg-[#3cff14] text-[#0D0F18] hover:opacity-80"
+                  >
+                    View Course
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => !isLocked && navigate('/roadmap')}
+                    disabled={isLocked}
+                    className={`mt-auto w-full text-center rounded-lg py-1.5 text-sm font-bold transition-colors ${
+                      isLocked
+                        ? 'bg-[#1F2330] text-[#A4ACBC] cursor-not-allowed'
+                        : 'bg-[#3cff14] text-[#0D0F18] hover:opacity-80'
+                    }`}
+                  >
+                    {isLocked ? 'Locked' : 'Start Module'}
+                  </button>
+                )}
               </div>
             );
           })}
