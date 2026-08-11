@@ -15,8 +15,7 @@ class Settings(BaseSettings):
 
     # Supabase Configuration
     SUPABASE_URL: str
-    SUPABASE_KEY: str                          # Anon/public key — used for client-facing ops (RLS enforced)
-    SUPABASE_SERVICE_KEY: str = ""             # CRIT-06 FIX: Service role key for admin operations
+    SUPABASE_PUBLISHABLE_KEY: str             # Publishable key — client-facing ops (RLS enforced)
 
     # Google Gemini AI Configuration
     GOOGLE_API_KEY: str = ""

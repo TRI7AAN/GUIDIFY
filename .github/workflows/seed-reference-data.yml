@@ -1,0 +1,39 @@
+name: Seed reference data
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - guidify-backend/data/nqr_seed.json
+      - guidify-backend/data/nsqf_courses.json
+
+jobs:
+  seed:
+    name: Seed Supabase reference tables
+    runs-on: ubuntu-latest
+    if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+    defaults:
+      run:
+        working-directory: guidify-backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Validate seed data
+        run: python scripts/seed_reference_data.py --check
+
+      - name: Apply seed data via Supabase Management API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: python scripts/seed_reference_data.py --apply

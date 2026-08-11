@@ -43,7 +43,7 @@ def _save_recommended_courses(learner_id: str, courses: list) -> None:
     Persist the JD-match course suggestions to the learner profile so they can be
     surfaced on the dashboard's Personalized Learning Path section.
     """
-    from app.services.supabase_client import supabase_admin as supabase
+    from app.services.supabase_client import db as supabase
 
     profile_resp = (
         supabase.table("learner_profiles")

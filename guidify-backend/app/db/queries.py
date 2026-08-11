@@ -11,15 +11,15 @@ import asyncio
 from typing import Any, Dict, List, Optional
 import logging
 
-from app.services.supabase_client import supabase_admin
+from app.services.supabase_client import db
 
 logger = logging.getLogger("guidify.db")
 
-# Use service-role client for all server-side queries.
-# RLS is bypassed, but that's safe because:
+# Use the request-scoped publishable-key client for all server-side queries.
+# RLS is enforced and resolves auth.uid() to the validated request JWT, so:
 # 1. Auth middleware already validates the JWT and extracts learner_id
 # 2. All query functions filter by learner_id parameter
-supabase = supabase_admin
+supabase = db
 
 
 async def _run_query(query_builder):

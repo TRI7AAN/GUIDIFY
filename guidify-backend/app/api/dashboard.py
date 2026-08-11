@@ -32,9 +32,9 @@ async def get_dashboard(
     """
     async def _fetch_profile_psychometrics(lid: str):
         try:
-            from app.services.supabase_client import supabase_admin
+            from app.services.supabase_client import db
             result = await asyncio.to_thread(
-                supabase_admin.table("learner_profiles").select("questionnaire_data").eq("learner_id", lid).order("created_at", desc=True).limit(1).single().execute
+                db.table("learner_profiles").select("questionnaire_data").eq("learner_id", lid).order("created_at", desc=True).limit(1).single().execute
             )
             if result.data:
                 qd = result.data.get("questionnaire_data", {})

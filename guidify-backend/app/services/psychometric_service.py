@@ -170,7 +170,7 @@ Output JSON: {{"questions": [...]}}. No markdown."""
         CQ-02 FIX: Fallback now uses a genuinely different model (gemini-1.5-flash).
         PERF-02 FIX: Uses ask_gemini_async.
         """
-        from app.services.supabase_client import supabase_admin as supabase
+        from app.services.supabase_client import db as supabase
 
         history_text = json.dumps(all_responses[-15:], indent=2)
 

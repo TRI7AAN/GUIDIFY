@@ -6,7 +6,7 @@ load_dotenv()
 
 URL = os.environ.get("SUPABASE_URL")
 # Partial key print for debug
-KEY = os.environ.get("SUPABASE_KEY")
+KEY = os.environ.get("SUPABASE_PUBLISHABLE_KEY")
 
 print(f"Supabase URL: {URL}")
 if KEY:

@@ -45,7 +45,7 @@ def _sync_radar_scores(learner_id: str, category_scores: list[CategoryScore]) ->
     Persist the latest assessment outcome to the learner profile so the dashboard
     radar chart reflects the result of the most recently completed test.
     """
-    from app.services.supabase_client import supabase_admin as supabase
+    from app.services.supabase_client import db as supabase
 
     radar_scores = {
         RADAR_CATEGORY_MAP[cs.category]: round(cs.score)
@@ -90,7 +90,7 @@ async def get_questions():
 
     # Persist anonymous session so a submit against this session_id can claim it.
     # Fail loudly: a returned session_id that was never persisted would 404 on submit.
-    from app.services.supabase_client import supabase_admin as supabase
+    from app.services.supabase_client import db as supabase
     try:
         supabase.table("psychometric_sessions").insert({
             "session_id": session_id,
@@ -120,7 +120,7 @@ async def start_test(
 
     # Persist session to DB with user association. Fail loudly: a returned
     # session_id that was never persisted would 404 on submit.
-    from app.services.supabase_client import supabase_admin as supabase
+    from app.services.supabase_client import db as supabase
     try:
         supabase.table("psychometric_sessions").insert({
             "session_id": session_id,
@@ -153,7 +153,7 @@ async def submit_test(
     4. Maps top-2 categories to career recommendations
     5. Generates personality profile, strengths, and growth areas
     """
-    from app.services.supabase_client import supabase_admin as supabase
+    from app.services.supabase_client import db as supabase
     from app.services.psychometric_decision_engine import QUESTION_BANK
 
     # Validate session exists in DB
@@ -259,7 +259,7 @@ async def get_result(
 ):
     """Retrieve a previously completed psychometric test result."""
     try:
-        from app.services.supabase_client import supabase_admin as supabase
+        from app.services.supabase_client import db as supabase
         response = (
             supabase.table("psychometric_results")
             .select("*")
@@ -282,7 +282,7 @@ async def get_latest_result(
 ):
     """Retrieve the most recent psychometric test result for the authenticated user."""
     try:
-        from app.services.supabase_client import supabase_admin as supabase
+        from app.services.supabase_client import db as supabase
         response = (
             supabase.table("psychometric_results")
             .select("*")

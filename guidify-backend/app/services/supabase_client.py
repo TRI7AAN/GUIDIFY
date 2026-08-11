@@ -1,37 +1,80 @@
 ﻿"""
 Supabase Client Module
 
-Provides singleton Supabase clients and core auth/profile helper functions.
+Provides Supabase clients and core auth/profile helper functions.
 
-CLIENT SEPARATION (CRIT-06 FIX):
-  - `supabase`       → anon key  → use for all user-facing operations (RLS enforced)
-  - `supabase_admin` → service key → use ONLY for admin operations (delete_user, etc.)
-                       Never expose the admin client to user-controlled input paths.
+No service-role key is used. All access is through the publishable key:
+  - `supabase` → publishable key → auth API (sign-up/in, JWT verification)
+  - `db`       → publishable key + request user JWT → RLS-enforced DB access
+                 Resolves to a request-scoped client carrying the caller's
+                 access token so PostgREST evaluates RLS against auth.uid().
 """
 
-import os
-from typing import Dict, Any, Optional
+import contextvars
+from typing import Any, Dict, Optional
 from supabase import create_client, Client
 from app.core.config import settings
 
-# ── Public anon client (RLS enforced) ──────────────────────────────────────
-supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+# ── Base client (publishable key) — auth operations ────────────────────────
+supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_PUBLISHABLE_KEY)
 
-# ── Admin service-role client (CRIT-06 FIX) ────────────────────────────────
-# Used exclusively for operations that require elevated privileges:
-# - auth.admin.delete_user()
-# - Any server-side write that must bypass RLS safely
-import logging as _logging
-_logger = _logging.getLogger("guidify")
+# ── Request-scoped DB client (publishable key + user JWT, RLS enforced) ────
+_request_jwt_var: contextvars.ContextVar = contextvars.ContextVar(
+    "guidify_request_jwt", default=None
+)
+_request_client_var: contextvars.ContextVar = contextvars.ContextVar(
+    "guidify_request_client", default=None
+)
 
-if settings.SUPABASE_SERVICE_KEY:
-    supabase_admin: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
-else:
-    supabase_admin = None  # type: ignore[assignment]
-    _logger.warning(
-        "SUPABASE_SERVICE_KEY is not set. Admin operations (e.g. delete_user) will fail. "
-        "Set this variable in your .env file."
-    )
+
+def _create_client(headers: Dict[str, str]) -> Client:
+    # supabase>=2.16 uses dataclass options; older versions accept a plain dict.
+    try:
+        from supabase.lib.client_options import SyncClientOptions
+        options = SyncClientOptions(headers=headers)
+    except Exception:
+        options = {"headers": headers}
+    return create_client(settings.SUPABASE_URL, settings.SUPABASE_PUBLISHABLE_KEY, options)
+
+
+def set_request_jwt(token: Optional[str]) -> None:
+    """Bind the current request's access token (invalidates any cached client)."""
+    _request_jwt_var.set(token)
+    _request_client_var.set(None)
+
+
+def get_db_client() -> Client:
+    """
+    Return a Supabase client for server-side DB access.
+
+    Authenticated requests get a request-scoped client carrying the caller's
+    JWT so RLS (auth.uid()) applies. Unauthenticated requests fall back to the
+    shared publishable-key client.
+    """
+    token = _request_jwt_var.get()
+    if not token:
+        return supabase
+    cached = _request_client_var.get()
+    if cached is not None:
+        return cached
+    client = _create_client({
+        "apikey": settings.SUPABASE_PUBLISHABLE_KEY,
+        "apiKey": settings.SUPABASE_PUBLISHABLE_KEY,
+        "Authorization": f"Bearer {token}",
+    })
+    _request_client_var.set(client)
+    return client
+
+
+class _RequestScopedDBClient:
+    """Delegates attribute access to the current request's DB client."""
+
+    def __getattr__(self, name: str):
+        return getattr(get_db_client(), name)
+
+
+# Canonical DB client for services/queries (previously `supabase_admin`).
+db: Client = _RequestScopedDBClient()  # type: ignore[assignment]
 
 
 def sign_up(email: str, password: str, user_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -131,20 +174,3 @@ def verify_token(jwt: str) -> Dict[str, Any]:
         return {"valid": False, "error": "User not found"}
     except Exception as e:
         return {"valid": False, "error": str(e)}
-
-
-def admin_delete_user(user_id: str) -> bool:
-    """
-    CRIT-06 FIX: Delete a user from Supabase Auth using the service role admin client.
-    Returns True on success, False on failure.
-    Must only be called from server-side code — never expose to user-controlled paths.
-    """
-    if not supabase_admin:
-        _logger.error("admin_delete_user called but SUPABASE_SERVICE_KEY is not configured.")
-        return False
-    try:
-        supabase_admin.auth.admin.delete_user(user_id)
-        return True
-    except Exception as e:
-        _logger.error(f"admin_delete_user failed for user {user_id}: {e}")
-        return False

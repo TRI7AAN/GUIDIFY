@@ -8,9 +8,9 @@ services:
     envVars:
       - key: SUPABASE_URL
         sync: false
-      - key: SUPABASE_KEY
+      - key: SUPABASE_PUBLISHABLE_KEY
         sync: false
-      - key: SUPABASE_SERVICE_KEY
+      - key: SUPABASE_ACCESS_TOKEN
         sync: false
       - key: GOOGLE_API_KEY
         sync: false

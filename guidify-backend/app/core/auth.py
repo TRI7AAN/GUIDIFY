@@ -17,7 +17,7 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.exceptions import AuthenticationError, InvalidTokenError
-from app.services.supabase_client import supabase
+from app.services.supabase_client import supabase, set_request_jwt
 
 security = HTTPBearer()
 
@@ -44,6 +44,8 @@ async def get_current_learner_id(
         # Wrap in asyncio.to_thread to avoid blocking the event loop
         user_response = await asyncio.to_thread(supabase.auth.get_user, token)
         if user_response and user_response.user:
+            # Bind the request's JWT so DB queries run under RLS for this user.
+            set_request_jwt(token)
             return user_response.user.id
         raise InvalidTokenError("Could not validate token")
     except InvalidTokenError:

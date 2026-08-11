@@ -1,6 +1,6 @@
 from fastapi import Request, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.services.supabase_client import verify_token
+from app.services.supabase_client import verify_token, set_request_jwt
 from typing import Dict, Any, Optional
 
 security = HTTPBearer()
@@ -19,6 +19,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    set_request_jwt(token)
     return result.get("user", {})
 
 def get_optional_user(request: Request) -> Optional[Dict[str, Any]]:
@@ -35,4 +36,5 @@ def get_optional_user(request: Request) -> Optional[Dict[str, Any]]:
     if not result.get("valid"):
         return None
     
+    set_request_jwt(token)
     return result.get("user", {})
