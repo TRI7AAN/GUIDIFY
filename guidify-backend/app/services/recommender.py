@@ -7,19 +7,29 @@ All callers should use `recommend_companies_async()` directly with `await`.
 
 CQ-01 FIX: Removed duplicate Supabase client initialization.
 SEC-08 FIX: User-controlled strings sanitized before AI prompt interpolation.
+Updated to use AI Gateway instead of legacy gemini_client.
 """
 
 import json
 import os
 import asyncio
 from typing import List, Dict, Any, Optional
-from app.services.gemini_client import ask_gemini, ask_gemini_async, extract_json_from_response, _sanitize_user_input
 
 # CQ-01 FIX: Use the centralized singleton Supabase client
 from app.services.supabase_client import db as supabase
+from app.ai_gateway.gateway import gateway
 import logging
 
 logger = logging.getLogger("guidify")
+
+
+def _sanitize_user_input(text: str, max_length: int = 200) -> str:
+    """Sanitize user input to prevent prompt injection."""
+    if not text:
+        return ""
+    sanitized = text.replace('"', '').replace("'", "").replace("`", "")
+    sanitized = ''.join(c for c in sanitized if ord(c) >= 32 or c in '\n\t')
+    return sanitized[:max_length]
 
 # Load verified colleges
 VERIFIED_COLLEGES_PATH = os.path.join(os.path.dirname(__file__), "../data/verified_colleges.json")
@@ -79,30 +89,26 @@ def get_college_recommendations(marks: int, board: str, stream: str, user_id: Op
 # ============================
 # Job Recommendation Functions
 # ============================
-def parse_resume(resume_text: str) -> Dict[str, Any]:
-    """Extract skills and other information from resume using Gemini."""
+async def parse_resume(resume_text: str) -> Dict[str, Any]:
+    """Extract skills and other information from resume using AI Gateway."""
     safe_text = resume_text[:8000]
-    prompt = f"""
-    Extract applicant data from this resume text. Return JSON:
-    {{
-      "skills": ["..."],
-      "cgpa": number | null,
-      "summary": "30 words max",
-      "years_experience": number | null
-    }}
-    Resume:
-    \"\"\"{safe_text}\"\"\"
-    """
-    response = ask_gemini(prompt, system_instruction="You are an expert HR AI. Extract data accurately.")
-    result = extract_json_from_response(response)
-    if not result:
+    try:
+        # Use the resume.parse task type which is designed for this
+        result = await gateway.generate(
+            task_type="resume.parse",
+            context={"resume_text": safe_text},
+        )
+        if not result:
+            result = {"skills": [], "cgpa": None, "summary": "", "years_experience": None}
+    except Exception as e:
+        logger.warning(f"AI Gateway resume parse failed: {e}")
         result = {"skills": [], "cgpa": None, "summary": "", "years_experience": None}
     return result
 
 
 async def recommend_companies_async(skills: List[str], cgpa: Optional[float], stream: str, institute: str, location: str) -> List[Dict[str, Any]]:
     """
-    Get company recommendations from Gemini (async).
+    Get company recommendations from AI Gateway (async).
     SEC-08 FIX: User-controlled inputs sanitized before interpolation.
     """
     safe_stream = _sanitize_user_input(stream, 80)
@@ -137,8 +143,23 @@ async def recommend_companies_async(skills: List[str], cgpa: Optional[float], st
       ]
     }}
     """
-    response = await ask_gemini_async(prompt, system_instruction="You are a career counselor. Suggest real companies.")
-    result = extract_json_from_response(response)
+    try:
+        response = await gateway.generate(
+            task_type="resume.jd_match",
+            context={
+                "parsed_resume": {"skills": safe_skills},
+                "job_title": "Job Seeker",
+                "company": safe_institute,
+                "job_description": prompt,
+                "target_role": safe_stream,
+                "segment": "college",
+            },
+        )
+        result = response if isinstance(response, dict) else {}
+    except Exception as e:
+        logger.warning(f"AI Gateway company recommendations failed: {e}")
+        result = {}
+
     return result.get("companies", [])
 
 
@@ -150,8 +171,8 @@ async def recommend_companies_async(skills: List[str], cgpa: Optional[float], st
 # ============================
 # Course Recommendation Functions
 # ============================
-def get_course_recommendations(college: str, preference: str) -> List[Dict[str, Any]]:
-    """Get course recommendations from Gemini."""
+async def get_course_recommendations(college: str, preference: str) -> List[Dict[str, Any]]:
+    """Get course recommendations from AI Gateway."""
     safe_college = _sanitize_user_input(college, 100)
     safe_preference = _sanitize_user_input(preference, 100)
 
@@ -172,8 +193,23 @@ def get_course_recommendations(college: str, preference: str) -> List[Dict[str, 
       ]
     }}
     """
-    response = ask_gemini(prompt, system_instruction="Provide accurate course info.")
-    result = extract_json_from_response(response)
+    try:
+        response = await gateway.generate(
+            task_type="resume.jd_match",
+            context={
+                "parsed_resume": {},
+                "job_title": "Course Recommendations",
+                "company": safe_college,
+                "job_description": prompt,
+                "target_role": safe_preference,
+                "segment": "college",
+            },
+        )
+        result = response if isinstance(response, dict) else {}
+    except Exception as e:
+        logger.warning(f"AI Gateway course recommendations failed: {e}")
+        result = {}
+
     return result.get("courses", [])
 
 
@@ -189,7 +225,7 @@ except Exception as e:
     logger.warning(f"Could not load NCVET courses: {e}")
 
 
-def recommend_nsqf_courses(current_tier: str, career_goal: str) -> List[Dict[str, Any]]:
+async def recommend_nsqf_courses(current_tier: str, career_goal: str) -> List[Dict[str, Any]]:
     """
     Recommend NCVET verified courses based on user tier and career goal.
     SEC-08 FIX: career_goal sanitized before AI prompt interpolation.
@@ -247,9 +283,21 @@ def recommend_nsqf_courses(current_tier: str, career_goal: str) -> List[Dict[str
     }}
     """
 
-    response = ask_gemini(prompt, model="gemini-2.5-flash-lite")
-    result = extract_json_from_response(response)
-    if not result:
-        return []
+    try:
+        response = await gateway.generate(
+            task_type="resume.jd_match",
+            context={
+                "parsed_resume": {},
+                "job_title": "NCVET Course Selection",
+                "company": "NCVET",
+                "job_description": prompt,
+                "target_role": safe_goal,
+                "segment": "college",
+            },
+        )
+        result = response if isinstance(response, dict) else {}
+    except Exception as e:
+        logger.warning(f"AI Gateway NCVET recommendations failed: {e}")
+        result = {}
 
     return result.get("recommendations", [])
