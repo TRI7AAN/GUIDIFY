@@ -69,7 +69,9 @@ class Settings(BaseSettings):
     SENTRY_DSN: str = ""
 
     class Config:
-        env_file = ".env"
+        # Don't load .env in production — use environment variables only
+        # .env is for local development only and contains revoked keys in git history
+        env_file = ".env" if os.getenv("ENVIRONMENT") != "production" else None
         case_sensitive = True
         extra = "ignore"
 
