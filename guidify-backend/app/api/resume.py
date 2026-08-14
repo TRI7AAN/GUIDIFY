@@ -6,13 +6,12 @@ Full implementation: Upload, parse, score, and retrieve resumes.
 Endpoints:
     POST /resume/upload      — Multipart upload; stores file and returns immediately
                                with status "processing". Parsing + scoring run
-                               asynchronously in the background (api.md §2).
+                               asynchronously via persistent job queue (api.md §2).
     GET  /resume/current     — Get current resume analysis
     GET  /resume/history     — Get resume upload history
     GET  /resume/{resume_id} — Get parsed resume + score by ID
 """
 
-import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Request
@@ -38,39 +37,59 @@ logger = logging.getLogger("guidify.api.resume")
 router = APIRouter(tags=["Resume"])
 
 
-def _save_recommended_courses(learner_id: str, courses: list) -> None:
+async def _save_recommended_courses(learner_id: str, courses: list) -> None:
     """
     Persist the JD-match course suggestions to the learner profile so they can be
     surfaced on the dashboard's Personalized Learning Path section.
     """
-    from app.services.supabase_client import db as supabase
+    from app.db import queries
 
-    profile_resp = (
-        supabase.table("learner_profiles")
-        .select("id, questionnaire_data")
-        .eq("learner_id", learner_id)
-        .order("created_at", desc=True)
-        .limit(1)
-        .execute()
-    )
-
-    if profile_resp.data:
-        row = profile_resp.data[0]
-        questionnaire_data = row.get("questionnaire_data") or {}
+    profile = await queries.get_learner_profile(learner_id)
+    if profile:
+        questionnaire_data = profile.get("questionnaire_data") or {}
         if not isinstance(questionnaire_data, dict):
             questionnaire_data = {}
         questionnaire_data["recommended_courses"] = courses
-        supabase.table("learner_profiles").update({
-            "questionnaire_data": questionnaire_data,
-        }).eq("id", row["id"]).execute()
+        await queries.update_learner_profile(profile["id"], {"questionnaire_data": questionnaire_data})
     else:
-        supabase.table("learner_profiles").insert({
-            "learner_id": learner_id,
-            "questionnaire_data": {"recommended_courses": courses},
-        }).execute()
+        await queries.create_learner_profile(learner_id, {"questionnaire_data": {"recommended_courses": courses}})
 
-# Keep references to background AI tasks so they aren't garbage-collected mid-run
-_background_tasks: set = set()
+
+async def _enqueue_resume_processing(
+    resume_id: str,
+    learner_id: str,
+    resume_text: str,
+    target_role: str,
+    segment: str,
+    current_skills: list,
+) -> None:
+    """Enqueue resume processing job in the persistent job queue."""
+    try:
+        await queries.create_job(
+            job_type="resume_process",
+            learner_id=learner_id,
+            payload={
+                "resume_id": resume_id,
+                "resume_text": resume_text,
+                "target_role": target_role,
+                "segment": segment,
+                "current_skills": current_skills,
+            }
+        )
+        logger.info(f"Enqueued resume processing job for resume {resume_id}, learner {learner_id}")
+    except Exception as e:
+        logger.error(f"Failed to enqueue resume processing job: {e}")
+        # Fallback: try to process inline (for backward compatibility if job queue not ready)
+        # In production, this should be handled by a separate worker process
+        logger.warning("Job queue unavailable, processing inline as fallback")
+        await _process_resume_async(
+            resume_id=resume_id,
+            learner_id=learner_id,
+            resume_text=resume_text,
+            target_role=target_role,
+            segment=segment,
+            current_skills=current_skills,
+        )
 
 
 @router.post("/resume/upload", response_model=ResumeUploadResponse)
@@ -81,13 +100,13 @@ async def upload_resume(
     learner_id: str = Depends(get_current_learner_id),
 ):
     """
-    Upload resume — returns immediately; AI parsing/scoring runs async (api.md §2).
+    Upload resume — returns immediately; AI parsing/scoring runs async via job queue (api.md §2).
 
     Flow:
     1. Save file to temp location with security validation
     2. Extract text from PDF/DOCX
     3. Store file metadata in resumes table (status: processing)
-    4. Kick off background task that parses + scores via AI Gateway
+    4. Enqueue background job for parsing + scoring via AI Gateway
     5. Return { id, status: "processing" } — client polls GET /resume/{id}
     """
     temp_path = None
@@ -120,18 +139,15 @@ async def upload_resume(
         if not resume_record:
             raise HTTPException(status_code=500, detail="Failed to store resume record")
 
-        task = asyncio.create_task(
-            _process_resume_async(
-                resume_id=resume_record["id"],
-                learner_id=learner_id,
-                resume_text=resume_text,
-                target_role=target_role,
-                segment=segment,
-                current_skills=current_skills,
-            )
+        # Enqueue persistent job instead of using asyncio.create_task
+        await _enqueue_resume_processing(
+            resume_id=resume_record["id"],
+            learner_id=learner_id,
+            resume_text=resume_text,
+            target_role=target_role,
+            segment=segment,
+            current_skills=current_skills,
         )
-        _background_tasks.add(task)
-        task.add_done_callback(_background_tasks.discard)
 
         return ResumeUploadResponse(
             id=resume_record["id"],
@@ -310,7 +326,7 @@ async def match_resume_to_jd(
         )
         # Surface the course suggestions on the dashboard's Personalized Learning Path
         try:
-            _save_recommended_courses(learner_id, result.get("courses", []))
+            await _save_recommended_courses(learner_id, result.get("courses", []))
         except Exception as e:
             logger.warning(f"Failed to save recommended courses for learner {learner_id}: {e}")
         return JDMatchResponse(**result)

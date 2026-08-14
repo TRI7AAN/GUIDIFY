@@ -70,6 +70,7 @@ class OnboardingResponse(BaseModel):
 class TargetRoleResponse(BaseModel):
     """PATCH /profile/target-role response — api.md §1"""
     roadmap_regeneration_queued: bool = True
+    adaptation_details: dict = None
 
 
 # --- Dashboard Models ---

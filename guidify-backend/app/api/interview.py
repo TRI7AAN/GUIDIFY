@@ -122,11 +122,28 @@ async def submit_answer(
     if question_count >= MAX_QUESTIONS_PER_SESSION:
         return await _end_session(session, transcript, learner_id)
 
-    # Generate next question
-    learner = await queries.get_learner(learner_id)
-    profile = await queries.get_learner_profile(learner_id)
-    profile_summary = _build_profile_summary(profile, learner)
-    target_role = learner.get("target_role", "Software Developer") if learner else "Software Developer"
+    # Generate next question - use cached profile context from session
+    session_data = session.get("context_data") or {}
+    profile_summary = session_data.get("profile_summary")
+    target_role = session_data.get("target_role")
+    track = session.get("track", "technical")
+    
+    if not profile_summary or not target_role:
+        # Fallback: fetch fresh (first request or session missing context)
+        learner = await queries.get_learner(learner_id)
+        profile = await queries.get_learner_profile(learner_id)
+        profile_summary = _build_profile_summary(profile, learner)
+        target_role = learner.get("target_role", "Software Developer") if learner else "Software Developer"
+        track = session.get("track", "technical")
+        
+        # Cache for subsequent requests
+        await queries.update_interview_session(session_id, {
+            "context_data": {
+                "profile_summary": profile_summary,
+                "target_role": target_role,
+                "track": track,
+            }
+        })
 
     try:
         result = await gateway.generate(

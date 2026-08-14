@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboardData, useTodayMission } from '../hooks/query';
@@ -6,7 +6,7 @@ import MissionCard from '../components/dashboard/MissionCard';
 import {
   Flame, TrendingUp, BookOpen, BarChart3, Target,
   Rocket, FileText, MessageSquare, ChevronRight, Sparkles,
-  PieChart, Layers, Activity
+  PieChart, Layers, Activity, Award
 } from 'lucide-react';
 
 const TRAIT_LABELS = ['Technical', 'Creative', 'Communication', 'Leadership', 'Analytical'];
@@ -106,25 +106,53 @@ export default function Dashboard() {
   const streakDays = dashboard?.streak_days ?? 0;
   const interviewReadiness = dashboard?.interview_readiness ?? 0;
   const placementReadiness = dashboard?.placement_readiness ?? 0;
+  const roadmapProgress = dashboard?.roadmap_progress_pct ?? 0;
 
   // Personality trait scores from psychometric analysis
   const traitScores = dashboard?.category_scores;
   const skillScores = traitScores
     ? TRAIT_LABELS.map(t => traitScores[t] ?? 50)
-    : [75, 60, 80, 50, 90];
+    : [50, 50, 50, 50, 50];
 
-  // Heatmap dates
-  const heatmapDates = [
-    { date: 29, active: true },
-    { date: 30, active: false },
-    { date: 31, active: false },
-    { date: 1, active: true },
-    { date: 2, active: false },
-    { date: 3, active: false },
-    { date: 4, active: false },
-    { date: 5, active: false },
-    { date: 6, active: true },
-  ];
+  // Compute tier from roadmap progress
+  const getTier = (progress) => {
+    if (progress >= 90) return { name: 'Master I', icon: Award, color: '#FFD700', next: 'Master II', progressToNext: progress - 90 };
+    if (progress >= 75) return { name: 'Expert II', icon: Award, color: '#4AD8E6', next: 'Master I', progressToNext: progress - 75 };
+    if (progress >= 60) return { name: 'Expert I', icon: Award, color: '#4AD8E6', next: 'Expert II', progressToNext: progress - 60 };
+    if (progress >= 40) return { name: 'Advanced', icon: Target, color: '#3cff14', next: 'Expert I', progressToNext: progress - 40 };
+    if (progress >= 20) return { name: 'Intermediate', icon: Rocket, color: '#FFA500', next: 'Advanced', progressToNext: progress - 20 };
+    return { name: 'Beginner', icon: Sparkles, color: '#A4ACBC', next: 'Intermediate', progressToNext: progress };
+  };
+
+  const tier = getTier(roadmapProgress);
+  const tierProgressToNext = Math.min(tier.progressToNext * 4, 100); // Scale to 25% per tier
+
+  // Compute heatmap from recent missions (last 7 days)
+  const heatmapDates = useMemo(() => {
+    if (!dashboard) return Array.from({ length: 7 }, (_, i) => ({ date: i + 1, active: false }));
+    
+    // We need to fetch mission history for heatmap - for now use streak as proxy
+    // In a real implementation, this would come from a dedicated endpoint
+    const dates = [];
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const day = d.getDate();
+      // Show active if within streak or today
+      const isActive = i <= streakDays || (i === 6 && streakDays > 0);
+      dates.push({ date: day, active: isActive });
+    }
+    return dates;
+  }, [streakDays, dashboard]);
+
+  // Compute skills mastery from skill_graph
+  const skillsMastery = useMemo(() => {
+    const graph = dashboard?.skill_graph;
+    if (!graph || graph.length === 0) return 0;
+    const avgLevel = graph.reduce((sum, s) => sum + (s.level || 0), 0) / graph.length;
+    return Math.round((avgLevel / 4) * 100);
+  }, [dashboard?.skill_graph]);
 
   const learningPathSteps = [
     { title: 'Step 1: Data Fundamentals', desc: 'Learn the basics of data structures and algorithms.', icon: BarChart3, status: 'active' },
@@ -182,24 +210,24 @@ export default function Dashboard() {
               <Flame className="w-4 h-4 text-[#ff4b4b]" />
               <p className="text-[#A4ACBC] text-[11px] font-bold tracking-widest uppercase">Login Streak</p>
             </div>
-            <p className="text-white text-3xl font-bold">{streakDays || 12} Days</p>
+            <p className="text-white text-3xl font-bold">{streakDays} {streakDays === 1 ? 'Day' : 'Days'}</p>
             <p className="text-[#3cff14] text-xs font-medium mt-1">
-              +2% from last week
+              {streakDays > 0 ? `Current streak: ${streakDays} days` : 'Start your streak today!'}
             </p>
           </div>
 
           {/* Tier Progress */}
           <div className="flex flex-col gap-1 rounded-xl p-5 bg-[#151821] border border-[#1F2330]">
             <div className="flex items-center gap-2 mb-2">
-              <Layers className="w-4 h-4 text-[#4AD8E6]" />
+              <tier.icon className="w-4 h-4" style={{ color: tier.color }} />
               <p className="text-[#A4ACBC] text-[11px] font-bold tracking-widest uppercase">Tier Progress</p>
             </div>
-            <p className="text-white text-3xl font-bold">Expert II</p>
+            <p className="text-white text-3xl font-bold">{tier.name}</p>
             <p className="text-[#3cff14] text-xs font-medium mt-1 mb-4">
-              +65% towards Master I
+              {tierProgressToNext > 0 ? `${tierProgressToNext}% towards ${tier.next}` : 'Max tier reached!'}
             </p>
             <div className="w-full bg-[#1F2330] rounded-full h-1.5">
-              <div className="bg-[#4AD8E6] h-1.5 rounded-full" style={{ width: `65%` }} />
+              <div className="h-1.5 rounded-full" style={{ backgroundColor: tier.color, width: `${tierProgressToNext}%` }} />
             </div>
           </div>
 
@@ -210,7 +238,7 @@ export default function Dashboard() {
                 <Activity className="w-4 h-4 text-[#3cff14]" />
                 <h3 className="text-[#A4ACBC] text-[11px] font-bold tracking-widest uppercase">Activity Heatmap</h3>
               </div>
-              <span className="text-[#A4ACBC] text-[10px]">November 2025</span>
+              <span className="text-[#A4ACBC] text-[10px]">{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
             </div>
             <div className="flex items-center justify-between gap-1 w-full">
               {heatmapDates.map((item, i) => (
@@ -225,15 +253,15 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-[#151821] border border-[#1F2330] rounded-xl p-4">
           <p className="text-[#A4ACBC] text-xs mb-1.5">Learning Path Completion</p>
-          <ProgressBar value={dashboard?.roadmap_progress_pct ?? 45} />
+          <ProgressBar value={roadmapProgress} />
         </div>
         <div className="bg-[#151821] border border-[#1F2330] rounded-xl p-4">
           <p className="text-[#A4ACBC] text-xs mb-1.5">Skills Mastery</p>
-          <ProgressBar value={68} color="bg-[#4AD8E6]" />
+          <ProgressBar value={skillsMastery} color="bg-[#4AD8E6]" />
         </div>
         <div className="bg-[#151821] border border-[#1F2330] rounded-xl p-4">
           <p className="text-[#A4ACBC] text-xs mb-1.5">Career Readiness</p>
-          <ProgressBar value={placementReadiness || 30} />
+          <ProgressBar value={placementReadiness || 0} />
         </div>
       </div>
 

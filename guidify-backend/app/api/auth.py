@@ -21,6 +21,7 @@ from app.models.schemas import (
     TargetRoleUpdate,
     TargetRoleResponse,
 )
+from app.services.rules_engine import RulesEngine
 
 router = APIRouter(tags=["Auth & Profile"])
 
@@ -97,14 +98,24 @@ async def update_target_role(
     Update stated career goal — api.md §1.
 
     Per rules.md §1.3: Changing target role triggers immediate full roadmap
-    regeneration. For Phase 0, we update the learner record and return
-    that regeneration is queued (actual regeneration wired in Phase 2-3).
+    regeneration. Goal changes bypass the 24h debounce window.
     """
+    old_learner = await queries.get_learner(learner_id)
+    old_target_role = old_learner.get("target_role") if old_learner else None
+
     await queries.update_learner(learner_id, {
         "target_role": body.target_role,
     })
 
-    # TODO Phase 3: Trigger roadmap regeneration via Rules Engine
-    # Per rules.md §1.3, goal changes bypass the 24h debounce window.
+    # Trigger roadmap regeneration via Rules Engine (bypasses debounce per rules.md §1.3)
+    rules_engine = RulesEngine()
+    adaptation = await rules_engine.evaluate_and_trigger(
+        learner_id=learner_id,
+        event_type="target_role_changed",
+        event_payload={"old_target_role": old_target_role, "new_target_role": body.target_role},
+    )
 
-    return TargetRoleResponse(roadmap_regeneration_queued=True)
+    return TargetRoleResponse(
+        roadmap_regeneration_queued=adaptation.get("adaptation_needed", False),
+        adaptation_details=adaptation,
+    )

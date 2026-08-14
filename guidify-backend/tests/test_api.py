@@ -1,13 +1,13 @@
 from fastapi.testclient import TestClient
 from app.main import app
-from app.middleware.auth import get_current_user
+from app.core.auth import get_current_learner_id
 
 client = TestClient(app)
 
-def mock_get_current_user():
-    return {"id": "test_user", "email": "test@example.com"}
+def mock_get_current_learner_id():
+    return "test_user"
 
-app.dependency_overrides[get_current_user] = mock_get_current_user
+app.dependency_overrides[get_current_learner_id] = mock_get_current_learner_id
 
 def test_health_check():
     response = client.get("/health")

@@ -43,7 +43,30 @@ let lastFailureTime = 0;
 const MAX_FAILURES = 8;
 const CIRCUIT_OPEN_MS = 10000;
 
-// Request interceptor — attach Supabase JWT
+// Session token cache
+let cachedSessionToken = null;
+let sessionExpiry = 0;
+
+// Initialize session cache from Supabase auth state
+supabase.auth.getSession().then(({ data: { session } }) => {
+  if (session?.access_token) {
+    cachedSessionToken = session.access_token;
+    sessionExpiry = session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000;
+  }
+});
+
+// Listen for auth state changes to update cache
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session?.access_token) {
+    cachedSessionToken = session.access_token;
+    sessionExpiry = session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000;
+  } else {
+    cachedSessionToken = null;
+    sessionExpiry = 0;
+  }
+});
+
+// Request interceptor — attach cached Supabase JWT
 api.interceptors.request.use(async (config) => {
   // Circuit breaker check — allow through in half-open state to test recovery
   if (Date.now() < circuitOpenUntil) {
@@ -55,14 +78,21 @@ api.interceptors.request.use(async (config) => {
     }
   }
 
-  // Get current session token from Supabase
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      config.headers['Authorization'] = `Bearer ${session.access_token}`;
+  // Use cached session token, refresh only if expired
+  if (cachedSessionToken && Date.now() < sessionExpiry - 60000) {
+    config.headers['Authorization'] = `Bearer ${cachedSessionToken}`;
+  } else {
+    // Token expired or not cached — fetch fresh session
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        cachedSessionToken = session.access_token;
+        sessionExpiry = session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000;
+        config.headers['Authorization'] = `Bearer ${cachedSessionToken}`;
+      }
+    } catch (e) {
+      // Silent — request will proceed without auth, server will reject if needed
     }
-  } catch (e) {
-    // Silent — request will proceed without auth, server will reject if needed
   }
 
   return config;

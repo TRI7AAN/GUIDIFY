@@ -31,6 +31,21 @@ from app.core.exceptions import AIServiceError
 logger = logging.getLogger("guidify.ai_gateway")
 
 
+def _sanitize_user_input(text: str) -> str:
+    """
+    Sanitize user input to prevent prompt injection.
+    Strips quotes, backticks, and control characters that could break prompt structure.
+    """
+    if not text:
+        return ""
+    # Remove quotes, backticks, and common injection patterns
+    sanitized = text.replace('"', '').replace("'", "").replace("`", "")
+    # Remove potential control sequences
+    sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', sanitized)
+    # Limit length
+    return sanitized[:500]
+
+
 class AIGateway:
     """
     Central AI Gateway — the single point through which all AI interactions flow.
@@ -219,7 +234,7 @@ class AIGateway:
             psychometric_narrative = context.get("psychometric_narrative")
             if psychometric_narrative:
                 psychometric_section = PSYCHOMETRIC_SECTION.format(
-                    psychometric_narrative=psychometric_narrative,
+                    psychometric_narrative=_sanitize_user_input(psychometric_narrative),
                     psychometric_pacing=context.get("psychometric_pacing", "mixed"),
                     psychometric_tone=context.get("psychometric_tone", "encouraging"),
                 )
@@ -229,12 +244,12 @@ class AIGateway:
                 psychometric_instructions = ""
 
             prompt = ROADMAP_GENERATE_V1.format(
-                target_role=context.get("target_role", "Software Developer"),
-                segment=context.get("segment", "college"),
-                skills=", ".join(context.get("skills", [])) or "None listed",
-                interests=", ".join(context.get("interests", [])) or "None listed",
-                strengths=", ".join(context.get("strengths", [])) or "None listed",
-                weaknesses=", ".join(context.get("weaknesses", [])) or "None listed",
+                target_role=_sanitize_user_input(context.get("target_role", "Software Developer")),
+                segment=_sanitize_user_input(context.get("segment", "college")),
+                skills=", ".join([_sanitize_user_input(s) for s in context.get("skills", [])]) or "None listed",
+                interests=", ".join([_sanitize_user_input(s) for s in context.get("interests", [])]) or "None listed",
+                strengths=", ".join([_sanitize_user_input(s) for s in context.get("strengths", [])]) or "None listed",
+                weaknesses=", ".join([_sanitize_user_input(s) for s in context.get("weaknesses", [])]) or "None listed",
                 learning_hours=context.get("learning_hours", "5"),
                 psychometric_section=psychometric_section,
                 psychometric_instructions=psychometric_instructions,
@@ -262,13 +277,13 @@ class AIGateway:
                 history_str = "No previous missions — this is the learner's first mission."
 
             prompt = MISSION_GENERATE_V1.format(
-                target_role=context.get("target_role", "Software Developer"),
-                segment=context.get("segment", "college"),
-                current_phase_title=context.get("current_phase_title", "Foundations"),
+                target_role=_sanitize_user_input(context.get("target_role", "Software Developer")),
+                segment=_sanitize_user_input(context.get("segment", "college")),
+                current_phase_title=_sanitize_user_input(context.get("current_phase_title", "Foundations")),
                 current_phase_number=context.get("current_phase_number", 1),
                 total_phases=context.get("total_phases", 4),
-                phase_skills=", ".join(context.get("phase_skills", [])) or "General skills",
-                target_skill=context.get("target_skill", "Problem Solving"),
+                phase_skills=", ".join([_sanitize_user_input(s) for s in context.get("phase_skills", [])]) or "General skills",
+                target_skill=_sanitize_user_input(context.get("target_skill", "Problem Solving")),
                 difficulty=context.get("difficulty", "beginner"),
                 estimated_minutes=context.get("estimated_minutes", 35),
                 mission_history=history_str,
@@ -284,7 +299,7 @@ class AIGateway:
         if task_type == "resume.parse":
             from app.ai_gateway.prompts.resume_parse import RESUME_PARSE_V1
             prompt = RESUME_PARSE_V1.format(
-                resume_text=context.get("resume_text", ""),
+                resume_text=_sanitize_user_input(context.get("resume_text", "")),
             )
             if schema_hint:
                 prompt += (
@@ -297,9 +312,9 @@ class AIGateway:
         if task_type == "resume.score":
             from app.ai_gateway.prompts.resume_score import RESUME_SCORE_V1
             prompt = RESUME_SCORE_V1.format(
-                target_role=context.get("target_role", "Software Developer"),
-                segment=context.get("segment", "college"),
-                current_skills=", ".join(context.get("current_skills", [])) or "None listed",
+                target_role=_sanitize_user_input(context.get("target_role", "Software Developer")),
+                segment=_sanitize_user_input(context.get("segment", "college")),
+                current_skills=", ".join([_sanitize_user_input(s) for s in context.get("current_skills", [])]) or "None listed",
                 parsed_resume_json=json.dumps(context.get("parsed_resume", {}), default=str),
             )
             if schema_hint:
@@ -317,8 +332,8 @@ class AIGateway:
             )
             prompt = iq_user(
                 track=context.get("track", "technical"),
-                profile_summary=context.get("profile_summary", ""),
-                target_role=context.get("target_role", "Software Developer"),
+                profile_summary=_sanitize_user_input(context.get("profile_summary", "")),
+                target_role=_sanitize_user_input(context.get("target_role", "Software Developer")),
                 transcript=context.get("transcript", []),
             )
             if schema_hint:
@@ -338,8 +353,8 @@ class AIGateway:
             )
             prompt = if_user(
                 track=context.get("track", "technical"),
-                profile_summary=context.get("profile_summary", ""),
-                target_role=context.get("target_role", "Software Developer"),
+                profile_summary=_sanitize_user_input(context.get("profile_summary", "")),
+                target_role=_sanitize_user_input(context.get("target_role", "Software Developer")),
                 transcript=context.get("transcript", []),
                 delivery_metrics=context.get("delivery_metrics"),
                 camera_enabled=context.get("camera_enabled", False),
@@ -372,11 +387,11 @@ class AIGateway:
             from app.ai_gateway.prompts.resume_jd_match import RESUME_JD_MATCH_V1
             prompt = RESUME_JD_MATCH_V1.format(
                 parsed_resume_json=json.dumps(context.get("parsed_resume", {}), default=str),
-                job_title=context.get("job_title", "Software Developer"),
-                company=context.get("company", "Not specified"),
-                job_description=context.get("job_description", ""),
-                target_role=context.get("target_role", "Software Developer"),
-                segment=context.get("segment", "college"),
+                job_title=_sanitize_user_input(context.get("job_title", "Software Developer")),
+                company=_sanitize_user_input(context.get("company", "Not specified")),
+                job_description=_sanitize_user_input(context.get("job_description", "")),
+                target_role=_sanitize_user_input(context.get("target_role", "Software Developer")),
+                segment=_sanitize_user_input(context.get("segment", "college")),
             )
             if schema_hint:
                 prompt += (

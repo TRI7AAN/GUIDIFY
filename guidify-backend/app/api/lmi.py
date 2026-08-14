@@ -11,7 +11,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Depends
 
-from app.middleware.auth import get_current_user
+from app.core.auth import get_current_learner_id
 from app.services.lmi_service import lmi_service
 
 logger = logging.getLogger("guidify.api.lmi")
@@ -23,7 +23,7 @@ router = APIRouter(tags=["LMI"])
 async def get_skills_trend(
     skill: str,
     period: str = "current",
-    user: Dict[str, Any] = Depends(get_current_user),
+    learner_id: str = Depends(get_current_learner_id),
 ):
     """Get market demand trend for a specific skill."""
     return lmi_service.get_skills_trend(skill, period)

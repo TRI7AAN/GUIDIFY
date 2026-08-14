@@ -119,8 +119,29 @@ async def get_active_roadmap(learner_id: str) -> Optional[Dict[str, Any]]:
 
 
 async def create_roadmap(learner_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-    """Create a new roadmap, superseding any previous active one."""
+    """Create a new roadmap, superseding any previous active one (atomic via RPC)."""
     try:
+        # Use atomic RPC function if available, fallback to legacy implementation
+        try:
+            response = await _run_query(
+                supabase.rpc("create_roadmap_atomic", {
+                    "p_learner_id": learner_id,
+                    "p_title": data.get("title", "Career Roadmap"),
+                    "p_total_phases": data.get("total_phases", 0),
+                    "p_estimated_weeks": data.get("estimated_weeks", 0),
+                    "p_phases": data.get("phases", []),
+                    "p_trigger_reason": data.get("trigger_reason", "manual"),
+                    "p_current_phase_number": data.get("current_phase_number", 1),
+                    "p_progress_pct": data.get("progress_pct", 0),
+                })
+            )
+            if response.data:
+                return response.data
+        except Exception:
+            # Fallback to legacy implementation if RPC doesn't exist
+            pass
+
+        # Legacy implementation (non-atomic)
         # First, supersede any existing active roadmap
         await _run_query(
             supabase.table("roadmaps").update(
@@ -302,10 +323,21 @@ async def get_mission_by_id(mission_id: str, learner_id: str) -> Optional[Dict[s
 
 
 async def calculate_streak(learner_id: str) -> int:
-    """Calculate the current consecutive-day completion streak."""
-    from datetime import date, timedelta
+    """Calculate the current consecutive-day completion streak (via SQL RPC)."""
     try:
-        # Fetch last 90 days of missions ordered by date
+        # Use optimized SQL function if available
+        try:
+            response = await _run_query(
+                supabase.rpc("calculate_streak_sql", {"p_learner_id": learner_id})
+            )
+            if response.data is not None:
+                return int(response.data)
+        except Exception:
+            # Fallback to Python implementation if RPC doesn't exist
+            pass
+
+        # Legacy Python implementation
+        from datetime import date, timedelta
         response = await _run_query(
             supabase.table("daily_missions")
             .select("assigned_date, status")
@@ -317,12 +349,10 @@ async def calculate_streak(learner_id: str) -> int:
         if not response.data:
             return 0
 
-        # Count consecutive days from today/yesterday
         completed_dates = set(row["assigned_date"] for row in response.data)
         today = date.today()
         streak = 0
 
-        # Start checking from today or yesterday
         check_date = today
         if today.isoformat() not in completed_dates:
             check_date = today - timedelta(days=1)
@@ -416,8 +446,22 @@ async def update_resume(resume_id: str, learner_id: str, data: Dict[str, Any]) -
 
 
 async def set_current_resume(resume_id: str, learner_id: str) -> bool:
-    """Mark a resume as current (unmarks previous current)."""
+    """Mark a resume as current (unmarks previous current) - atomic via RPC."""
     try:
+        # Use atomic RPC function if available, fallback to legacy implementation
+        try:
+            response = await _run_query(
+                supabase.rpc("set_current_resume_atomic", {
+                    "p_resume_id": resume_id,
+                    "p_learner_id": learner_id,
+                })
+            )
+            return response.data is not None
+        except Exception:
+            # Fallback to legacy implementation if RPC doesn't exist
+            pass
+
+        # Legacy implementation (non-atomic)
         # Unmark all current resumes for this learner
         await _run_query(
             supabase.table("resumes").update(
@@ -520,6 +564,34 @@ async def get_last_regeneration(learner_id: str) -> Optional[str]:
     except Exception as e:
         logger.error(f"Failed to fetch last regeneration for {learner_id}: {e}")
         return None
+
+
+# --- Job Queue ---
+
+async def create_job(
+    job_type: str,
+    learner_id: str,
+    payload: Dict[str, Any],
+    resume_id: Optional[str] = None,
+    roadmap_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
+    """Create a new job in the job queue."""
+    try:
+        job_data: Dict[str, Any] = {
+            "job_type": job_type,
+            "learner_id": learner_id,
+            "payload": payload,
+        }
+        if resume_id:
+            job_data["resume_id"] = resume_id
+        if roadmap_id:
+            job_data["roadmap_id"] = roadmap_id
+
+        response = await _run_query(supabase.table("job_queue").insert(job_data))
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to create job for learner {learner_id}: {e}")
+        raise
 
 
 # --- Skill Baselines (schema.md §9) ---

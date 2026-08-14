@@ -5,7 +5,7 @@
  * Provides loading states, error handling, and automatic retries.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import apiClient from '../api/apiClient';
 
 /**
@@ -62,24 +62,27 @@ export const useFetch = (endpoint, options = {}) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const optionsRef = useRef(options);
+    optionsRef.current = options;
+
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
 
-            const result = await apiClient.get(endpoint, options);
+            const result = await apiClient.get(endpoint, optionsRef.current);
             setData(result);
         } catch (err) {
             setError(err);
         } finally {
             setLoading(false);
         }
-    }, [endpoint, options]);
+    }, [endpoint]);
 
     // Fetch on mount
-    useState(() => {
+    useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]);
 
     return {
         data,

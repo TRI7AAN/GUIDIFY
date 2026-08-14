@@ -53,6 +53,7 @@ from slowapi.errors import RateLimitExceeded
 
 # Import new API route modules (per architecture.md §2, api.md)
 from app.api import auth, dashboard, resume, roadmap, missions, interview, adaptation, psychometric_test, psychometric, profile_psychometrics, ml, lmi
+from app.core.auth import get_current_learner_id
 
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -115,7 +116,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["X-Content-Security-Policy"] = "default-src 'self'"
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
     return response
 
 # ── Route Registration ─────────────────────────────────────────────────
@@ -159,7 +160,7 @@ app.include_router(ml.router, prefix=API_V1, tags=["ML Profiling"])
 app.include_router(lmi.router, prefix=API_V1, tags=["LMI"])
 
 # Prometheus metrics — secured endpoint for internal scraping
-Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+Instrumentator().instrument(app).expose(app, endpoint="/metrics", dependencies=[Depends(get_current_learner_id)])
 
 # ── Health Endpoints (no auth required) ────────────────────────────────
 
@@ -167,18 +168,67 @@ Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 async def root():
     return {"status": "ok", "message": f"GUIDIFY API {settings.APP_VERSION}"}
 
+
 @app.api_route("/health", methods=["GET", "HEAD"], tags=["Health"])
 async def health_check():
+    """Basic health check - returns ok if service is running"""
     return {"status": "ok"}
+
 
 @app.api_route("/api/v1/health", methods=["GET", "HEAD"], tags=["Health"])
 async def health_check_v1():
     """Versioned health endpoint"""
     return {"status": "ok", "version": settings.APP_VERSION}
 
+
+@app.api_route("/api/v1/health/ready", methods=["GET", "HEAD"], tags=["Health"])
+async def health_check_ready():
+    """
+    Readiness probe - verifies critical dependencies (DB, etc.)
+    Returns 200 if ready, 503 if not ready.
+    """
+    from app.services.supabase_client import db
+    import asyncio
+
+    # Check database connectivity
+    try:
+        await asyncio.to_thread(
+            db.table("learners").select("id").limit(1).execute
+        )
+        db_status = "ok"
+    except Exception as e:
+        db_status = f"error: {str(e)}"
+
+    # Check AI provider configuration
+    from app.core.config import settings
+    ai_configured = bool(settings.OPENROUTER_API_KEY or settings.GOOGLE_API_KEY)
+
+    if db_status == "ok" and ai_configured:
+        return {
+            "status": "ready",
+            "version": settings.APP_VERSION,
+            "checks": {
+                "database": "ok",
+                "ai_provider": "configured" if ai_configured else "not_configured"
+            }
+        }
+    else:
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_ready",
+                "version": settings.APP_VERSION,
+                "checks": {
+                    "database": db_status,
+                    "ai_provider": "configured" if ai_configured else "not_configured"
+                }
+            }
+        )
+
 # ── AI Gateway Test Endpoint (Phase 0 verification) ───────────────────
 
-@app.get("/api/v1/ai-gateway/test", tags=["Internal"])
+@app.get("/api/v1/ai-gateway/test", tags=["Internal"], dependencies=[Depends(get_current_learner_id)])
 async def test_ai_gateway():
     """
     Phase 0 exit criteria: AI Gateway hello world round-trip.

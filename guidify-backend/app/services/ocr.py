@@ -43,7 +43,7 @@ def extract_text_from_file(file_path: str) -> str:
         print(f"Error extracting text: {e}")
         return ""
 
-def extract_marks(text: str) -> int:
+def extract_marks(text: str) -> Optional[int]:
     """Extract marks from OCR text"""
     nums = re.findall(r'\b\d{1,3}\b', text)
     candidates = []
@@ -55,8 +55,8 @@ def extract_marks(text: str) -> int:
         except:
             pass
     
-    # Return highest mark found or default to 75
-    return max(candidates) if candidates else 75
+    # Return highest mark found or None if not found
+    return max(candidates) if candidates else None
 
 def cleanup_temp_files(file_path: Optional[str] = None):
     """Remove temporary files after processing"""

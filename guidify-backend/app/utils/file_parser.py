@@ -110,8 +110,8 @@ def extract_marks(text: str) -> int:
         # Return the highest number that could be a mark
         return max(candidates)
     
-    # Default fallback
-    return 75  # reasonable default
+    # No marks found - return None instead of fabricating data
+    return None
 
 def extract_resume_data(text: str) -> Dict[str, Any]:
     """

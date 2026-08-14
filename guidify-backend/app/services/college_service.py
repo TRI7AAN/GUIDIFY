@@ -29,9 +29,18 @@ class CollegeService:
             text = extract_text_from_file(file_path)
             marks = extract_marks(text)
             
+            # If no marks detected and no entrance marks provided, return error
+            if marks is None and entrance_marks is None:
+                return {
+                    "success": False,
+                    "data": [],
+                    "detected_marks": None,
+                    "error": "Could not extract marks from the uploaded file. Please provide entrance exam marks or upload a file with clear percentage/score information."
+                }
+            
             # Calculate final marks (average with entrance if provided)
             if entrance_marks:
-                final_marks = (marks + entrance_marks) // 2
+                final_marks = entrance_marks if marks is None else (marks + entrance_marks) // 2
             else:
                 final_marks = marks
             
@@ -49,5 +58,6 @@ class CollegeService:
             return {
                 "success": False,
                 "data": [],
+                "detected_marks": None,
                 "error": f"Error recommending colleges: {str(e)}"
             }

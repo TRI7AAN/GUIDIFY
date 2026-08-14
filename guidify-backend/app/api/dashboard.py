@@ -32,12 +32,9 @@ async def get_dashboard(
     """
     async def _fetch_profile_psychometrics(lid: str):
         try:
-            from app.services.supabase_client import db
-            result = await asyncio.to_thread(
-                db.table("learner_profiles").select("questionnaire_data").eq("learner_id", lid).order("created_at", desc=True).limit(1).single().execute
-            )
-            if result.data:
-                qd = result.data.get("questionnaire_data", {})
+            result = await queries.get_learner_profile(lid)
+            if result:
+                qd = result.get("questionnaire_data", {})
                 if isinstance(qd, dict):
                     return qd.get("category_scores"), qd.get("recommended_courses")
         except Exception as e:
