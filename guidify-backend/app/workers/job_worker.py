@@ -11,6 +11,14 @@ This worker:
 3. Processes them based on job_type
 4. Marks jobs as completed or failed
 
+F-04 FIX: The worker authenticates with the service-role key. The claim/complete
+RPCs are service-role only (migration 018) and job_queue RLS requires service_role
+to read/manage all jobs, so the previous anon publishable-key client could never
+claim a job — it silently no-oped forever.
+
+Requires SUPABASE_SERVICE_ROLE_KEY to be set. The worker exits with a clear
+error otherwise rather than failing silently.
+
 For production, consider running multiple workers or using Supabase Edge Functions.
 """
 
@@ -18,12 +26,11 @@ import asyncio
 import logging
 import signal
 import sys
-from typing import Optional
+from typing import Any, Dict, Optional
 
-from app.db import queries
 from app.ai_gateway.gateway import gateway
+from app.core.config import settings
 from app.models.schemas import ResumeParseResponse, ResumeScoreResponse
-from app.services.supabase_client import supabase
 
 logging.basicConfig(
     level=logging.INFO,
@@ -35,13 +42,44 @@ logger = logging.getLogger("guidify.worker")
 shutdown = False
 
 
+def _create_service_client():
+    """Create a Supabase client authenticated with the service-role key."""
+    from supabase import create_client
+    return create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+
+
 def signal_handler(signum, frame):
     global shutdown
     logger.info(f"Received signal {signum}, shutting down gracefully...")
     shutdown = True
 
 
-async def process_resume_job(job: dict) -> bool:
+def _rpc(client, fn: str, params: Dict[str, Any]):
+    """Run a synchronous RPC call via the service-role client."""
+    return client.rpc(fn, params).execute()
+
+
+def _update_resume(client, resume_id: str, data: Dict[str, Any]) -> None:
+    client.table("resumes").update(data).eq("id", resume_id).execute()
+
+
+def _get_learner_profile(client, learner_id: str) -> Optional[Dict[str, Any]]:
+    response = (
+        client.table("learner_profiles")
+        .select("*")
+        .eq("learner_id", learner_id)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    return response.data[0] if response.data else None
+
+
+def _update_learner_profile(client, profile_id: str, data: Dict[str, Any]) -> None:
+    client.table("learner_profiles").update(data).eq("id", profile_id).execute()
+
+
+async def process_resume_job(client, job: dict) -> bool:
     """Process a resume processing job."""
     payload = job.get("payload", {})
     resume_id = payload.get("resume_id")
@@ -86,13 +124,13 @@ async def process_resume_job(job: dict) -> bool:
             except Exception as e:
                 logger.warning(f"Resume scoring failed for learner {learner_id}: {e}")
 
-        await queries.update_resume(resume_id, learner_id, {
+        _update_resume(client, resume_id, {
             "parsed_data": parsed_data,
             "score": score_data.get("overall_score") if score_data else None,
             "gap_analysis": score_data,
         })
 
-        profile = await queries.get_learner_profile(learner_id)
+        profile = _get_learner_profile(client, learner_id)
         if profile and parsed_data:
             update_data = {}
             if parsed_data.get("technical_skills"):
@@ -100,7 +138,7 @@ async def process_resume_job(job: dict) -> bool:
                 update_data["skills"] = list(set(existing_skills + parsed_data["technical_skills"]))
             update_data["resume_data"] = parsed_data
             if update_data:
-                await queries.update_learner_profile(profile["id"], update_data)
+                _update_learner_profile(client, profile["id"], update_data)
 
         return True
     except Exception as e:
@@ -108,18 +146,18 @@ async def process_resume_job(job: dict) -> bool:
         return False
 
 
-async def process_job(job: dict) -> bool:
+async def process_job(client, job: dict) -> bool:
     """Route job to appropriate handler based on job_type."""
     job_type = job.get("job_type")
 
     if job_type == "resume_process":
-        return await process_resume_job(job)
+        return await process_resume_job(client, job)
     else:
         logger.warning(f"Unknown job type: {job_type}")
         return False
 
 
-async def worker_loop(poll_interval: int = 5):
+async def worker_loop(client, poll_interval: int = 5):
     """Main worker loop - polls for jobs and processes them."""
     logger.info("Job worker started")
 
@@ -130,7 +168,8 @@ async def worker_loop(poll_interval: int = 5):
                 try:
                     # Use the claim_next_job RPC for atomic claim
                     response = await asyncio.to_thread(
-                        supabase.rpc("claim_next_job", {"p_job_type": job_type, "p_worker_id": "worker-1"}).execute
+                        _rpc, client, "claim_next_job",
+                        {"p_job_type": job_type, "p_worker_id": "worker-1"},
                     )
 
                     if response.data:
@@ -139,15 +178,16 @@ async def worker_loop(poll_interval: int = 5):
                         logger.info(f"Claimed job {job_id} of type {job_type}")
 
                         # Process the job
-                        success = await process_job(job)
+                        success = await process_job(client, job)
 
                         # Mark job as completed or failed
                         await asyncio.to_thread(
-                            supabase.rpc("complete_job", {
+                            _rpc, client, "complete_job",
+                            {
                                 "p_job_id": job_id,
                                 "p_success": success,
-                                "p_error_message": None if success else "Processing failed"
-                            }).execute
+                                "p_error_message": None if success else "Processing failed",
+                            },
                         )
 
                         if success:
@@ -157,7 +197,7 @@ async def worker_loop(poll_interval: int = 5):
 
                 except Exception as e:
                     # No jobs available or RPC error - continue
-                    pass
+                    logger.debug(f"Claim/poll error for {job_type}: {e}")
 
             # Wait before next poll
             await asyncio.sleep(poll_interval)
@@ -172,13 +212,26 @@ async def worker_loop(poll_interval: int = 5):
 
 
 async def main():
+    if not settings.SUPABASE_SERVICE_ROLE_KEY:
+        logger.error(
+            "SUPABASE_SERVICE_ROLE_KEY is not set. The job worker requires it to "
+            "claim jobs (claim_next_job is service-role only) and write results "
+            "(job_queue RLS is service-role only). Exiting — jobs will remain pending."
+        )
+        return
+
     # Register signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
+    client = _create_service_client()
+
     # Run worker loop
-    await worker_loop()
+    await worker_loop(client)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass

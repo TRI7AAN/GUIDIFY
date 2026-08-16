@@ -72,10 +72,28 @@ async def get_learner_profile(learner_id: str) -> Optional[Dict[str, Any]]:
             .order("created_at", desc=True)
             .limit(1)
         )
-        return response.data[0] if response.data else None
+        if response.data:
+            return response.data[0]
     except Exception as e:
         logger.error(f"Failed to fetch profile for learner {learner_id}: {e}")
         return None
+
+    # F-08 FIX: onboarding writes skills/interests/learning_hours to `learners`,
+    # but learner_profiles only gets populated by /auth/onboarding and resume
+    # processing — which most users never hit. Fall back to the learners columns
+    # so recommender/missions/dashboard see real data instead of an empty profile.
+    learner = await get_learner(learner_id)
+    if not learner:
+        return None
+    return {
+        "id": learner["id"],
+        "learner_id": learner_id,
+        "skills": learner.get("skills", []) or [],
+        "interests": learner.get("interests", []) or [],
+        "strengths": [],
+        "weaknesses": [],
+        "questionnaire_data": {"learning_hours": learner.get("learning_hours", "5")},
+    }
 
 
 async def create_learner_profile(learner_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -548,7 +566,27 @@ async def get_events_by_type(
 
 
 async def get_last_regeneration(learner_id: str) -> Optional[str]:
-    """Get the timestamp of the last roadmap regeneration for debounce check."""
+    """
+    Get the timestamp of the last roadmap generation/regeneration for debounce check.
+
+    F-09/F-10 FIX: reads the roadmaps table first (the row itself is the source
+    of truth), falling back to event_log only for pre-existing data. Previously
+    the debounce depended on the event_log INSERT succeeding — if that write
+    failed, the debounce never reset and a user could spam regenerations.
+    """
+    try:
+        response = await _run_query(
+            supabase.table("roadmaps")
+            .select("created_at")
+            .eq("learner_id", learner_id)
+            .order("created_at", desc=True)
+            .limit(1)
+        )
+        if response.data and len(response.data) > 0:
+            return response.data[0].get("created_at")
+    except Exception as e:
+        logger.error(f"Failed to fetch last roadmap for {learner_id}: {e}")
+
     try:
         response = await _run_query(
             supabase.table("event_log")
@@ -623,6 +661,31 @@ async def create_skill_baseline(data: Dict[str, Any]) -> Optional[Dict[str, Any]
 
 # --- Interview Sessions (schema.md §8) ---
 
+async def create_consent(
+    learner_id: str,
+    consent_type: str,
+    granted: bool = True,
+    source: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
+    """Create a consent record (schema.md §8.2 / migration 011)."""
+    try:
+        data: Dict[str, Any] = {
+            "learner_id": learner_id,
+            "consent_type": consent_type,
+            "granted": granted,
+        }
+        if source:
+            data["source"] = source
+        if metadata:
+            data["metadata"] = metadata
+        response = await _run_query(supabase.table("consents").insert(data))
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to create consent for learner {learner_id}: {e}")
+        return None
+
+
 async def create_interview_session(learner_id: str, track: str) -> Optional[Dict[str, Any]]:
     """Create a new interview session."""
     try:
@@ -680,6 +743,23 @@ async def get_interview_history(learner_id: str, limit: int = 10) -> List[Dict[s
     except Exception as e:
         logger.error(f"Failed to fetch interview history for {learner_id}: {e}")
         return []
+
+
+# --- Psychometric Profiles (rules.md §3, api.md §7) ---
+
+async def get_psychometric_profile(learner_id: str) -> Optional[Dict[str, Any]]:
+    """Fetch a learner's psychometric profile (narrative, pacing, tone) if one exists."""
+    try:
+        response = await _run_query(
+            supabase.table("psychometric_profiles")
+            .select("narrative_summary, pacing_hint, tone_hint, ipip_scores, riasec_scores")
+            .eq("learner_id", learner_id)
+            .maybe_single()
+        )
+        return response.data if response.data else None
+    except Exception as e:
+        logger.error(f"Failed to fetch psychometric profile for {learner_id}: {e}")
+        return None
 
 
 # --- Activity Heatmap (api.md §6) ---

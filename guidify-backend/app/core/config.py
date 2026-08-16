@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_PUBLISHABLE_KEY: str             # Publishable key — client-facing ops (RLS enforced)
 
+    # Service-role key — used ONLY by the background job worker to bypass RLS.
+    # Never expose this to the frontend and never use it from request handlers.
+    SUPABASE_SERVICE_ROLE_KEY: str = ""
+
     # Google Gemini AI Configuration
     GOOGLE_API_KEY: str = ""
 

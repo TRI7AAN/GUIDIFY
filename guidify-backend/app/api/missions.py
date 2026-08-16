@@ -240,5 +240,15 @@ async def _generate_daily_mission(learner_id: str) -> dict:
         "status": "pending",
     }
 
-    saved = await queries.create_mission(learner_id, mission_data)
-    return saved if saved else mission_data
+    # F-17 FIX: daily_missions now has a UNIQUE(learner_id, assigned_date)
+    # constraint. If a concurrent request already created today's mission, the
+    # insert fails — return the existing row instead of 500ing.
+    try:
+        saved = await queries.create_mission(learner_id, mission_data)
+        return saved if saved else mission_data
+    except Exception as e:
+        logger.warning(f"Mission insert failed (likely duplicate for today), re-fetching: {e}")
+        existing = await queries.get_todays_mission(learner_id)
+        if existing:
+            return existing
+        raise

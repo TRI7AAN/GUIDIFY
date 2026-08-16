@@ -3,16 +3,23 @@ services:
     name: guidify-backend
     runtime: python
     plan: free
-    buildCommand: cd guidify-backend && pip install -r requirements.txt
+    # F-14 FIX: install OCR + PDF system deps so resume parsing works on Render.
+    # The python runtime only runs `pip install` by default; tesseract/poppler are
+    # required by app/utils/file_parser.py (they were previously only in the Dockerfile).
+    buildCommand: cd guidify-backend && apt-get update && apt-get install -y --no-install-recommends tesseract-ocr poppler-utils libgomp1 && pip install -r requirements.txt
     startCommand: cd guidify-backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_PUBLISHABLE_KEY
         sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
       - key: SUPABASE_ACCESS_TOKEN
         sync: false
       - key: GOOGLE_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
         sync: false
       - key: REDIS_URL
         sync: false

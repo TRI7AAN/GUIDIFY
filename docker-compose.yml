@@ -64,12 +64,15 @@ services:
     depends_on:
       - prometheus
 
-  # Celery worker (uncomment when background tasks are implemented)
-  # worker:
-  #   build: ./guidify-backend
-  #   command: celery -A app.worker worker --loglevel=info
-  #   env_file:
-  #     - ./guidify-backend/.env
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
+  # Background job worker (resume processing, roadmap generation, etc.)
+  # F-04 FIX: enabled and wired to the persistent job queue. Requires
+  # SUPABASE_SERVICE_ROLE_KEY in guidify-backend/.env — the queue RPCs and RLS
+  # are service-role only, so the worker cannot claim jobs with the anon key.
+  worker:
+    build: ./guidify-backend
+    command: python -m app.workers.job_worker
+    env_file:
+      - ./guidify-backend/.env
+    depends_on:
+      redis:
+        condition: service_healthy

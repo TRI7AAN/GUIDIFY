@@ -32,6 +32,11 @@ async def get_dashboard(
     """
     async def _fetch_profile_psychometrics(lid: str):
         try:
+            # F-11 FIX: onboarding stores category_scores on `learners`; fall back
+            # to learner_profiles.questionnaire_data for legacy accounts.
+            learner = await queries.get_learner(lid)
+            if learner and learner.get("category_scores"):
+                return learner["category_scores"], None
             result = await queries.get_learner_profile(lid)
             if result:
                 qd = result.get("questionnaire_data", {})

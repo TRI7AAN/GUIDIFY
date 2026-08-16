@@ -10,11 +10,22 @@ import {
   PieChart, Layers, Award
 } from 'lucide-react';
 
-const TRAIT_LABELS = ['Technical', 'Creative', 'Communication', 'Leadership', 'Analytical'];
+// Short display names for known psychometric category keys (sources differ:
+// onboarding quiz {Analytical, Creative, Social, Business, Science} vs
+// psychometric test {"Technical Aptitude", ...}).
+const SHORT_TRAIT_NAMES = {
+  'Technical Aptitude': 'Technical',
+  'Analytical Reasoning': 'Analytical',
+  'Creative Thinking': 'Creative',
+  'Interpersonal Skills': 'Social',
+  'Leadership': 'Leadership',
+};
 
-function RadarChart({ scores }) {
+const shortLabel = (label) => SHORT_TRAIT_NAMES[label] || (label.length > 14 ? label.slice(0, 13) + '…' : label);
+
+function RadarChart({ labels, scores }) {
   const cx = 100, cy = 100, r = 65; // Slightly reduced radius to fit labels
-  const n = TRAIT_LABELS.length;
+  const n = labels.length;
   const angle = (i) => (Math.PI * 2 * i) / n - Math.PI / 2;
 
   const getPoint = (i, val) => ({
@@ -23,7 +34,7 @@ function RadarChart({ scores }) {
   });
 
   const gridLevels = [0.25, 0.5, 0.75, 1];
-  const dataPoints = (scores || [75, 60, 80, 50, 90]).map((s, i) => getPoint(i, s));
+  const dataPoints = (scores || labels.map(() => 0)).map((s, i) => getPoint(i, s));
   const polygonPoints = dataPoints.map(p => `${p.x},${p.y}`).join(' ');
 
   return (
@@ -44,11 +55,11 @@ function RadarChart({ scores }) {
         <line key={i} x1={cx} y1={cy} x2={getPoint(i, 100).x} y2={getPoint(i, 100).y} stroke="#1F2330" strokeWidth="1" />
       ))}
       <polygon points={polygonPoints} fill="rgba(60,255,20,0.15)" stroke="#3cff14" strokeWidth="1.5" />
-      {TRAIT_LABELS.map((label, i) => {
+      {labels.map((label, i) => {
         const p = getPoint(i, 125); // Push labels a bit further out
         return (
           <text key={i} x={p.x} y={p.y} textAnchor="middle" dominantBaseline="middle" fill="#ffffff" fontSize="7.5" fontFamily="Space Grotesk">
-            {label}
+            {shortLabel(label)}
           </text>
         );
       })}
@@ -105,11 +116,18 @@ export default function Dashboard() {
   const placementReadiness = dashboard?.placement_readiness ?? 0;
   const roadmapProgress = dashboard?.roadmap_progress_pct ?? 0;
 
-  // Personality trait scores from psychometric analysis
-  const traitScores = dashboard?.category_scores;
-  const skillScores = traitScores
-    ? TRAIT_LABELS.map(t => traitScores[t] ?? 50)
-    : [50, 50, 50, 50, 50];
+  // Personality trait scores from psychometric analysis.
+  // F-11 FIX: derive axes from the real category_scores keys (onboarding quiz,
+  // psychometric test, and AI analysis all use different key sets) instead of
+  // mapping fixed labels that never matched — which rendered a fake [50,50,50,50,50].
+  const categoryScores = dashboard?.category_scores;
+  const radarLabels = categoryScores && typeof categoryScores === 'object'
+    ? Object.entries(categoryScores)
+        .filter(([, v]) => typeof v === 'number')
+        .sort((a, b) => b[1] - a[1])
+        .map(([k]) => k)
+    : [];
+  const skillScores = radarLabels.map(label => Math.min(Math.max(categoryScores[label] ?? 0, 0), 100));
 
   // Compute tier from roadmap progress
   const getTier = (progress) => {
@@ -173,10 +191,30 @@ export default function Dashboard() {
           </div>
           
           <div className="flex-1 flex flex-col items-center justify-center pt-4">
-            <h4 className="text-[#3cff14] text-sm mb-8 font-medium">Personality Profile</h4>
-            <div className="w-full max-w-[320px] aspect-square">
-              <RadarChart scores={skillScores} />
-            </div>
+            {radarLabels.length > 0 ? (
+              <>
+                <h4 className="text-[#3cff14] text-sm mb-8 font-medium">Personality Profile</h4>
+                <div className="w-full max-w-[320px] aspect-square">
+                  <RadarChart labels={radarLabels} scores={skillScores} />
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center text-center gap-3 py-10">
+                <PieChart className="w-8 h-8 text-[#A4ACBC]" />
+                <div>
+                  <h4 className="text-white text-sm font-semibold">Skills radar not unlocked yet</h4>
+                  <p className="text-[#A4ACBC] text-xs mt-1 max-w-[240px]">
+                    Complete the personality assessment to see your trait profile here.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate('/psychometric-test')}
+                  className="mt-1 rounded-lg px-4 py-2 text-xs font-bold bg-[#3cff14] text-[#0D0F18] hover:opacity-80 transition-opacity"
+                >
+                  Take Assessment
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -13,6 +13,7 @@ Endpoints:
 """
 
 import logging
+import os
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Request
 
@@ -128,10 +129,13 @@ async def upload_resume(
         current_skills = profile.get("skills", []) if profile else []
 
         storage_path = f"resumes/{learner_id}/{file.filename}"
+        # F-12 FIX: store the real byte size of the uploaded file, not the length
+        # of the extracted text (which previously looked like a 2 KB resume).
+        file_size_bytes = os.path.getsize(temp_path) if temp_path else len(resume_text)
         resume_record = await queries.create_resume(learner_id, {
             "storage_path": storage_path,
             "file_name": file.filename or "resume",
-            "file_size_bytes": len(resume_text),
+            "file_size_bytes": file_size_bytes,
             "mime_type": file.content_type or "",
             "is_current": True,
         })

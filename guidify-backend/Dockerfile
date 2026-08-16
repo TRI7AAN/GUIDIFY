@@ -2,6 +2,7 @@ FROM python:3.12-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    curl \
     tesseract-ocr \
     poppler-utils \
     libgomp1 \

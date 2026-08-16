@@ -13,6 +13,8 @@ Usage in routes:
 """
 
 import asyncio
+import time
+from typing import Dict, Tuple
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -20,6 +22,34 @@ from app.core.exceptions import AuthenticationError, InvalidTokenError
 from app.services.supabase_client import supabase, set_request_jwt
 
 security = HTTPBearer()
+
+# F-18 FIX: TTL cache for get_user() results, keyed by the bearer token.
+# Previously every request made an external HTTP call to Supabase Auth
+# (supabase.auth.get_user), which the audit flagged as a per-request network
+# round-trip on the hot path. Tokens carry their own ~1h expiry, so a short
+# TTL (5 min) still surfaces expirations/revocations promptly while removing
+# the network call for the majority of requests within a session.
+_USER_CACHE_TTL_SECONDS = 300
+_MAX_CACHED_TOKENS = 10_000
+_user_cache: Dict[str, Tuple[float, str]] = {}
+
+
+def _cache_get_user(token: str):
+    """Return (user_id, expired_flag). Pulls from TTL cache or Supabase Auth."""
+    now = time.monotonic()
+    cached = _user_cache.get(token)
+    if cached and cached[0] > now:
+        return cached[1], False
+
+    user_response = supabase.auth.get_user(token)
+    if not user_response or not user_response.user:
+        raise InvalidTokenError("Could not validate token")
+
+    _user_cache[token] = (now + _USER_CACHE_TTL_SECONDS, user_response.user.id)
+    # Bounded cache: reset when it grows too large (tokens are ephemeral).
+    if len(_user_cache) > _MAX_CACHED_TOKENS:
+        _user_cache.clear()
+    return user_response.user.id, True
 
 
 async def get_current_learner_id(
@@ -41,13 +71,12 @@ async def get_current_learner_id(
 
     try:
         # Supabase SDK v2: pass JWT directly to get_user()
-        # Wrap in asyncio.to_thread to avoid blocking the event loop
-        user_response = await asyncio.to_thread(supabase.auth.get_user, token)
-        if user_response and user_response.user:
-            # Bind the request's JWT so DB queries run under RLS for this user.
-            set_request_jwt(token)
-            return user_response.user.id
-        raise InvalidTokenError("Could not validate token")
+        # F-18 FIX: cached lookup; the off-loop call is made only on cache miss.
+        # Wrap in asyncio.to_thread to avoid blocking the event loop.
+        user_id, _ = await asyncio.to_thread(_cache_get_user, token)
+        # Bind the request's JWT so DB queries run under RLS for this user.
+        set_request_jwt(token)
+        return user_id
     except InvalidTokenError:
         raise
     except Exception as e:

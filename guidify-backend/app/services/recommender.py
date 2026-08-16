@@ -43,6 +43,11 @@ except Exception as e:
 # ============================
 # College Recommendation Functions
 # ============================
+# F-29 FIX: get_college_recommendations has no callers and no exposed route —
+# DEPRECATED. Retained (not deleted) because the college data + user_recommendations
+# cache path is a planned feature; remove wholesale once the roadmap settles.
+# NOTE: The sync `supabase.table(...).execute()` calls below are dead code (never
+# run) and must not be wired into an async endpoint as-is (blocks the event loop).
 def get_college_recommendations(marks: int, board: str, stream: str, user_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Get college recommendations based on verified data + Supabase caching.
@@ -144,16 +149,13 @@ async def recommend_companies_async(skills: List[str], cgpa: Optional[float], st
     }}
     """
     try:
+        # F-08 FIX: pass the fully-built prompt via _custom_prompt. Previously the
+        # prompt was smuggled through job_description, which the jd_match template
+        # truncated to 500 chars and wrapped in an unrelated schema — so the AI
+        # never saw these instructions and the "companies" key was always absent.
         response = await gateway.generate(
             task_type="resume.jd_match",
-            context={
-                "parsed_resume": {"skills": safe_skills},
-                "job_title": "Job Seeker",
-                "company": safe_institute,
-                "job_description": prompt,
-                "target_role": safe_stream,
-                "segment": "college",
-            },
+            context={"_custom_prompt": prompt},
         )
         result = response if isinstance(response, dict) else {}
     except Exception as e:
@@ -194,16 +196,10 @@ async def get_course_recommendations(college: str, preference: str) -> List[Dict
     }}
     """
     try:
+        # F-08 FIX: _custom_prompt passthrough (see recommend_companies_async).
         response = await gateway.generate(
             task_type="resume.jd_match",
-            context={
-                "parsed_resume": {},
-                "job_title": "Course Recommendations",
-                "company": safe_college,
-                "job_description": prompt,
-                "target_role": safe_preference,
-                "segment": "college",
-            },
+            context={"_custom_prompt": prompt},
         )
         result = response if isinstance(response, dict) else {}
     except Exception as e:
@@ -284,16 +280,10 @@ async def recommend_nsqf_courses(current_tier: str, career_goal: str) -> List[Di
     """
 
     try:
+        # F-08 FIX: _custom_prompt passthrough (see recommend_companies_async).
         response = await gateway.generate(
             task_type="resume.jd_match",
-            context={
-                "parsed_resume": {},
-                "job_title": "NCVET Course Selection",
-                "company": "NCVET",
-                "job_description": prompt,
-                "target_role": safe_goal,
-                "segment": "college",
-            },
+            context={"_custom_prompt": prompt},
         )
         result = response if isinstance(response, dict) else {}
     except Exception as e:

@@ -17,6 +17,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.db import queries
+from app.services.roadmap_service import regenerate_roadmap
 
 logger = logging.getLogger("guidify.rules_engine")
 
@@ -139,13 +140,26 @@ class RulesEngine:
                 "adaptation_needed": False,
                 "reason": f"Need at least {MIN_MISSION_HISTORY_FOR_ADAPTATION} missions before regeneration"
             }
-        
+
+        # F-09 FIX: actually regenerate the roadmap (rules.md §1.3). Previously
+        # the engine only returned an adaptation_needed decision and no caller
+        # ever regenerated, so a target-role change never produced a new roadmap.
+        outcome = await regenerate_roadmap(
+            learner_id=learner_id,
+            trigger_reason="goal_change",
+            bypass_debounce=True,
+        )
+        if outcome.get("status") != "ok":
+            logger.error(f"Goal-change regeneration failed for {learner_id}: {outcome.get('message')}")
+
         return {
-            "adaptation_needed": True,
+            "adaptation_needed": outcome.get("status") == "ok",
             "trigger": "goal_change",
             "regeneration_type": "full",
             "reason": f"Target role changed to {payload.get('new_target_role', 'unknown')}",
             "bypass_debounce": True,  # §1.3 always bypasses
+            "regeneration_status": outcome.get("status"),
+            "roadmap_id": outcome.get("roadmap_id"),
         }
 
     async def _handle_failure_pattern(

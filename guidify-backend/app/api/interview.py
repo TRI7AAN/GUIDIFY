@@ -55,6 +55,21 @@ async def start_interview_session(
     if not session:
         raise HTTPException(status_code=500, detail="Failed to create interview session")
 
+    # F-05 FIX: record delivery-analytics consent at session start so the client's
+    # delivery-metrics submission (POST .../delivery-metrics) is not rejected with
+    # 403 "Delivery consent not given". Best-effort: if consent insert fails, the
+    # session still works — delivery metrics are just not recorded for it.
+    consent = await queries.create_consent(
+        learner_id,
+        consent_type="delivery_analytics",
+        granted=True,
+        source="interview_session_start",
+    )
+    if consent:
+        await queries.update_interview_session(session["id"], {
+            "delivery_consent_id": consent["id"],
+        })
+
     # Get learner profile for context
     profile = await queries.get_learner_profile(learner_id)
     learner = await queries.get_learner(learner_id)
@@ -287,6 +302,11 @@ async def _end_session(
             "readiness_subscore": 50,
             "suggested_missions": [],
         }
+
+    # F-15 FIX: guard against the AI omitting readiness_subscore (now also
+    # defaulted in the schema) so the session never 500s at completion.
+    if isinstance(feedback_data, dict):
+        feedback_data.setdefault("readiness_subscore", 50)
 
     # Update session as completed
     await queries.update_interview_session(session["id"], {

@@ -454,7 +454,10 @@ class InterviewFeedbackResponse(BaseModel):
     strengths: List[str] = []
     gaps: List[str] = []
     communication_notes: str = ""
-    readiness_subscore: int = Field(..., ge=0, le=100)
+    # F-15 FIX: default instead of required — the free AI model frequently omits
+    # readiness_subscore, which previously made InterviewFeedbackResponse(**data)
+    # raise a ValidationError → 500 mid-session.
+    readiness_subscore: int = Field(50, ge=0, le=100)
     suggested_missions: List[Dict[str, str]] = []
 
 

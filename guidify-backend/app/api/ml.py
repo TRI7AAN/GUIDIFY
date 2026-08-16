@@ -12,8 +12,9 @@ dead (no consumers).
 import logging
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.core.auth import get_current_learner_id
 from app.models.career_schemas import (
     LearnerProfile,
     MLProfileRequest,
@@ -29,10 +30,14 @@ router = APIRouter(tags=["ML Profiling"])
 
 
 @router.post("/ml/profile/generate", response_model=LearnerProfile)
-async def generate_profile(request: MLProfileRequest):
+async def generate_profile(
+    request: MLProfileRequest,
+    learner_id: str = Depends(get_current_learner_id),
+):
     """
     Build a learner profile from the request's update data.
 
+    F-22 FIX: now requires a valid learner token (previously unauthenticated).
     Note: ML-derived features are not persisted (LearnerProfile has no
     features field), so the encoder is not invoked here.
     """

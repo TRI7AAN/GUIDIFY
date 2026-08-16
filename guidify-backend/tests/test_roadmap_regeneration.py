@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.core.auth import get_current_learner_id
-from app.api import roadmap as roadmap_api
+from app.services import roadmap_service
 
 SAMPLE_ROADMAP = {
     "title": "Roadmap to Data Scientist",
@@ -62,9 +62,11 @@ class FakeGateway:
         self.result = result
         self.error = error
         self.calls = 0
+        self.last_context = {}
 
     async def generate(self, task_type, context, response_model=None, system_instruction=None):
         self.calls += 1
+        self.last_context = dict(context)
         assert task_type == "roadmap.generate"
         if self.error:
             raise self.error
@@ -90,6 +92,7 @@ class FakeStore:
         self.roadmaps = []
         self.events = []
         self.last_regeneration = None
+        self.psychometric = None
         self.save_failure = False
         self.learner_present = True
 
@@ -98,6 +101,9 @@ class FakeStore:
 
     async def get_learner_profile(self, learner_id):
         return dict(self.profile)
+
+    async def get_psychometric_profile(self, learner_id):
+        return self.psychometric
 
     async def get_last_regeneration(self, learner_id):
         return self.last_regeneration
@@ -150,13 +156,14 @@ def store():
 
 @pytest.fixture()
 def installed(monkeypatch, store):
-    """Install FakeGateway + FakeStore into the roadmap route module."""
-    monkeypatch.setattr(roadmap_api, "gateway", FakeGateway(result=SAMPLE_ROADMAP))
-    monkeypatch.setattr(roadmap_api.queries, "get_learner", store.get_learner)
-    monkeypatch.setattr(roadmap_api.queries, "get_learner_profile", store.get_learner_profile)
-    monkeypatch.setattr(roadmap_api.queries, "get_last_regeneration", store.get_last_regeneration)
-    monkeypatch.setattr(roadmap_api.queries, "create_roadmap", store.create_roadmap)
-    monkeypatch.setattr(roadmap_api.queries, "create_event", store.create_event)
+    """Install FakeGateway + FakeStore into the roadmap service module."""
+    monkeypatch.setattr(roadmap_service, "gateway", FakeGateway(result=SAMPLE_ROADMAP))
+    monkeypatch.setattr(roadmap_service.queries, "get_learner", store.get_learner)
+    monkeypatch.setattr(roadmap_service.queries, "get_learner_profile", store.get_learner_profile)
+    monkeypatch.setattr(roadmap_service.queries, "get_last_regeneration", store.get_last_regeneration)
+    monkeypatch.setattr(roadmap_service.queries, "get_psychometric_profile", store.get_psychometric_profile)
+    monkeypatch.setattr(roadmap_service.queries, "create_roadmap", store.create_roadmap)
+    monkeypatch.setattr(roadmap_service.queries, "create_event", store.create_event)
     return store
 
 
@@ -177,6 +184,24 @@ def test_regenerate_creates_first_roadmap(client, installed):
 
     event_types = [e["event_type"] for e in installed.events]
     assert event_types == ["roadmap_generated"]
+
+
+def test_regenerate_injects_psychometric_context(client, installed):
+    """F-10: psychometric narrative must reach the roadmap prompt context."""
+    installed.psychometric = {
+        "narrative_summary": "Enjoys structure and clear milestones.",
+        "pacing_hint": "steady",
+        "tone_hint": "direct",
+    }
+
+    response = client.post("/api/v1/roadmap/regenerate")
+    assert response.status_code == 200
+
+    service_gateway = roadmap_service.gateway
+    context = service_gateway.last_context
+    assert context.get("psychometric_narrative") == "Enjoys structure and clear milestones."
+    assert context.get("psychometric_pacing") == "steady"
+    assert context.get("psychometric_tone") == "direct"
 
 
 def test_regenerate_increments_version_and_supersedes(client, installed):
@@ -227,12 +252,13 @@ def test_regenerate_allowed_after_24h(client, installed):
 def test_regenerate_ai_failure_returns_502(client, monkeypatch, store):
     from app.core.exceptions import AIServiceError
     gateway = FakeGateway(error=AIServiceError(message="model timeout"))
-    monkeypatch.setattr(roadmap_api, "gateway", gateway)
-    monkeypatch.setattr(roadmap_api.queries, "get_learner", store.get_learner)
-    monkeypatch.setattr(roadmap_api.queries, "get_learner_profile", store.get_learner_profile)
-    monkeypatch.setattr(roadmap_api.queries, "get_last_regeneration", store.get_last_regeneration)
-    monkeypatch.setattr(roadmap_api.queries, "create_roadmap", store.create_roadmap)
-    monkeypatch.setattr(roadmap_api.queries, "create_event", store.create_event)
+    monkeypatch.setattr(roadmap_service, "gateway", gateway)
+    monkeypatch.setattr(roadmap_service.queries, "get_learner", store.get_learner)
+    monkeypatch.setattr(roadmap_service.queries, "get_learner_profile", store.get_learner_profile)
+    monkeypatch.setattr(roadmap_service.queries, "get_last_regeneration", store.get_last_regeneration)
+    monkeypatch.setattr(roadmap_service.queries, "get_psychometric_profile", store.get_psychometric_profile)
+    monkeypatch.setattr(roadmap_service.queries, "create_roadmap", store.create_roadmap)
+    monkeypatch.setattr(roadmap_service.queries, "create_event", store.create_event)
 
     response = client.post("/api/v1/roadmap/regenerate")
     assert response.status_code == 502

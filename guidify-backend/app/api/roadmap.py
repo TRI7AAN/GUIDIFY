@@ -8,19 +8,14 @@ Endpoints:
 """
 
 import logging
-from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_learner_id
-from app.core.exceptions import ResourceNotFoundError
 from app.db import queries
-from app.ai_gateway.gateway import gateway
-from app.models.schemas import RoadmapGenerateResponse
+from app.services.roadmap_service import regenerate_roadmap
 
 router = APIRouter(tags=["Roadmap"])
 logger = logging.getLogger("guidify.api.roadmap")
-
-DEBOUNCE_WINDOW_HOURS = 24
 
 
 @router.get("/roadmap/current")
@@ -55,96 +50,39 @@ async def get_roadmap_history(
 
 
 @router.post("/roadmap/regenerate")
-async def regenerate_roadmap(
+async def regenerate_roadmap_route(
     learner_id: str = Depends(get_current_learner_id),
 ):
     """
     Trigger roadmap generation/regeneration — api.md §3.
 
-    Assembles context from the learner + profile, calls AI Gateway
-    with roadmap.generate, validates output, and persists to DB.
-
-    Per rules.md §1.3: Goal changes bypass the 24h debounce window.
+    Delegates to the shared roadmap service (context assembly, AI call,
+    persistence, event log). Manual regeneration keeps the 24h debounce
+    (rules.md §2); goal changes bypass it via the Rules Engine (rules.md §1.3).
     """
-    # 1. Fetch learner and profile for context
-    learner = await queries.get_learner(learner_id)
-    if not learner:
-        raise ResourceNotFoundError("Learner")
+    result = await regenerate_roadmap(
+        learner_id=learner_id,
+        trigger_reason="regenerate_request",
+        bypass_debounce=False,
+    )
 
-    # Debounce check (rules.md §2): 24h minimum between regenerations
-    last_regeneration = await queries.get_last_regeneration(learner_id)
-    if last_regeneration:
-        last_time = datetime.fromisoformat(last_regeneration.replace("Z", "+00:00"))
-        if (datetime.now(timezone.utc) - last_time) < timedelta(hours=DEBOUNCE_WINDOW_HOURS):
-            raise HTTPException(
-                status_code=409,
-                detail="Roadmap regeneration is rate-limited to once per 24 hours. Try again later.",
-            )
+    if result["status"] == "learner_not_found":
+        raise HTTPException(status_code=404, detail=result["message"])
 
-    profile = await queries.get_learner_profile(learner_id)
+    if result["status"] == "debounced":
+        raise HTTPException(status_code=409, detail=result["message"])
 
-    # Build AI Gateway context from assembled profile data
-    context = {
-        "target_role": learner.get("target_role", "Software Developer"),
-        "segment": learner.get("segment", "college"),
-        "skills": profile.get("skills", []) if profile else [],
-        "interests": profile.get("interests", []) if profile else [],
-        "strengths": profile.get("strengths", []) if profile else [],
-        "weaknesses": profile.get("weaknesses", []) if profile else [],
-        "learning_hours": str(profile.get("questionnaire_data", {}).get("learning_hours", "5")) if profile else "5",
-    }
+    if result["status"] == "save_failed":
+        raise HTTPException(status_code=500, detail=result["message"])
 
-    # 2. Call AI Gateway with schema validation
-    try:
-        result = await gateway.generate(
-            task_type="roadmap.generate",
-            context=context,
-            response_model=RoadmapGenerateResponse,
-        )
-    except Exception as e:
-        logger.error(f"Roadmap generation failed for learner {learner_id}: {e}")
-        raise HTTPException(
-            status_code=502,
-            detail="AI roadmap generation failed. Please try again in a few minutes.",
-        )
-
-    # 3. Persist to DB
-    roadmap_data = {
-        "title": result["title"],
-        "total_phases": result["total_phases"],
-        "estimated_weeks": result["estimated_weeks"],
-        "phases": result["phases"],
-        "trigger_reason": "regenerate_request",
-    }
-
-    saved = await queries.create_roadmap(learner_id, roadmap_data)
-    if not saved:
-        raise HTTPException(
-            status_code=500,
-            detail="Roadmap was generated but could not be saved. Please try again.",
-        )
-
-    # 4. Log event so the 24h regeneration debounce (rules.md §2) actually works
-    event_type = "roadmap_regenerated" if saved.get("version", 1) > 1 else "roadmap_generated"
-    try:
-        await queries.create_event(
-            learner_id=learner_id,
-            event_type=event_type,
-            payload={
-                "roadmap_id": saved.get("id"),
-                "title": result["title"],
-                "total_phases": result["total_phases"],
-            },
-            related_roadmap_id=saved.get("id"),
-        )
-    except Exception as e:
-        logger.warning(f"Failed to log {event_type} event for {learner_id}: {e}")
+    if result["status"] != "ok":
+        raise HTTPException(status_code=502, detail=result["message"])
 
     return {
         "status": "ok",
-        "roadmap_id": saved["id"] if saved else None,
-        "title": result["title"],
-        "total_phases": result["total_phases"],
-        "estimated_weeks": result["estimated_weeks"],
-        "message": "Roadmap generated successfully",
+        "roadmap_id": result.get("roadmap_id"),
+        "title": result.get("title"),
+        "total_phases": result.get("total_phases"),
+        "estimated_weeks": result.get("estimated_weeks"),
+        "message": result.get("message"),
     }

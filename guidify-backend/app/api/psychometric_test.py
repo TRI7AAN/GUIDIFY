@@ -8,6 +8,7 @@ Endpoints:
     GET  /psychometric-test/result/{session_id} — Retrieve saved result (auth required)
 """
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -40,7 +41,7 @@ RADAR_CATEGORY_MAP = {
 }
 
 
-def _sync_radar_scores(learner_id: str, category_scores: list[CategoryScore]) -> None:
+async def _sync_radar_scores(learner_id: str, category_scores: list[CategoryScore]) -> None:
     """
     Persist the latest assessment outcome to the learner profile so the dashboard
     radar chart reflects the result of the most recently completed test.
@@ -53,13 +54,13 @@ def _sync_radar_scores(learner_id: str, category_scores: list[CategoryScore]) ->
         if cs.category in RADAR_CATEGORY_MAP
     }
 
-    profile_resp = (
+    profile_resp = await asyncio.to_thread(
         supabase.table("learner_profiles")
         .select("id, questionnaire_data")
         .eq("learner_id", learner_id)
         .order("created_at", desc=True)
         .limit(1)
-        .execute()
+        .execute
     )
 
     if profile_resp.data:
@@ -68,14 +69,18 @@ def _sync_radar_scores(learner_id: str, category_scores: list[CategoryScore]) ->
         if not isinstance(questionnaire_data, dict):
             questionnaire_data = {}
         questionnaire_data["category_scores"] = radar_scores
-        supabase.table("learner_profiles").update({
-            "questionnaire_data": questionnaire_data,
-        }).eq("id", row["id"]).execute()
+        await asyncio.to_thread(
+            supabase.table("learner_profiles").update({
+                "questionnaire_data": questionnaire_data,
+            }).eq("id", row["id"]).execute
+        )
     else:
-        supabase.table("learner_profiles").insert({
-            "learner_id": learner_id,
-            "questionnaire_data": {"category_scores": radar_scores},
-        }).execute()
+        await asyncio.to_thread(
+            supabase.table("learner_profiles").insert({
+                "learner_id": learner_id,
+                "questionnaire_data": {"category_scores": radar_scores},
+            }).execute
+        )
 
 
 @router.get("/psychometric-test/questions", response_model=StartTestResponse)
@@ -92,10 +97,12 @@ async def get_questions():
     # Fail loudly: a returned session_id that was never persisted would 404 on submit.
     from app.services.supabase_client import db as supabase
     try:
-        supabase.table("psychometric_sessions").insert({
-            "session_id": session_id,
-            "status": "in_progress",
-        }).execute()
+        await asyncio.to_thread(
+            supabase.table("psychometric_sessions").insert({
+                "session_id": session_id,
+                "status": "in_progress",
+            }).execute
+        )
     except Exception as e:
         logger.error(f"Failed to persist session to DB: {e}")
         raise HTTPException(status_code=503, detail="Could not start a test session. Please try again.")
@@ -122,11 +129,13 @@ async def start_test(
     # session_id that was never persisted would 404 on submit.
     from app.services.supabase_client import db as supabase
     try:
-        supabase.table("psychometric_sessions").insert({
-            "session_id": session_id,
-            "user_id": learner_id,
-            "status": "in_progress",
-        }).execute()
+        await asyncio.to_thread(
+            supabase.table("psychometric_sessions").insert({
+                "session_id": session_id,
+                "user_id": learner_id,
+                "status": "in_progress",
+            }).execute
+        )
     except Exception as e:
         logger.error(f"Failed to persist session to DB: {e}")
         raise HTTPException(status_code=503, detail="Could not start a test session. Please try again.")
@@ -158,12 +167,12 @@ async def submit_test(
 
     # Validate session exists in DB
     try:
-        session_resp = (
+        session_resp = await asyncio.to_thread(
             supabase.table("psychometric_sessions")
             .select("*")
             .eq("session_id", request.session_id)
             .single()
-            .execute()
+            .execute
         )
         session = session_resp.data
     except Exception:
@@ -205,19 +214,21 @@ async def submit_test(
     # Save result BEFORE marking the session complete so a failed save stays retryable
     saved = False
     try:
-        supabase.table("psychometric_results").upsert({
-            "user_id": learner_id,
-            "session_id": request.session_id,
-            "overall_score": result.overall_score,
-            "confidence": result.confidence,
-            "primary_recommendation": result.primary_recommendation,
-            "secondary_recommendation": result.secondary_recommendation,
-            "category_scores": {cs.category: cs.score for cs in result.category_scores},
-            "personality_profile": result.personality_profile,
-            "strengths": result.strengths,
-            "growth_areas": result.growth_areas,
-            "summary": result.summary,
-        }, on_conflict="session_id").execute()
+        await asyncio.to_thread(
+            supabase.table("psychometric_results").upsert({
+                "user_id": learner_id,
+                "session_id": request.session_id,
+                "overall_score": result.overall_score,
+                "confidence": result.confidence,
+                "primary_recommendation": result.primary_recommendation,
+                "secondary_recommendation": result.secondary_recommendation,
+                "category_scores": {cs.category: cs.score for cs in result.category_scores},
+                "personality_profile": result.personality_profile,
+                "strengths": result.strengths,
+                "growth_areas": result.growth_areas,
+                "summary": result.summary,
+            }, on_conflict="session_id").execute
+        )
         saved = True
     except Exception as e:
         logger.warning(f"Failed to save psychometric result to DB: {e}")
@@ -225,17 +236,19 @@ async def submit_test(
     # Mark session complete only when the result was persisted
     if saved:
         try:
-            supabase.table("psychometric_sessions").update({
-                "status": "completed",
-                "user_id": learner_id,
-            }).eq("session_id", request.session_id).execute()
+            await asyncio.to_thread(
+                supabase.table("psychometric_sessions").update({
+                    "status": "completed",
+                    "user_id": learner_id,
+                }).eq("session_id", request.session_id).execute
+            )
         except Exception as e:
             logger.warning(f"Failed to update session status: {e}")
 
         # Sync the outcome to the learner profile so the dashboard radar chart
         # reflects the result of this assessment.
         try:
-            _sync_radar_scores(learner_id, result.category_scores)
+            await _sync_radar_scores(learner_id, result.category_scores)
         except Exception as e:
             logger.warning(f"Failed to sync radar scores to learner profile: {e}")
 
@@ -260,13 +273,13 @@ async def get_result(
     """Retrieve a previously completed psychometric test result."""
     try:
         from app.services.supabase_client import db as supabase
-        response = (
+        response = await asyncio.to_thread(
             supabase.table("psychometric_results")
             .select("*")
             .eq("session_id", session_id)
             .eq("user_id", learner_id)
             .single()
-            .execute()
+            .execute
         )
         if response.data:
             return {"session_id": session_id, "result": response.data}
@@ -283,13 +296,13 @@ async def get_latest_result(
     """Retrieve the most recent psychometric test result for the authenticated user."""
     try:
         from app.services.supabase_client import db as supabase
-        response = (
+        response = await asyncio.to_thread(
             supabase.table("psychometric_results")
             .select("*")
             .eq("user_id", learner_id)
             .order("created_at", desc=True)
             .limit(1)
-            .execute()
+            .execute
         )
         if response.data and len(response.data) > 0:
             row = response.data[0]

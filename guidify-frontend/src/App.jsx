@@ -22,6 +22,8 @@ const CareerRoadmap = lazy(() => import("./pages/CareerRoadmap"));
 const ResumePage = lazy(() => import("./pages/ResumePage"));
 const InterviewPage = lazy(() => import("./pages/InterviewPage"));
 const PsychometricTestPage = lazy(() => import("./pages/PsychometricTestPage"));
+const OrgProfilesPage = lazy(() => import("./pages/OrgProfilesPage"));
+const StatsPage = lazy(() => import("./pages/StatsPage"));
 
 
 
@@ -41,6 +43,10 @@ const componentMap = {
   "/resume": ResumePage,
   "/interview": InterviewPage,
   "/psychometric-test": PsychometricTestPage,
+  // F-16 FIX: /org-profiles and /stats are linked from Navbar/Footer but had no
+  // component — React.createElement(undefined) crashed the SPA via ErrorBoundary.
+  "/org-profiles": OrgProfilesPage,
+  "/stats": StatsPage,
 
 
   // Error routes

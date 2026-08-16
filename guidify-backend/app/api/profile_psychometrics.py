@@ -9,6 +9,7 @@ Per api.md §7: No endpoint returns raw trait percentages to the frontend for di
 Per rules.md §9: 6-month retake cooldown enforced.
 """
 
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
@@ -74,13 +75,13 @@ async def submit_psychometrics(
     if not request.consent_id:
         raise HTTPException(status_code=400, detail="Consent required")
     try:
-        consent_check = (
+        consent_check = await asyncio.to_thread(
             supabase.table("consents")
             .select("id")
             .eq("id", request.consent_id)
             .eq("learner_id", learner_id)
             .eq("granted", True)
-            .execute()
+            .execute
         )
         if not consent_check.data:
             raise HTTPException(status_code=400, detail="Invalid consent record")
@@ -92,12 +93,12 @@ async def submit_psychometrics(
 
     # Check retake cooldown
     try:
-        existing = (
+        existing = await asyncio.to_thread(
             supabase.table("psychometric_profiles")
             .select("administered_at")
             .eq("learner_id", learner_id)
-            .single()
-            .execute()
+            .maybe_single()
+            .execute
         )
         if existing.data and existing.data.get("administered_at"):
             administered_at = datetime.fromisoformat(existing.data["administered_at"].replace("Z", "+00:00"))
@@ -157,19 +158,26 @@ async def submit_psychometrics(
 
     try:
         # Upsert — one profile per learner, overwritten on retake
-        existing_profile = (
+        # F-07 FIX: use maybe_single() so a first-time submit (0 existing rows)
+        # does not raise and fall into the 500 branch.
+        existing_profile = await asyncio.to_thread(
             supabase.table("psychometric_profiles")
             .select("id")
             .eq("learner_id", learner_id)
-            .single()
-            .execute()
+            .maybe_single()
+            .execute
         )
         if existing_profile.data:
-            supabase.table("psychometric_profiles").update(profile_data).eq(
-                "learner_id", learner_id
-            ).execute()
+            await asyncio.to_thread(
+                supabase.table("psychometric_profiles")
+                .update(profile_data)
+                .eq("learner_id", learner_id)
+                .execute
+            )
         else:
-            supabase.table("psychometric_profiles").insert(profile_data).execute()
+            await asyncio.to_thread(
+                supabase.table("psychometric_profiles").insert(profile_data).execute
+            )
     except Exception as e:
         logger.error(f"Failed to persist psychometric profile for {learner_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to save assessment results")
@@ -193,12 +201,12 @@ async def get_psychometrics_status(
     from app.services.supabase_client import db as supabase
 
     try:
-        result = (
+        result = await asyncio.to_thread(
             supabase.table("psychometric_profiles")
             .select("administered_at")
             .eq("learner_id", learner_id)
-            .single()
-            .execute()
+            .maybe_single()
+            .execute
         )
         if result.data and result.data.get("administered_at"):
             administered_at = result.data["administered_at"]

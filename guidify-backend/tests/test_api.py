@@ -31,11 +31,12 @@ def test_ml_profile_generate():
     # assert "predicted_cluster" in data.get("features", {})
 
 def test_lmi_skills_trend():
+    # F-21 FIX: mock/fabricated LMI was disabled — endpoint must return an honest
+    # 503 SERVICE_UNAVAILABLE instead of random market data.
     response = client.get("/api/v1/lmi/skills-trend?skill=Python")
-    assert response.status_code == 200
+    assert response.status_code == 503
     data = response.json()
-    assert data["skill"] == "Python"
-    assert "demand_score" in data
+    assert data["error"]["code"] == "SERVICE_UNAVAILABLE"
 
 def test_dashboard_learner():
     # Mock auth might be needed if middleware enforces it.

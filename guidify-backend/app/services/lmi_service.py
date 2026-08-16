@@ -1,5 +1,6 @@
-import random
 from typing import List, Dict, Any
+
+from app.core.exceptions import ExternalServiceError
 
 class LMIService:
     def __init__(self):
@@ -14,16 +15,17 @@ class LMIService:
     def get_skills_trend(self, skill: str, period: str) -> Dict[str, Any]:
         """
         Get trend data for a specific skill.
+
+        F-21 FIX: Previously this returned random.randint() numbers presented as
+        real market demand data — fabricated LMI served to users. No real LMI
+        data source is connected, so the endpoint now returns an explicit 503
+        instead of lying. Re-enable only with a real data pipeline.
         """
-        # Mock trend logic
-        base_demand = random.randint(50, 90)
-        return {
-            "skill": skill,
-            "period": period,
-            "demand_score": base_demand,
-            "growth": f"+{random.randint(5, 20)}%",
-            "top_locations": ["Bangalore", "Pune", "Hyderabad"]
-        }
+        raise ExternalServiceError(
+            service="LMI",
+            message="Labour market data is not connected yet. This endpoint was "
+                    "disabled because it previously returned fabricated (mock) data.",
+        )
 
     def match_jobs(self, learner_profile: Dict[str, Any]) -> List[Dict[str, Any]]:
         """

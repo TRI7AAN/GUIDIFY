@@ -31,10 +31,14 @@ from app.core.exceptions import AIServiceError
 logger = logging.getLogger("guidify.ai_gateway")
 
 
-def _sanitize_user_input(text: str) -> str:
+def _sanitize_user_input(text: str, max_len: int = 500) -> str:
     """
     Sanitize user input to prevent prompt injection.
     Strips quotes, backticks, and control characters that could break prompt structure.
+
+    `max_len` defaults to 500 for short fields (names, roles, skill labels).
+    Long-form content (e.g. full resume text) must pass a larger limit explicitly —
+    the old fixed 500-char cap silently truncated resumes to two paragraphs (F-12).
     """
     if not text:
         return ""
@@ -43,7 +47,11 @@ def _sanitize_user_input(text: str) -> str:
     # Remove potential control sequences
     sanitized = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', sanitized)
     # Limit length
-    return sanitized[:500]
+    return sanitized[:max_len]
+
+
+# Cap for full resume documents passed to the AI (F-12).
+MAX_RESUME_CHARS = 12000
 
 
 class AIGateway:
@@ -119,7 +127,8 @@ class AIGateway:
             )
 
         # Build the prompt from context
-        prompt = self._build_prompt(task_type, context)
+        custom_prompt = context.get("_custom_prompt")
+        prompt = self._build_prompt(task_type, context, custom_prompt=custom_prompt)
 
         # Default system instruction: always request strict JSON
         if system_instruction is None:
@@ -180,7 +189,7 @@ class AIGateway:
                         extra={"errors": str(e)},
                     )
                     # Add schema hint to prompt for retry
-                    prompt = self._build_prompt(task_type, context, schema_hint=True)
+                    prompt = self._build_prompt(task_type, context, schema_hint=True, custom_prompt=custom_prompt)
                     continue
                 else:
                     raise AIServiceError(
@@ -209,13 +218,29 @@ class AIGateway:
         task_type: str,
         context: Dict[str, Any],
         schema_hint: bool = False,
+        custom_prompt: Optional[str] = None,
     ) -> str:
         """
         Build the prompt string from task type and context.
 
         Uses versioned prompt templates from prompts/ directory where available.
         Falls back to generic JSON serialization for tasks without templates.
+        `custom_prompt` (context["_custom_prompt"]) short-circuits all templates.
         """
+        # F-06/F-08 FIX: custom prompt passthrough. Callers that build their own
+        # complete prompt (psychometric_service adaptive questions, recommender
+        # company/course/NCVET prompts) supply it via context["_custom_prompt"].
+        # Previously this key was silently ignored and those callers got an
+        # unrelated templated prompt (narrate / jd_match), so their JSON came back
+        # empty and every call fell through to the hardcoded fallback.
+        if custom_prompt:
+            if schema_hint:
+                return custom_prompt + (
+                    "\n\nIMPORTANT: Your previous response did not match the required JSON schema. "
+                    "Please return ONLY valid JSON with no extra text."
+                )
+            return custom_prompt
+
         # Phase 0 test task
         if task_type == "test.hello":
             return (
@@ -299,7 +324,8 @@ class AIGateway:
         if task_type == "resume.parse":
             from app.ai_gateway.prompts.resume_parse import RESUME_PARSE_V1
             prompt = RESUME_PARSE_V1.format(
-                resume_text=_sanitize_user_input(context.get("resume_text", "")),
+                # F-12 FIX: resume text must not be truncated to 500 chars.
+                resume_text=_sanitize_user_input(context.get("resume_text", ""), max_len=MAX_RESUME_CHARS),
             )
             if schema_hint:
                 prompt += (

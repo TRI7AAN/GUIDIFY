@@ -233,12 +233,15 @@ Return: {{"traits": {{"Technical": 0-100, "Creative": 0-100, "Communication": 0-
             }
 
         # Save to learners table
+        # F-13 FIX: run the sync Supabase call off the event loop.
         try:
-            supabase.table("learners").update({
-                "category_scores": analysis_result.get("traits"),
-                "personality_analysis": analysis_result,
-                "career_suggestion": analysis_result.get("summary"),
-            }).eq("id", user_id).execute()
+            await asyncio.to_thread(
+                supabase.table("learners").update({
+                    "category_scores": analysis_result.get("traits"),
+                    "personality_analysis": analysis_result,
+                    "career_suggestion": analysis_result.get("summary"),
+                }).eq("id", user_id).execute
+            )
 
         except Exception as e:
             import logging
