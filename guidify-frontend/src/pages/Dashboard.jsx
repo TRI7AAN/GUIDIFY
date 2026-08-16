@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useDashboardData, useTodayMission } from '../hooks/query';
+import { useDashboardData, useTodayMission, useActivityHeatmap } from '../hooks/query';
 import MissionCard from '../components/dashboard/MissionCard';
+import ContributionHeatmap from '../components/dashboard/ContributionHeatmap';
 import {
   Flame, TrendingUp, BookOpen, BarChart3, Target,
   Rocket, FileText, MessageSquare, ChevronRight, Sparkles,
-  PieChart, Layers, Activity, Award
+  PieChart, Layers, Award
 } from 'lucide-react';
 
 const TRAIT_LABELS = ['Technical', 'Creative', 'Communication', 'Leadership', 'Analytical'];
@@ -55,14 +56,6 @@ function RadarChart({ scores }) {
   );
 }
 
-function HeatmapCell({ date, active }) {
-  return (
-    <div className={`flex items-center justify-center w-8 h-8 rounded text-[10px] font-bold ${active ? 'bg-[#3cff14] text-[#0D0F18]' : 'bg-[#151821] text-[#A4ACBC] border border-[#1F2330]'}`}>
-      {date}
-    </div>
-  );
-}
-
 function ProgressBar({ value, color = 'bg-[#3cff14]' }) {
   return (
     <div className="flex items-center gap-4">
@@ -83,6 +76,10 @@ export default function Dashboard() {
   });
   
   const { data: mission, isLoading: missionLoading } = useTodayMission({
+    enabled: !!user,
+  });
+  
+  const { data: activityHeatmap } = useActivityHeatmap({
     enabled: !!user,
   });
   
@@ -126,25 +123,6 @@ export default function Dashboard() {
 
   const tier = getTier(roadmapProgress);
   const tierProgressToNext = Math.min(tier.progressToNext * 4, 100); // Scale to 25% per tier
-
-  // Compute heatmap from recent missions (last 7 days)
-  const heatmapDates = useMemo(() => {
-    if (!dashboard) return Array.from({ length: 7 }, (_, i) => ({ date: i + 1, active: false }));
-    
-    // We need to fetch mission history for heatmap - for now use streak as proxy
-    // In a real implementation, this would come from a dedicated endpoint
-    const dates = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const day = d.getDate();
-      // Show active if within streak or today
-      const isActive = i <= streakDays || (i === 6 && streakDays > 0);
-      dates.push({ date: day, active: isActive });
-    }
-    return dates;
-  }, [streakDays, dashboard]);
 
   // Compute skills mastery from skill_graph
   const skillsMastery = useMemo(() => {
@@ -230,23 +208,12 @@ export default function Dashboard() {
               <div className="h-1.5 rounded-full" style={{ backgroundColor: tier.color, width: `${tierProgressToNext}%` }} />
             </div>
           </div>
-
-          {/* Activity Heatmap */}
-          <div className="p-5 bg-[#151821] border border-[#1F2330] rounded-xl flex-1 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[#3cff14]" />
-                <h3 className="text-[#A4ACBC] text-[11px] font-bold tracking-widest uppercase">Activity Heatmap</h3>
-              </div>
-              <span className="text-[#A4ACBC] text-[10px]">{new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
-            </div>
-            <div className="flex items-center justify-between gap-1 w-full">
-              {heatmapDates.map((item, i) => (
-                <HeatmapCell key={i} date={item.date} active={item.active} />
-              ))}
-            </div>
-          </div>
         </div>
+      </div>
+
+      {/* Contribution Heatmap (full width, GitHub-style) */}
+      <div className="min-h-[220px]">
+        <ContributionHeatmap activityData={activityHeatmap?.activity || {}} />
       </div>
 
       {/* Progress Trackers */}

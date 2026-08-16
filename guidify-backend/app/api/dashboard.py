@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends
 
 from app.core.auth import get_current_learner_id
 from app.db import queries
-from app.models.schemas import DashboardResponse, SkillGraphEntry, DeliveryTrendsResponse, DeliveryTrendSeries, DeliveryTrendPoint
+from app.models.schemas import DashboardResponse, SkillGraphEntry, DeliveryTrendsResponse, DeliveryTrendSeries, DeliveryTrendPoint, ActivityHeatmapResponse
 
 router = APIRouter(tags=["Dashboard"])
 logger = logging.getLogger("guidify.api.dashboard")
@@ -138,3 +138,21 @@ async def get_delivery_trends(
     ]
 
     return DeliveryTrendsResponse(trends=trends)
+
+
+@router.get("/dashboard/activity-heatmap", response_model=ActivityHeatmapResponse)
+async def get_activity_heatmap(
+    learner_id: str = Depends(get_current_learner_id),
+):
+    """
+    Daily activity counts for the GitHub-style contribution heatmap — api.md §6.
+
+    Aggregates missions, interview sessions, and event log entries per day
+    over the last ~365 days.
+    """
+    activity = await queries.get_daily_activity(learner_id)
+    return ActivityHeatmapResponse(
+        activity=activity,
+        total_activities=sum(activity.values()),
+        active_days=len(activity),
+    )

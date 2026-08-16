@@ -525,3 +525,11 @@ class DeliveryTrendSeries(BaseModel):
 class DeliveryTrendsResponse(BaseModel):
     """GET /dashboard/delivery-trends response — api.md §6"""
     trends: List[DeliveryTrendSeries] = []
+
+
+class ActivityHeatmapResponse(BaseModel):
+    """GET /dashboard/activity-heatmap response — api.md §6"""
+    # Map of "YYYY-MM-DD" -> activity count for the last 365 days
+    activity: Dict[str, int] = {}
+    total_activities: int = 0
+    active_days: int = 0

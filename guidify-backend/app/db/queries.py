@@ -681,3 +681,90 @@ async def get_interview_history(learner_id: str, limit: int = 10) -> List[Dict[s
         logger.error(f"Failed to fetch interview history for {learner_id}: {e}")
         return []
 
+
+# --- Activity Heatmap (api.md §6) ---
+
+async def get_daily_activity(learner_id: str) -> Dict[str, int]:
+    """
+    Aggregate daily activity counts over the last ~365 days for the contribution heatmap.
+
+    Sources (each counts as one activity):
+      - daily_missions (completed / in_progress / skipped on assigned_date)
+      - interview_sessions (created_at)
+      - event_log entries (created_at)
+
+    Returns a dict of {"YYYY-MM-DD": count} for dates with activity.
+    """
+    from datetime import date, datetime, timedelta, timezone
+
+    cut_off = (date.today() - timedelta(days=365)).isoformat()
+    activity: Dict[str, int] = {}
+
+    def _bump(dt_value):
+        """Extract a date key from an ISO datetime or date string and increment count."""
+        if not dt_value:
+            return
+        value = str(dt_value)
+        if len(value) >= 10:
+            day_key = value[:10]
+        else:
+            return
+        try:
+            parsed = datetime.fromisoformat(day_key).date()
+        except ValueError:
+            parsed = date.fromisoformat(day_key)
+        if parsed >= date.fromisoformat(cut_off) and parsed <= date.today():
+            activity[day_key] = activity.get(day_key, 0) + 1
+
+    async def _fetch_missions():
+        try:
+            response = await _run_query(
+                supabase.table("daily_missions")
+                .select("assigned_date, status")
+                .eq("learner_id", learner_id)
+                .gte("assigned_date", cut_off)
+            )
+            return response.data or []
+        except Exception as e:
+            logger.error(f"Failed to fetch missions for heatmap: {e}")
+            return []
+
+    async def _fetch_interviews():
+        try:
+            response = await _run_query(
+                supabase.table("interview_sessions")
+                .select("created_at")
+                .eq("learner_id", learner_id)
+                .gte("created_at", cut_off)
+            )
+            return response.data or []
+        except Exception as e:
+            logger.error(f"Failed to fetch interviews for heatmap: {e}")
+            return []
+
+    async def _fetch_events():
+        try:
+            response = await _run_query(
+                supabase.table("event_log")
+                .select("created_at")
+                .eq("learner_id", learner_id)
+                .gte("created_at", cut_off)
+            )
+            return response.data or []
+        except Exception as e:
+            logger.error(f"Failed to fetch events for heatmap: {e}")
+            return []
+
+    missions, interviews, events = await asyncio.gather(
+        _fetch_missions(), _fetch_interviews(), _fetch_events()
+    )
+
+    for row in missions:
+        _bump(row.get("assigned_date"))
+    for row in interviews:
+        _bump(row.get("created_at"))
+    for row in events:
+        _bump(row.get("created_at"))
+
+    return activity
+

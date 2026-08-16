@@ -186,6 +186,7 @@ export const interviewAPI = {
 export const dashboardAPI = {
   get: () => api.get('/api/v1/dashboard'),
   getDeliveryTrends: () => api.get('/api/v1/dashboard/delivery-trends'),
+  getActivityHeatmap: () => api.get('/api/v1/dashboard/activity-heatmap'),
 };
 
 /** Adaptation — rules.md §1-4 */

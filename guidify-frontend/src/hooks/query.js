@@ -34,6 +34,7 @@ export const queryKeys = {
   dashboard: {
     data: ['dashboard', 'data'],
     deliveryTrends: ['dashboard', 'delivery-trends'],
+    activityHeatmap: ['dashboard', 'activity-heatmap'],
   },
   adaptation: {
     status: ['adaptation', 'status'],
@@ -117,6 +118,14 @@ export const useDeliveryTrends = (options = {}) => {
   return useQuery({
     queryKey: queryKeys.dashboard.deliveryTrends,
     queryFn: dashboardAPI.getDeliveryTrends,
+    ...options,
+  });
+};
+
+export const useActivityHeatmap = (options = {}) => {
+  return useQuery({
+    queryKey: queryKeys.dashboard.activityHeatmap,
+    queryFn: dashboardAPI.getActivityHeatmap,
     ...options,
   });
 };
