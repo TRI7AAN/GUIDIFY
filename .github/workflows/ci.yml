@@ -24,11 +24,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
+
+      - name: Audit Python dependencies
+        run: |
+          pip install pip-audit
+          pip-audit
 
       - name: Lint with ruff
         run: |
@@ -53,7 +60,7 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
-          pytest app/tests/ -v --tb=short
+          pytest tests/ -v --tb=short
 
   # -------------------------------------------------------
   # Frontend: Lint and Build
@@ -72,7 +79,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: guidify-frontend/package-lock.json
 

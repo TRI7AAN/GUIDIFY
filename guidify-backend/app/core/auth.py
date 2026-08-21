@@ -15,7 +15,7 @@ Usage in routes:
 import asyncio
 import time
 from typing import Dict, Tuple
-from fastapi import Depends, Request
+from fastapi import Depends
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.exceptions import AuthenticationError, InvalidTokenError

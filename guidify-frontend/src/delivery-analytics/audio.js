@@ -6,14 +6,13 @@
  * Filler words are counted against the transcript, not audio.
  */
 
-import { FILLER_WORDS, WPM_THRESHOLDS, FILLER_RATE_THRESHOLDS, PAUSE_THRESHOLDS } from './config';
+import { FILLER_WORDS } from './config';
 
 let audioContext = null;
 let analyser = null;
 let sourceNode = null;
 let sampleTimerId = null;
 let silenceTimer = 0;
-let lastAmplitude = 0;
 let pauseCount = 0;
 let speechStart = 0;
 let totalSpeechTime = 0;
@@ -65,7 +64,6 @@ export function startAudioAnalysis(mediaStream) {
       }
     }
 
-    lastAmplitude = rms;
   };
 
   sampleTimerId = setInterval(tick, SAMPLE_INTERVAL_MS);
@@ -87,13 +85,20 @@ function stopAudioAnalysis() {
  * @param {number} sessionDurationS - total session duration in seconds
  */
 export function finalizeAudioMetrics(transcriptTexts, sessionDurationS) {
+  if (isSpeaking && speechStart) {
+    totalSpeechTime += (performance.now() - speechStart) / 1000;
+    isSpeaking = false;
+  }
   // Stop audio processing
   if (sampleTimerId) stopAudioAnalysis();
 
   // WPM from transcript
   const allWords = transcriptTexts.join(' ').split(/\s+/).filter(Boolean);
   const wordCount = allWords.length;
-  const speakingMinutes = Math.max(totalSpeechTime, 1) / 60;
+  // If no speech was detected (the current interview UI accepts typed answers),
+  // fall back to session duration instead of reporting an absurd words/minute value.
+  const effectiveSpeechSeconds = totalSpeechTime >= 1 ? totalSpeechTime : sessionDurationS;
+  const speakingMinutes = Math.max(effectiveSpeechSeconds, 1) / 60;
   const words_per_minute = Math.round(wordCount / speakingMinutes);
 
   // Filler word rate

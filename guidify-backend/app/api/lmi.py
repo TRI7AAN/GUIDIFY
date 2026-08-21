@@ -7,7 +7,6 @@ routes -> api refactor). Exposes skills-demand trend data backed by
 """
 
 import logging
-from typing import Any, Dict
 
 from fastapi import APIRouter, Depends
 

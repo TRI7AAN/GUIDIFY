@@ -9,10 +9,8 @@ Error responses follow: { "error": { "code": string, "message": string } }
 
 from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
-import os
 import sys
 import time
 
@@ -245,4 +243,9 @@ async def test_ai_gateway():
 if __name__ == "__main__":
     import uvicorn
     reload_enabled = settings.ENVIRONMENT == "development"
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=reload_enabled)
+    uvicorn.run(
+        "app.main:app",
+        host=settings.HOST,
+        port=settings.PORT,
+        reload=reload_enabled,
+    )

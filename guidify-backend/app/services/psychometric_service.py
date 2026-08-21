@@ -10,7 +10,6 @@ Updated to use AI Gateway instead of legacy gemini_client.
 import json
 import asyncio
 from app.ai_gateway.gateway import gateway
-from app.ai_gateway.prompts.psychometrics_narrate import build_narrate_prompt
 
 
 class PsychometricService:

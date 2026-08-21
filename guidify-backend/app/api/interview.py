@@ -55,20 +55,22 @@ async def start_interview_session(
     if not session:
         raise HTTPException(status_code=500, detail="Failed to create interview session")
 
-    # F-05 FIX: record delivery-analytics consent at session start so the client's
-    # delivery-metrics submission (POST .../delivery-metrics) is not rejected with
-    # 403 "Delivery consent not given". Best-effort: if consent insert fails, the
-    # session still works — delivery metrics are just not recorded for it.
-    consent = await queries.create_consent(
-        learner_id,
-        consent_type="delivery_analytics",
-        granted=True,
-        source="interview_session_start",
-    )
-    if consent:
-        await queries.update_interview_session(session["id"], {
-            "delivery_consent_id": consent["id"],
-        })
+    # Record delivery consent only when the learner explicitly opted in.
+    # The text-only interview must not create a granted consent record.
+    delivery_enabled = False
+    if request.camera_enabled:
+        consent = await queries.create_consent(
+            learner_id,
+            consent_type="delivery_analytics",
+            granted=True,
+            source="interview_camera_opt_in",
+        )
+        if consent:
+            await queries.update_interview_session(session["id"], {
+                "delivery_consent_id": consent["id"],
+                "camera_enabled": True,
+            })
+            delivery_enabled = True
 
     # Get learner profile for context
     profile = await queries.get_learner_profile(learner_id)
@@ -103,6 +105,7 @@ async def start_interview_session(
         session_id=session["id"],
         first_question=first_question,
         track=request.track,
+        camera_enabled=delivery_enabled,
     )
 
 
@@ -135,7 +138,14 @@ async def submit_answer(
 
     # Check if we should end the session
     if question_count >= MAX_QUESTIONS_PER_SESSION:
-        return await _end_session(session, transcript, learner_id)
+        delivery_metrics = None
+        if request.delivery_metrics:
+            if not session.get("delivery_consent_id"):
+                raise HTTPException(status_code=403, detail="Delivery consent not given")
+            delivery_metrics = _delivery_metrics_dict(request.delivery_metrics)
+        return await _end_session(
+            session, transcript, learner_id, delivery_metrics=delivery_metrics
+        )
 
     # Generate next question - use cached profile context from session
     session_data = session.get("context_data") or {}
@@ -267,6 +277,7 @@ async def _end_session(
     session: dict,
     transcript: list,
     learner_id: str,
+    delivery_metrics: Optional[dict] = None,
 ) -> InterviewAnswerResponse:
     """Generate feedback report and mark session as completed."""
     learner = await queries.get_learner(learner_id)
@@ -282,11 +293,11 @@ async def _end_session(
             "target_role": target_role,
             "transcript": transcript,
         }
-        # Include delivery metrics if already submitted (Phase 4.5)
-        delivery_metrics = session.get("delivery_metrics")
-        if delivery_metrics:
-            context["delivery_metrics"] = delivery_metrics
-            context["camera_enabled"] = session.get("camera_enabled", False)
+        # Metrics submitted with the final answer can influence this feedback.
+        effective_delivery_metrics = delivery_metrics or session.get("delivery_metrics")
+        if effective_delivery_metrics:
+            context["delivery_metrics"] = effective_delivery_metrics
+            context["camera_enabled"] = True
 
         result = await gateway.generate(
             task_type="interview.feedback",
@@ -309,18 +320,37 @@ async def _end_session(
         feedback_data.setdefault("readiness_subscore", 50)
 
     # Update session as completed
-    await queries.update_interview_session(session["id"], {
+    update_data = {
         "status": "completed",
         "transcript": transcript,
         "feedback_report": feedback_data,
         "readiness_subscore": feedback_data.get("readiness_subscore", 50),
-    })
+    }
+    if delivery_metrics:
+        update_data.update({
+            "camera_enabled": True,
+            "delivery_metrics": delivery_metrics,
+        })
+    await queries.update_interview_session(session["id"], update_data)
 
     return InterviewAnswerResponse(
         next_question=None,
         status="completed",
         feedback_report=InterviewFeedbackResponse(**feedback_data),
     )
+
+
+def _delivery_metrics_dict(request: DeliveryMetricsRequest) -> dict:
+    """Convert a validated metrics request to the JSON stored in Supabase."""
+    return {
+        "eye_contact_pct": request.eye_contact_pct,
+        "posture_score": request.posture_score,
+        "expression_stability_score": request.expression_stability_score,
+        "fidget_frequency": request.fidget_frequency,
+        "words_per_minute": request.words_per_minute,
+        "filler_word_rate": request.filler_word_rate,
+        "pause_frequency": request.pause_frequency,
+    }
 
 
 def _build_profile_summary(profile: Optional[dict], learner: Optional[dict]) -> str:

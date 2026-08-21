@@ -16,7 +16,7 @@ Categories:
 import uuid
 import time
 import logging
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple
 
 from app.models.psychometric_test_schemas import (
     Question,

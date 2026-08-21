@@ -436,11 +436,25 @@ class AdaptationTriggerRequest(BaseModel):
 class InterviewSessionRequest(BaseModel):
     """POST /interview/session request body — api.md §5"""
     track: str = Field(..., pattern="^(technical|hr)$")
+    camera_enabled: bool = False
+
+
+class DeliveryMetricsRequest(BaseModel):
+    """Derived client-side delivery metrics; no audio or video is uploaded."""
+    camera_enabled: bool = False
+    eye_contact_pct: Optional[int] = Field(None, ge=0, le=100)
+    posture_score: Optional[float] = Field(None, ge=0, le=1)
+    expression_stability_score: Optional[float] = Field(None, ge=0, le=1)
+    fidget_frequency: Optional[float] = Field(None, ge=0)
+    words_per_minute: Optional[int] = Field(None, ge=0)
+    filler_word_rate: Optional[float] = Field(None, ge=0, le=1)
+    pause_frequency: Optional[float] = Field(None, ge=0)
 
 
 class InterviewAnswerRequest(BaseModel):
     """POST /interview/session/{id}/answer request body — api.md §5"""
     answer: str = Field(..., min_length=1)
+    delivery_metrics: Optional[DeliveryMetricsRequest] = None
 
 
 class InterviewQuestionResponse(BaseModel):
@@ -485,6 +499,7 @@ class InterviewStartResponse(BaseModel):
     session_id: str
     first_question: str
     track: str
+    camera_enabled: bool = False
 
 
 class InterviewAnswerResponse(BaseModel):
@@ -492,18 +507,6 @@ class InterviewAnswerResponse(BaseModel):
     next_question: Optional[str] = None
     status: str = "in_progress"
     feedback_report: Optional[InterviewFeedbackResponse] = None
-
-
-class DeliveryMetricsRequest(BaseModel):
-    """POST /interview/session/{id}/delivery-metrics request — api.md §5 (Phase 4.5)"""
-    camera_enabled: bool = False
-    eye_contact_pct: Optional[int] = Field(None, ge=0, le=100)
-    posture_score: Optional[float] = Field(None, ge=0, le=1)
-    expression_stability_score: Optional[float] = Field(None, ge=0, le=1)
-    fidget_frequency: Optional[float] = Field(None, ge=0)
-    words_per_minute: Optional[int] = Field(None, ge=0)
-    filler_word_rate: Optional[float] = Field(None, ge=0, le=1)
-    pause_frequency: Optional[float] = Field(None, ge=0)
 
 
 class DeliveryMetricsResponse(BaseModel):

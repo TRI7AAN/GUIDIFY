@@ -10,19 +10,14 @@ dead (no consumers).
 """
 
 import logging
-from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from app.core.auth import get_current_learner_id
 from app.models.career_schemas import (
     LearnerProfile,
     MLProfileRequest,
-    RecommendationItem,
-    RecommendationResponse,
 )
-from app.services.ml_service import ml_service
-from app.services.recommender import NCVET_COURSES
 
 logger = logging.getLogger("guidify.api.ml")
 

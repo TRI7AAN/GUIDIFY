@@ -8,7 +8,7 @@ one code path — no duplicated context assembly and no import cycle.
 
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from app.db import queries
 from app.ai_gateway.gateway import gateway

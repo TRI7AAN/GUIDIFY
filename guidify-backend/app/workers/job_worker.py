@@ -25,7 +25,6 @@ For production, consider running multiple workers or using Supabase Edge Functio
 import asyncio
 import logging
 import signal
-import sys
 from typing import Any, Dict, Optional
 
 from app.ai_gateway.gateway import gateway

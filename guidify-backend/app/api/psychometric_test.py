@@ -10,9 +10,8 @@ Endpoints:
 
 import asyncio
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_learner_id
 from app.core.exceptions import ResourceNotFoundError

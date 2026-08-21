@@ -12,7 +12,6 @@ Updated to use AI Gateway instead of legacy gemini_client.
 
 import json
 import os
-import asyncio
 from typing import List, Dict, Any, Optional
 
 # CQ-01 FIX: Use the centralized singleton Supabase client

@@ -35,12 +35,16 @@ export async function initDeliveryAnalytics(videoEl, consentGranted) {
   frameMetricsBuffer = [];
   sessionStartTime = Date.now();
 
-  // Start face/pose tracking
-  trackingStop = await startTracking(videoEl, (metrics) => {
-    frameMetricsBuffer.push(metrics);
-  });
-
-  return true;
+  try {
+    trackingStop = await startTracking(videoEl, (metrics) => {
+      frameMetricsBuffer.push(metrics);
+    });
+    return true;
+  } catch (error) {
+    console.warn('Delivery analytics could not start; continuing text-only.', error);
+    stopDeliveryAnalytics();
+    return false;
+  }
 }
 
 /**

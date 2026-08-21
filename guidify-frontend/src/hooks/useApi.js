@@ -5,7 +5,7 @@
  * Provides loading states, error handling, and automatic retries.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import apiClient from '../api/apiClient';
 
 /**

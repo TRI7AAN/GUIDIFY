@@ -1,10 +1,10 @@
 import os
 import re
-from typing import Optional, Dict, Any
+from typing import Dict, Any
 import pytesseract
 from PIL import Image
 from pdf2image import convert_from_path
-import PyPDF2
+import pypdf
 import docx
 
 def extract_text_from_file(file_path: str) -> str:
@@ -21,15 +21,15 @@ def extract_text_from_file(file_path: str) -> str:
     
     try:
         if file_extension == '.pdf':
-            # Try PyPDF2 first (faster)
+            # Try pypdf first (faster)
             try:
                 with open(file_path, 'rb') as file:
-                    reader = PyPDF2.PdfReader(file)
+                    reader = pypdf.PdfReader(file)
                     text = ""
                     for page in reader.pages:
                         text += page.extract_text() or ""
                 
-                # If PyPDF2 extracted meaningful text, return it
+                # If pypdf extracted meaningful text, return it
                 if len(text.strip()) > 100:
                     return text
                     
@@ -39,8 +39,8 @@ def extract_text_from_file(file_path: str) -> str:
                 for page in pages:
                     text += pytesseract.image_to_string(page)
                 return text
-            except Exception as e:
-                # Fall back to OCR if PyPDF2 fails
+            except Exception:
+                # Fall back to OCR if pypdf fails
                 pages = convert_from_path(file_path, 300)
                 text = ""
                 for page in pages:

@@ -11,7 +11,7 @@ No service-role key is used. All access is through the publishable key:
 """
 
 import contextvars
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 from supabase import create_client, Client
 from app.core.config import settings
 

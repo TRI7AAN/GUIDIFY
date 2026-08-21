@@ -2,19 +2,21 @@
 # Builds the FastAPI backend from the guidify-backend/ monorepo subdirectory.
 # Listens on $PORT (Render injects it) so health checks and routing work.
 
-FROM python:3.9-slim
+FROM python:3.12-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     poppler-utils \
     libgomp1 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 # Copy requirements and install dependencies
 COPY guidify-backend/requirements.txt .
+RUN pip install --no-cache-dir torch==2.8.0 --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code

@@ -176,8 +176,14 @@ export const missionsAPI = {
 
 /** Interview — api.md §5 */
 export const interviewAPI = {
-  startSession: (track) => api.post('/api/v1/interview/session', { track }),
-  submitAnswer: (sessionId, answer) => api.post(`/api/v1/interview/session/${sessionId}/answer`, { answer }),
+  startSession: (track, cameraEnabled = false) => api.post('/api/v1/interview/session', {
+    track,
+    camera_enabled: cameraEnabled,
+  }),
+  submitAnswer: (sessionId, answer, deliveryMetrics = null) => api.post(
+    `/api/v1/interview/session/${sessionId}/answer`,
+    { answer, delivery_metrics: deliveryMetrics },
+  ),
   getSession: (sessionId) => api.get(`/api/v1/interview/session/${sessionId}`),
   submitDeliveryMetrics: (sessionId, metrics) => api.post(`/api/v1/interview/session/${sessionId}/delivery-metrics`, metrics),
 };

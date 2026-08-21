@@ -11,12 +11,10 @@ Endpoints:
 
 import asyncio
 import logging
-import random
 from datetime import date
 from typing import Optional
 
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
 
 from app.core.auth import get_current_learner_id
 from app.core.exceptions import ResourceNotFoundError

@@ -7,7 +7,7 @@ Generates the next interview question contextual to the session track
 Output schema: InterviewQuestionResponse
 """
 
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel
 
 

@@ -775,7 +775,7 @@ async def get_daily_activity(learner_id: str) -> Dict[str, int]:
 
     Returns a dict of {"YYYY-MM-DD": count} for dates with activity.
     """
-    from datetime import date, datetime, timedelta, timezone
+    from datetime import date, datetime, timedelta
 
     cut_off = (date.today() - timedelta(days=365)).isoformat()
     activity: Dict[str, int] = {}

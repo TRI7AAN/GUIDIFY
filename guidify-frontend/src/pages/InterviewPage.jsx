@@ -10,7 +10,7 @@
  * Delivery Analytics (Phase 4.5) is additive — camera off = same text-only flow.
  */
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { interviewAPI } from '../lib/api';
 import {
@@ -63,11 +63,12 @@ function DeliveryConsentScreen({ onProceed, track }) {
             />
             <div>
               <p className="font-medium text-white flex items-center gap-2">
-                Enable camera for delivery feedback
+                Enable camera and microphone for delivery feedback
                 <span className="text-[10px] bg-[#1F2330] text-[#A4ACBC] px-1.5 py-0.5 rounded-full font-semibold">Optional</span>
               </p>
               <p className="text-sm text-[#A4ACBC] mt-1 leading-relaxed">
-                Your camera never leaves your device — we only calculate a few numbers like eye contact percentage and pacing. No video is recorded or uploaded.
+                Your camera and microphone data never leave your device. Only derived
+                scores such as eye contact and pacing are sent; no media is recorded or uploaded.
               </p>
             </div>
           </div>
@@ -203,13 +204,13 @@ export default function InterviewPage() {
     setLoading(true);
 
     try {
-      const res = await interviewAPI.startSession(track);
+      const res = await interviewAPI.startSession(track, wantsCamera);
       setSessionId(res.session_id);
       setMessages([{ role: 'interviewer', content: res.first_question }]);
       transcriptTextsRef.current = [];
 
       // Init delivery analytics if camera wanted
-      if (wantsCamera && videoRef.current) {
+      if (res.camera_enabled && videoRef.current) {
         const started = await initDeliveryAnalytics(videoRef.current, true);
         setCameraEnabled(started);
         if (started && videoRef.current.srcObject) {
@@ -233,17 +234,26 @@ export default function InterviewPage() {
     setLoading(true);
 
     try {
-      const res = await interviewAPI.submitAnswer(sessionId, answer);
+      const questionCount = messages.filter(message => message.role === 'interviewer').length;
+      const isFinalQuestion = questionCount >= 10;
+      const inlineMetrics = cameraEnabled && isFinalQuestion
+        ? finalizeDeliveryMetrics(transcriptTextsRef.current)
+        : null;
+      const res = await interviewAPI.submitAnswer(sessionId, answer, inlineMetrics);
 
       if (res.status === 'completed') {
         // Submit delivery metrics before showing feedback
         if (cameraEnabled) {
-          const payload = finalizeDeliveryMetrics(transcriptTextsRef.current);
-          if (payload) {
-            try {
-              await interviewAPI.submitDeliveryMetrics(sessionId, payload);
-            } catch (e) {
-              console.error('Failed to submit delivery metrics:', e);
+          // An AI provider can end early. Persist metrics separately in that case;
+          // the normal ten-question path already sent them with the final answer.
+          if (!inlineMetrics) {
+            const payload = finalizeDeliveryMetrics(transcriptTextsRef.current);
+            if (payload) {
+              try {
+                await interviewAPI.submitDeliveryMetrics(sessionId, payload);
+              } catch (e) {
+                console.error('Failed to submit delivery metrics:', e);
+              }
             }
           }
           stopDeliveryAnalytics();

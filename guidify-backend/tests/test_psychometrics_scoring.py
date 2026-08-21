@@ -12,7 +12,6 @@ no AI Gateway involvement.
 
 import json
 
-import pytest
 
 from app.services import psychometrics_scoring as scoring
 

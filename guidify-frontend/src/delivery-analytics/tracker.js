@@ -6,7 +6,7 @@
  * Processes frames in-memory; no video is uploaded or stored.
  */
 
-import { VIDEO_SAMPLE_INTERVAL_MS, EYE_CONTACT_THRESHOLDS, POSTURE_THRESHOLDS, EXPRESSION_STABILITY_THRESHOLDS, FIDGET_THRESHOLDS } from './config';
+import { VIDEO_SAMPLE_INTERVAL_MS } from './config';
 
 let faceLandmarker = null;
 let poseLandmarker = null;
@@ -25,7 +25,7 @@ const MAX_BUFFER = 30;
 export async function checkSupport() {
   if (!navigator.mediaDevices?.getUserMedia) return false;
   try {
-    const { FaceLandmarker, PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+    const { FilesetResolver } = await import('@mediapipe/tasks-vision');
     const vision = await FilesetResolver.forVisionTasks(
       'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
     );
@@ -43,47 +43,56 @@ export async function checkSupport() {
  */
 export async function startTracking(videoEl, onMetricsUpdate) {
   videoElement = videoEl;
+  let stream = null;
 
-  const { FaceLandmarker, PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
+  try {
+    const { FaceLandmarker, PoseLandmarker, FilesetResolver } = await import('@mediapipe/tasks-vision');
 
-  const vision = await FilesetResolver.forVisionTasks(
-    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
-  );
+    const vision = await FilesetResolver.forVisionTasks(
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+    );
 
-  faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
-    baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task', delegate: 'GPU' },
-    outputFaceBlendshapes: true,
-    outputFacialTransformationMatrixes: true,
-    numFaces: 1,
-  });
+    faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task', delegate: 'GPU' },
+      outputFaceBlendshapes: true,
+      outputFacialTransformationMatrixes: true,
+      numFaces: 1,
+    });
 
-  poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
-    baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task', delegate: 'GPU' },
-    numPoses: 1,
-    minPoseDetectionConfidence: 0.5,
-  });
+    poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task', delegate: 'GPU' },
+      numPoses: 1,
+      minPoseDetectionConfidence: 0.5,
+    });
 
-  // Start video stream
-  const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, facingMode: 'user' }, audio: false });
-  videoElement.srcObject = stream;
-  await videoElement.play();
+    // Request both sources disclosed on the consent screen. Media never leaves
+    // the browser; only the derived metrics are submitted.
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 320, height: 240, facingMode: 'user' },
+      audio: true,
+    });
+    videoElement.srcObject = stream;
+    await videoElement.play();
 
-  const sample = () => {
-    if (!faceLandmarker || !videoElement || videoElement.paused) return;
-    try {
-      const faceResult = faceLandmarker.detectForVideo(videoElement, performance.now());
-      const poseResult = poseLandmarker.detectForVideo(videoElement, performance.now());
-      const metrics = computeFrameMetrics(faceResult, poseResult);
-      onMetricsUpdate(metrics);
-    } catch {
-      // Frame processing error — skip, don't crash
-    }
-  };
+    const sample = () => {
+      if (!faceLandmarker || !videoElement || videoElement.paused) return;
+      try {
+        const faceResult = faceLandmarker.detectForVideo(videoElement, performance.now());
+        const poseResult = poseLandmarker.detectForVideo(videoElement, performance.now());
+        const metrics = computeFrameMetrics(faceResult, poseResult);
+        onMetricsUpdate(metrics);
+      } catch {
+        // Frame processing error — skip, don't crash
+      }
+    };
 
-  // Sample at fixed interval
-  sampleTimerId = setInterval(sample, VIDEO_SAMPLE_INTERVAL_MS);
+    sampleTimerId = setInterval(sample, VIDEO_SAMPLE_INTERVAL_MS);
 
-  return () => stopTracking(stream);
+    return () => stopTracking(stream);
+  } catch (error) {
+    stopTracking(stream);
+    throw error;
+  }
 }
 
 function stopTracking(stream) {
@@ -102,7 +111,8 @@ function computeFrameMetrics(faceResult, poseResult) {
 
   // Eye contact: face facing camera if front-face rotation is near 0
   if (faceResult.faceTransformationMatrixes?.length > 0) {
-    const mat = faceResult.faceTransformationMatrixes[0];
+    const matrix = faceResult.faceTransformationMatrixes[0];
+    const mat = matrix.data || matrix;
     // Extract yaw from rotation matrix (simplified)
     const yaw = Math.asin(Math.min(1, Math.max(-1, mat[8])));
     const gazeOnCamera = 1 - Math.min(1, Math.abs(yaw) / (Math.PI / 4));

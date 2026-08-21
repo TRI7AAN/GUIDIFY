@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { useAuth } from './AuthContext';
 
@@ -95,7 +95,7 @@ export const OnboardingProvider = ({ children }) => {
     initOnboarding();
 
     return () => { mounted = false; };
-  }, [user?.id]);
+  }, [user, updateOnboardingStatus]);
 
   /**
    * Save Step 1: Profile Info
@@ -245,7 +245,7 @@ export const OnboardingProvider = ({ children }) => {
   };
 
 
-  const value = useMemo(() => ({
+  const value = {
     profileData,
     setProfileData,
     quizResponses,
@@ -261,12 +261,7 @@ export const OnboardingProvider = ({ children }) => {
     nextStep,
     prevStep,
     error,
-  }), [
-    profileData, quizResponses, quizScores, careerSuggestion,
-    currentStep, isLoading, error,
-    saveProfileData, saveQuizResponses, saveCareerSuggestion,
-    calculateCategoryScores, nextStep, prevStep,
-  ]);
+  };
 
   return (
     <OnboardingContext.Provider value={value}>

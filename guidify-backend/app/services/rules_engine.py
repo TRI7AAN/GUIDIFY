@@ -14,7 +14,7 @@ Per rules.md §6.1:
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
 from app.db import queries
 from app.services.roadmap_service import regenerate_roadmap

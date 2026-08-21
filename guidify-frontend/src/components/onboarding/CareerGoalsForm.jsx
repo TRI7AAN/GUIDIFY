@@ -61,7 +61,7 @@ export default function CareerGoalsForm() {
       interests,
       learningHours,
     }));
-  }, [targetRole, skills, interests, learningHours]);
+  }, [targetRole, skills, interests, learningHours, setProfileData]);
 
   const addSkill = (skill) => {
     const trimmed = skill.trim();

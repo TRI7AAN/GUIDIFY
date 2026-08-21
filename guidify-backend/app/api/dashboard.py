@@ -10,7 +10,7 @@ Phase 2 implementation: aggregates real streak, roadmap progress, and skill data
 
 import asyncio
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict
 from fastapi import APIRouter, Depends
 
 from app.core.auth import get_current_learner_id

@@ -100,6 +100,14 @@ export default function Dashboard() {
     || user?.email?.split('@')[0]
     || 'Learner';
 
+  // Hooks must run in the same order even while the initial request is loading.
+  const skillsMastery = useMemo(() => {
+    const graph = dashboard?.skill_graph;
+    if (!graph || graph.length === 0) return 0;
+    const avgLevel = graph.reduce((sum, s) => sum + (s.level || 0), 0) / graph.length;
+    return Math.round((avgLevel / 4) * 100);
+  }, [dashboard?.skill_graph]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -141,14 +149,6 @@ export default function Dashboard() {
 
   const tier = getTier(roadmapProgress);
   const tierProgressToNext = Math.min(tier.progressToNext * 4, 100); // Scale to 25% per tier
-
-  // Compute skills mastery from skill_graph
-  const skillsMastery = useMemo(() => {
-    const graph = dashboard?.skill_graph;
-    if (!graph || graph.length === 0) return 0;
-    const avgLevel = graph.reduce((sum, s) => sum + (s.level || 0), 0) / graph.length;
-    return Math.round((avgLevel / 4) * 100);
-  }, [dashboard?.skill_graph]);
 
   const learningPathSteps = [
     { title: 'Step 1: Data Fundamentals', desc: 'Learn the basics of data structures and algorithms.', icon: BarChart3, status: 'active' },

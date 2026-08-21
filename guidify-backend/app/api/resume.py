@@ -14,6 +14,7 @@ Endpoints:
 
 import logging
 import os
+import tempfile
 
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException, Request
 
@@ -112,7 +113,8 @@ async def upload_resume(
     """
     temp_path = None
     try:
-        temp_path = await save_uploaded_file(file, directory="/tmp/guidify_resumes")
+        upload_directory = os.path.join(tempfile.gettempdir(), "guidify_resumes")
+        temp_path = await save_uploaded_file(file, directory=upload_directory)
 
         resume_text = extract_text_from_file(temp_path)
         if not resume_text or len(resume_text.strip()) < 50:

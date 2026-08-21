@@ -5,7 +5,7 @@ Pydantic models for the yes/maybe/no psychometric assessment and decision engine
 Categories: Technical Aptitude, Creative Thinking, Leadership, Analytical Reasoning, Interpersonal Skills.
 """
 
-from typing import List, Optional, Dict
+from typing import List, Optional
 from pydantic import BaseModel, Field
 
 

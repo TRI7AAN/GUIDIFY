@@ -5,13 +5,20 @@ Centralized configuration management using Pydantic Settings.
 All environment variables are validated and typed here.
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 import os
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
+
+    model_config = SettingsConfigDict(
+        # Don't load .env in production; deployments use environment variables.
+        env_file=".env" if os.getenv("ENVIRONMENT") != "production" else None,
+        case_sensitive=True,
+        extra="ignore",
+    )
 
     # Supabase Configuration
     SUPABASE_URL: str
@@ -43,7 +50,9 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
 
     # Server Configuration
-    HOST: str = "0.0.0.0"
+    # Container services must bind all interfaces; exposure is controlled by the
+    # deployment network/firewall rather than the application socket.
+    HOST: str = "0.0.0.0"  # nosec B104
     PORT: int = 8000
     DEBUG: bool = False
     # MED-03 FIX: Default to 'production' — require explicit override for dev.
@@ -71,14 +80,6 @@ class Settings(BaseSettings):
     # Feature Flags
     ENABLE_SENTRY: bool = False
     SENTRY_DSN: str = ""
-
-    class Config:
-        # Don't load .env in production — use environment variables only
-        # .env is for local development only and contains revoked keys in git history
-        env_file = ".env" if os.getenv("ENVIRONMENT") != "production" else None
-        case_sensitive = True
-        extra = "ignore"
-
 
 # Global settings instance
 settings = Settings()

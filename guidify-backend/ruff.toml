@@ -1,0 +1,9 @@
+line-length = 100
+
+[lint]
+# Enforce syntax/logic errors and unused code without forcing a repository-wide
+# style migration on every CI run.
+select = ["E4", "E7", "E9", "F"]
+
+[lint.per-file-ignores]
+"app/models/__init__.py" = ["F403"]

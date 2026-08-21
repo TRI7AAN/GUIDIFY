@@ -7,7 +7,7 @@ import pdfplumber
 from fastapi import UploadFile
 import shutil
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional
 
 # Create temp directory for file processing
 TEMP_DIR = Path("./temp")
@@ -52,7 +52,7 @@ def extract_marks(text: str) -> Optional[int]:
             v = int(n)
             if 0 <= v <= 100:
                 candidates.append(v)
-        except:
+        except ValueError:
             pass
     
     # Return highest mark found or None if not found

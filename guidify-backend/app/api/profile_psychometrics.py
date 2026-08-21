@@ -12,13 +12,12 @@ Per rules.md §9: 6-month retake cooldown enforced.
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app.core.auth import get_current_learner_id
-from app.db import queries
 from app.ai_gateway.gateway import gateway
 
 logger = logging.getLogger("guidify.api.profile_psychometrics")
@@ -68,7 +67,7 @@ async def submit_psychometrics(
     Per api.md §7: Raw trait percentages are never included in this response.
     Per rules.md §9.1: Enforces 6-month retake cooldown.
     """
-    from app.services.psychometrics_scoring import score_all, get_ipip_version, get_riasec_version
+    from app.services.psychometrics_scoring import score_all
     from app.services.supabase_client import db as supabase
 
     # Validate consent - required

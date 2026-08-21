@@ -9,9 +9,10 @@ HIGH-07 FIX: save_uploaded_file() now:
 """
 
 import os
+import tempfile
 import uuid
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, Optional
 from fastapi import UploadFile, HTTPException
 
 logger = logging.getLogger("guidify")
@@ -31,7 +32,7 @@ MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 ALLOWED_EXTENSIONS = {"pdf", "docx", "doc", "txt"}
 
 
-async def save_uploaded_file(file: UploadFile, directory: str = "/tmp") -> str:
+async def save_uploaded_file(file: UploadFile, directory: Optional[str] = None) -> str:
     """
     Save uploaded file to disk with full security validation.
 
@@ -77,6 +78,9 @@ async def save_uploaded_file(file: UploadFile, directory: str = "/tmp") -> str:
             status_code=400,
             detail="Invalid file type. Only PDF, Word documents, and plain text are accepted."
         )
+
+    if directory is None:
+        directory = os.path.join(tempfile.gettempdir(), "guidify_uploads")
 
     # Generate a UUID-based filename to prevent path traversal and concurrent-user collisions
     safe_name = f"{uuid.uuid4().hex}.{extension}"
